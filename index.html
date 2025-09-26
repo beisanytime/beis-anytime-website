@@ -18,17 +18,13 @@
             <div class="logo">
                 <a href="index.html">Beis Anytime</a>
             </div>
-            <div class="nav-wrapper">
-                <nav class="main-nav">
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="#">All Shiurim</a></li>
-                    </ul>
-                </nav>
-                <div class="dark-mode-toggle" id="theme-toggle">
-                    <i class="fas fa-moon" id="theme-icon"></i>
-                </div>
-            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="#">All Shiurim</a></li>
+                    <!-- "New Shiur" button removed -->
+                </ul>
+            </nav>
         </div>
     </header>
 
@@ -39,8 +35,8 @@
                 <h1>Timeless Torah, Available Anytime.</h1>
                 <p class="subtitle">Find inspiration and clarity in our collection of shiurim from leading speakers.</p>
                 <div class="search-bar">
-                    <input type="search" placeholder="Search for a shiur or speaker...">
-                    <button type="submit">Search</button>
+                    <input type="search" placeholder="Search for a shiur or speaker..." id="mainSearchBar">
+                    <button type="submit" id="mainSearchButton">Search</button>
                 </div>
             </div>
         </section>
@@ -72,17 +68,16 @@
         <section class="shiurim-section">
             <div class="container">
                  <h2>Recent Shiurim</h2>
-                 <div class="carousel-container">
-                     <div class="carousel">
-                        <div class="carousel-track">
-                            <div class="shiur-card"><h4>Recent Shiur 1</h4><p>Rabbi Hartman</p></div>
-                            <div class="shiur-card"><h4>Recent Shiur 2</h4><p>Rabbi Rosenfeld</p></div>
-                            <div class="shiur-card"><h4>Recent Shiur 3</h4><p>Rabbi Golker</p></div>
-                            <div class="shiur-card"><h4>Recent Shiur 4</h4><p>Rabbi Gerber</p></div>
-                            <div class="shiur-card"><h4>Recent Shiur 5</h4><p>Rabbi Konik</p></div>
-                            <div class="shiur-card"><h4>Recent Shiur 6</h4><p>Rabbi Hartman</p></div>
-                        </div>
-                     </div>
+                 <div class="carousel">
+                    <div class="carousel-track">
+                        <div class="shiur-card"><h4>Recent Shiur 1</h4><p>Rabbi Hartman</p></div>
+                        <div class="shiur-card"><h4>Recent Shiur 2</h4><p>Rabbi Rosenfeld</p></div>
+                        <div class="shiur-card"><h4>Recent Shiur 3</h4><p>Rabbi Golker</p></div>
+                        <div class="shiur-card"><h4>Recent Shiur 4</h4><p>Rabbi Gerber</p></div>
+                        <div class="shiur-card"><h4>Recent Shiur 5</h4><p>Rabbi Konik</p></div>
+                        <div class="shiur-card"><h4>Recent Shiur 6</h4><p>Rabbi Hartman</p></div>
+                        <div class="shiur-card"><h4>Recent Shiur 7</h4><p>Rabbi Rosenfeld</p></div>
+                    </div>
                  </div>
             </div>
         </section>
@@ -90,9 +85,9 @@
         <!-- All Shiurim Section -->
         <section class="shiurim-section">
             <div class="container">
-                <h2>All Shiurim</h2>
+                <!-- NEW: Added main rabbis to the bottom list -->
                 <div class="rabbi-shiurim">
-                    <h3>From Rabbi Hartman</h3>
+                    <h2>Shiurim from Rabbi Hartman</h2>
                     <div class="shiur-grid">
                         <div class="shiur-card"><h4>Parashas Ki Savo</h4><p>Sept 18, 2025</p></div>
                         <div class="shiur-card"><h4>The Essence of Rosh Hashana</h4><p>Sept 17, 2025</p></div>
@@ -100,7 +95,7 @@
                     </div>
                 </div>
                  <div class="rabbi-shiurim">
-                    <h3>From Rabbi Rosenfeld</h3>
+                    <h2>Shiurim from Rabbi Rosenfeld</h2>
                     <div class="shiur-grid">
                         <div class="shiur-card"><h4>Dvar Halacha: Bishul Akum</h4><p>Sept 18, 2025</p></div>
                         <div class="shiur-card"><h4>Dvar Halacha: Tevilas Keilim</h4><p>Sept 17, 2025</p></div>
@@ -108,11 +103,28 @@
                     </div>
                 </div>
                  <div class="rabbi-shiurim">
-                    <h3>From Rabbi Golker</h3>
+                    <h2>Shiurim from Rabbi Golker</h2>
                     <div class="shiur-grid">
                         <div class="shiur-card"><h4>Topics in Gemara</h4><p>Sept 18, 2025</p></div>
                         <div class="shiur-card"><h4>The Philosophy of the Ramchal</h4><p>Sept 17, 2025</p></div>
                         <div class="shiur-card"><h4>Chassidus Explained</h4><p>Sept 16, 2025</p></div>
+                    </div>
+                </div>
+                <!-- Other Rabbis -->
+                <div class="rabbi-shiurim">
+                    <h2>Shiurim from Rabbi Gerber</h2>
+                    <div class="shiur-grid">
+                        <div class="shiur-card"><h4>The Power of Gratitude</h4><p>Sept 15, 2025</p></div>
+                        <div class="shiur-card"><h4>Insights into Tefillah</h4><p>Sept 12, 2025</p></div>
+                        <div class="shiur-card"><h4>Lessons from the Avos</h4><p>Sept 10, 2025</p></div>
+                    </div>
+                </div>
+                <div class="rabbi-shiurim">
+                    <h2>Shiurim from Rabbi Konik</h2>
+                    <div class="shiur-grid">
+                        <div class="shiur-card"><h4>Understanding Emunah</h4><p>Sept 14, 2025</p></div>
+                        <div class="shiur-card"><h4>The Weekly Parsha</h4><p>Sept 11, 2025</p></div>
+                        <div class="shiur-card"><h4>Exploring Jewish History</h4><p>Sept 09, 2025</p></div>
                     </div>
                 </div>
             </div>
@@ -126,36 +138,6 @@
             <p>Designed by BIGJ</p>
         </div>
     </footer>
-
-    <script>
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
-        const currentTheme = localStorage.getItem('theme');
-
-        // Apply the saved theme on page load
-        if (currentTheme) {
-            document.body.classList.add(currentTheme);
-            if (currentTheme === 'dark-mode') {
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            }
-        }
-
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            let theme = 'light-mode';
-            if (document.body.classList.contains('dark-mode')) {
-                theme = 'dark-mode';
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            } else {
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-            }
-            // Save the user's preference
-            localStorage.setItem('theme', theme);
-        });
-    </script>
 
 </body>
 </html>
