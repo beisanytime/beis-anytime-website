@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shiurim from Rabbi Golker - Beis Anytime</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Existing CSS moved from style.css --- */
+        /* Basic styling for the placeholder image */
+        .shiur-card-image {
+            background-size: cover;
+            background-position: center;
+            width: 100%;
+            height: 150px; /* Example height */
+            background-color: #eee; /* Fallback color */
+        }
+        .add-shiur-card {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            color: #888;
+            text-decoration: none;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            transition: border-color 0.3s ease;
+        }
+        .add-shiur-card:hover {
+            border-color: #aaa;
+        }
+        /* Add styles for the loading message */
+        .loading-message {
+            text-align: center;
+            grid-column: 1 / -1; /* Span all columns in the grid */
+            padding: 20px;
+            color: #555;
+        }
+        /* Ensure file drop zone is visible and styled */
+        .file-drop-zone {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+            position: relative; /* For centering content */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .file-drop-zone.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .file-drop-zone-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        #thumbnailPreview {
+            max-width: 100%;
+            max-height: 200px; /* Limit preview height */
+            margin-top: 10px;
+            border: 1px solid #ddd; /* Subtle border for preview */
+            border-radius: 4px;
+        }
+        .thumbnail-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        #videoScrubber {
+            flex-grow: 1; /* Allow scrubber to take available space */
+        }
+
+        /* --- General Setup & Variables (Copied from style.css) --- */
+        :root {
+            --primary-color: #0c2d48;
+            --accent-color: #b38b00;
+            --text-color: #1d1d1f;
+            --text-color-light: #f5f5f7;
+            --background-light: #f5f5f7;
+            --border-color: #d1d1d6;
+            --border-radius: 12px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--background-light);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(200, 215, 230, 0.4), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(220, 210, 190, 0.4), transparent 50%);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+        h1, h2, h3, h4 { color: var(--primary-color); font-weight: 700; }
+        a { text-decoration: none; color: var(--primary-color); }
+
+        /* --- Header --- */
+        .site-header { background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); padding: 15px 0; position: sticky; top: 0; z-index: 1000; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; }
+        .logo a { font-size: 1.6em; font-weight: 700; }
+        .main-nav ul { margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 30px; }
+        .main-nav a { font-weight: 600; transition: color 0.3s ease; }
+        .main-nav a:hover { color: var(--accent-color); }
+
+        /* --- Hero Section (Homepage) --- */
+        .hero-section { text-align: center; padding: 90px 0; }
+        .hero-section h1 { font-size: 3.5rem; line-height: 1.1; margin-bottom: 1rem; }
+        .hero-section .subtitle { font-size: 1.2rem; color: #555; margin-bottom: 2rem; }
+        .search-bar { display: flex; max-width: 550px; margin: 0 auto; }
+        .search-bar input { flex-grow: 1; border: 1px solid #ddd; padding: 15px 20px; font-size: 1rem; border-radius: var(--border-radius) 0 0 var(--border-radius); }
+        .search-bar button { border: none; background-color: var(--primary-color); color: white; padding: 0 25px; font-size: 1rem; cursor: pointer; border-radius: 0 var(--border-radius) var(--border-radius) 0; }
+
+        /* --- Main Speakers Section (Homepage) --- */
+        .main-speakers-section { padding: 40px 0; }
+        .speaker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+        .speaker-card { height: 350px; border-radius: var(--border-radius); overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 25px; background-size: cover; background-position: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .speaker-card:hover { transform: scale(1.03); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
+        #golker-card { background-image: url('images/rabbi_golker.png'); }
+        #rosenfeld-card { background-image: url('images/rabbi_rosenfeld.jpg'); background-position: top center;}
+        #golker-card { background-image: url('images/rabbi_golker.png'); }
+        .speaker-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); }
+        .speaker-card-content { position: relative; z-index: 2; }
+        .speaker-card h3 { color: var(--text-color-light); font-size: 1.6rem; line-height: 1.3; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+
+        /* --- Shiurim Sections & Cards --- */
+        .shiurim-section { padding: 60px 0; }
+        .main-speakers-section + .shiurim-section { padding-top: 0; }
+        .rabbi-shiurim { margin-bottom: 50px; }
+        .rabbi-shiurim:last-child { margin-bottom: 0; }
+        .rabbi-shiurim h2, .shiurim-section h2 { font-size: 2rem; margin-bottom: 30px; }
+        .shiur-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .shiur-card {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            background-color: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.8); border-radius: var(--border-radius); box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: background-color 0.3s ease; cursor: pointer;
+        }
+        .shiur-card:hover { background-color: rgba(255, 255, 255, 0.9); }
+        .shiur-card-image {
+            height: 150px;
+            background-color: #e0e0e0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background-size: cover;
+            background-position: center;
+            background-image: url('/images/placeholder-shiur.png');
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            filter: brightness(90%);
+        }
+        .shiur-card h4, .shiur-card p { padding: 0 20px; margin: 0;}
+        .shiur-card h4 { padding-top: 15px; font-size: 1.1rem; }
+        .shiur-card p { padding-bottom: 15px; font-size: 0.85em; color: #666; }
+
+        .add-shiur-card { display: flex; align-items: center; justify-content: center; border: 2px dashed var(--border-color); background-color: transparent; color: var(--border-color); font-size: 4rem; font-weight: 200; line-height: 1; border-radius: var(--border-radius); min-height: 150px; transition: all 0.3s ease; }
+        .add-shiur-card:hover { border-color: var(--primary-color); color: var(--primary-color); background-color: rgba(255, 255, 255, 0.8); }
+
+        /* --- Carousel --- */
+        .carousel { overflow-x: auto; padding-bottom: 20px; scrollbar-width: none; -ms-overflow-style: none; }
+        .carousel::-webkit-scrollbar { display: none; }
+        .carousel-track { display: flex; gap: 25px; }
+        .carousel .shiur-card { flex: 0 0 280px; }
+
+        /* --- Footer --- */
+        .site-footer { text-align: center; padding: 40px 0; color: #777; margin-top: 40px; }
+
+        /* --- Rabbi Page Hero --- */
+        .rabbi-hero { height: 40vh; width: 100%; background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center; color: white; text-align: center; }
+        .rabbi-hero::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .rabbi-hero-content { position: relative; z-index: 2; }
+        .rabbi-hero h1 { color: white; font-size: 3.5rem; text-shadow: 0 3px 15px rgba(0,0,0,0.5); margin: 0; }
+
+        /* --- Upload Form Restructure --- */
+        .upload-section { padding: 60px 0; display: none; }
+        .upload-container {
+            max-width: 900px; margin: 0 auto; background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 40px 50px; border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 15px 45px rgba(0,0,0,0.1);
+            display: grid; grid-template-columns: 1fr 1fr; gap: 25px 40px;
+        }
+        .upload-container h1 { grid-column: 1 / -1; text-align: center; margin-top: 0; margin-bottom: 20px; }
+        .upload-main-details { grid-column: 1 / 2; display: flex; flex-direction: column; gap: 25px; }
+        .upload-side-details { grid-column: 2 / 3; }
+        .upload-full-width { grid-column: 1 / -1; }
+
+        .file-drop-zone {
+            border: 2px dashed var(--border-color); border-radius: var(--border-radius); display: flex;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            padding: 20px; cursor: pointer; transition: background-color 0.3s ease, border-color 0.3s ease;
+            height: 100%; position: relative; overflow: hidden;
+        }
+        .file-drop-zone.dragover { background-color: #e9eff5; border-color: var(--primary-color); }
+        .file-drop-zone .file-drop-zone-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+        .file-drop-zone:hover .file-drop-zone-icon { opacity: 1; }
+        .file-drop-zone p { margin: 10px 0 0 0; color: #555; font-weight: 600; }
+        .file-drop-zone span { font-size: 0.9rem; color: #888; }
+        #fileName { font-weight: 600; color: var(--accent-color); margin-top: 15px; }
+        #thumbnailPreview { max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color); display: block; margin: 10px auto 0; }
+
+        .thumbnail-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; }
+        .thumbnail-controls button {
+            background-color: transparent; color: var(--primary-color); border: 1px solid var(--border-color);
+            font-size: 1.2rem; line-height: 1; width: 38px; height: 38px; border-radius: 50%;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .thumbnail-controls button:hover { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .thumbnail-controls input[type="range"] { flex-grow: 1; max-width: 300px; -webkit-appearance: none; appearance: none; background: #e9eff5; outline: none; height: 6px; border-radius: 3px; }
+        .thumbnail-controls input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--accent-color); border-radius: 50%; cursor: grab; box-shadow: 0 0 2px rgba(0,0,0,0.5); border: 3px solid white; }
+        .thumbnail-controls input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; background: var(--accent-color); border-radius: 50%; cursor: grab; box-shadow: 0 0 2px rgba(0,0,0,0.5); border: 3px solid white; }
+
+        .input-group { margin-bottom: 0; }
+        .input-group label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--primary-color); }
+        .input-group input, .input-group textarea {
+            width: 100%; padding: 14px 16px; border: 1px solid var(--border-color); background-color: #fff;
+            border-radius: 8px; font-size: 1rem; font-family: 'Inter', sans-serif; box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(12, 45, 72, 0.1);
+        }
+        .input-group textarea { min-height: 120px; resize: vertical; }
+
+        .upload-actions { grid-column: 1 / -1; display: flex; gap: 15px; margin-top: 30px; }
+        .upload-button, .cancel-button { flex-grow: 1; padding: 15px; border: none; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .upload-button { background-color: var(--primary-color); color: white; }
+        .upload-button:hover { background-color: #081c2b; }
+        .cancel-button { background-color: transparent; color: #555; border: 1px solid var(--border-color); }
+        .cancel-button:hover { background-color: #f0f0f0; border-color: #bbb; }
+        .upload-button:disabled { background-color: #aaa; cursor: not-allowed; }
+        .upload-button.success { background-color: #28a745; }
+
+        /* --- View Shiur Page Styles (unchanged) --- */
+        .view-shiur-container { max-width: 800px; margin: 40px auto; background-color: #fff; padding: 30px; border-radius: var(--border-radius); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .view-shiur-container h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--primary-color); }
+        .view-shiur-meta { color: #666; font-size: 0.95rem; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .view-shiur-meta span { margin-right: 15px; }
+        #mediaPlayer { width: 100%; height: auto; background-color: #000; border-radius: var(--border-radius); margin-bottom: 25px; display: block; }
+        .view-shiur-content h2 { font-size: 1.5rem; color: var(--primary-color); margin-top: 30px; margin-bottom: 15px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        .view-shiur-content p { margin-bottom: 1em; color: #333; }
+        .view-shiur-content pre { background-color: #f8f8f8; border: 1px solid #ddd; border-radius: 5px; padding: 15px; white-space: pre-wrap; font-family: monospace; font-size: 0.9em; color: #333; }
+        .loading-message, .error-message { text-align: center; padding: 50px; font-size: 1.2em; color: #555; }
+        .error-message { color: red; font-weight: 600; }
+
+        /* --- PASSWORD MODAL STYLES (NEW) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; transition: opacity 0.3s ease; opacity: 1;
+        }
+        .modal-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .modal-content {
+            background: white; padding: 30px 40px; border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 400px;
+            text-align: center; transform: scale(0.95); transition: transform 0.3s ease;
+        }
+        .modal-overlay:not(.hidden) .modal-content { transform: scale(1); }
+        .modal-content h2 { margin-top: 0; margin-bottom: 10px; }
+        .modal-content p { margin-top: 0; margin-bottom: 20px; color: #666; }
+        .modal-content input[type="password"] {
+            width: 100%; padding: 12px; border: 1px solid var(--border-color);
+            border-radius: 8px; font-size: 1rem; box-sizing: border-box;
+            margin-bottom: 15px; text-align: center;
+        }
+        .modal-content input[type="password"]:focus {
+          outline: none; border-color: var(--primary-color);
+          box-shadow: 0 0 0 3px rgba(12, 45, 72, 0.1);
+        }
+        .modal-content button {
+            width: 100%; padding: 12px; border: none; background-color: var(--primary-color);
+            color: white; font-size: 1rem; font-weight: 600; border-radius: 8px;
+            cursor: pointer; transition: background-color 0.3s ease;
+        }
+        .modal-content button:hover { background-color: #081c2b; }
+        .password-error-message {
+            color: #d93025; font-size: 0.9rem; margin-bottom: 10px; display: none;
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 992px) { .speaker-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) {
+            .hero-section h1, .rabbi-hero h1 { font-size: 2.5rem; }
+            .speaker-grid, .upload-container { grid-template-columns: 1fr; }
+            .header-container { flex-direction: column; gap: 15px; }
+            .upload-main-details, .upload-side-details, .upload-full-width { grid-column: 1 / -1; }
+            .upload-container { padding: 30px 25px; }
+            .upload-actions { flex-direction: column-reverse; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="container header-container">
+            <div class="logo">
+                <a href="index.html">Beis Anytime</a>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="#">All Shiurim</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Rabbi Hero Section: Specific to Rabbi Golker -->
+        <section class="rabbi-hero" style="background-image: url('../images/rabbi_golker.png');">
+            <div class="rabbi-hero-content">
+                <h1>Shiurim from Rabbi Golker</h1>
+            </div>
+        </section>
+
+        <!-- Section 1: Shiurim Grid (Visible by default) -->
+        <section class="shiurim-section" id="shiurimSection">
+            <div class="container">
+                <div class="shiur-grid" id="shiurimGrid">
+                    <!-- Initial loading message, replaced by content after fetch -->
+                    <p class="loading-message">Loading shiurim...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Upload Form (Hidden by default) -->
+        <section class="upload-section" id="uploadSection">
+            <div class="container">
+                 <div class="upload-container">
+                    <h1>Upload a Shiur</h1>
+                    
+                    <!-- Main Details & File Upload (Left Column) -->
+                    <div class="upload-main-details">
+                        <div class="input-group">
+                            <label for="title">Title</label>
+                            <input type="text" id="title" placeholder="e.g., Parashas Ki Savo" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="description">Description (Optional)</label>
+                            <textarea id="description" placeholder="A brief summary..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- File & Thumbnail (Right Column) -->
+                    <div class="upload-side-details">
+                        <div class="file-drop-zone" id="dropZone">
+                            <span class="file-drop-zone-icon">▲</span>
+                            <p id="dropZoneText">Drag & drop video/audio file here</p>
+                            <span>or click to browse</span>
+                            <p id="fileName"></p>
+                            <!-- Image tag to display the generated thumbnail -->
+                            <img id="thumbnailPreview" src="" alt="Video thumbnail preview" style="display: none;">
+                        </div>
+                        <input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;">
+                        
+                        <!-- Thumbnail Scrubber Controls -->
+                        <div id="thumbnailScrubberControls" class="thumbnail-controls" style="display: none;">
+                            <button id="prevFrameBtn"> &lt; </button>
+                            <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1">
+                            <button id="nextFrameBtn"> &gt; </button>
+                        </div>
+                    </div>
+
+                    <!-- Full Width: Notes -->
+                    <div class="upload-full-width">
+                        <div class="input-group">
+                            <label for="notes">Notes (Optional)</label>
+                            <textarea id="notes" placeholder="Paste in notes or sources..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Metadata (Date, Uploader) -->
+                    <div class="upload-full-width upload-meta" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="input-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date">
+                        </div>
+                        <div class="input-group">
+                            <label for="uploaderName">Uploaded By</label>
+                            <input type="text" id="uploaderName" placeholder="Your Name">
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="upload-actions">
+                        <button class="cancel-button" id="cancelBtn">Cancel</button>
+                        <button class="upload-button" id="uploadBtn">Upload Shiur</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Password Modal -->
+        <div class="modal-overlay hidden" id="passwordModalOverlay">
+            <div class="modal-content">
+                <h2>Enter Password to Upload</h2>
+                <p>Please enter the password to access the upload form.</p>
+                <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password">
+                <div id="passwordError" class="password-error-message">Incorrect password. Please try again.</div>
+                <button id="passwordSubmitBtn">Submit</button>
+            </div>
+        </div>
+
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2025 Beis Anytime. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Hidden elements for video thumbnail processing (off-screen) -->
+    <video id="video-processor" muted preload="metadata" style="display: none;"></video>
+    <canvas id="canvas-processor" style="display: none;"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev'; // Your Cloudflare Worker URL
+
+            // --- UI ELEMENT SELECTIONS ---
+            const shiurimSection = document.getElementById('shiurimSection');
+            const uploadSection = document.getElementById('uploadSection');
+            const shiurimGrid = document.getElementById('shiurimGrid'); 
+            const uploadBtn = document.getElementById('uploadBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const fileInput = document.getElementById('fileInput');
+            const dateInput = document.getElementById('date');
+            const uploaderNameInput = document.getElementById('uploaderName');
+            const dropZone = document.getElementById('dropZone');
+            const fileNameDisplay = document.getElementById('fileName');
+            const titleInput = document.getElementById('title');
+            const descriptionInput = document.getElementById('description');
+            const notesInput = document.getElementById('notes');
+            
+            // Password Modal Elements
+            const passwordModalOverlay = document.getElementById('passwordModalOverlay');
+            const passwordInput = document.getElementById('passwordInput');
+            const passwordSubmitBtn = document.getElementById('passwordSubmitBtn');
+            const passwordError = document.getElementById('passwordError');
+
+            // Elements for thumbnail generation
+            const videoProcessor = document.getElementById('video-processor');
+            const canvasProcessor = document.getElementById('canvas-processor');
+            const thumbnailPreview = document.getElementById('thumbnailPreview');
+            const dropZoneText = document.getElementById('dropZoneText');
+
+            // Thumbnail scrubber controls
+            const thumbnailScrubberControls = document.getElementById('thumbnailScrubberControls');
+            const videoScrubber = document.getElementById('videoScrubber');
+            const prevFrameBtn = document.getElementById('prevFrameBtn');
+            const nextFrameBtn = document.getElementById('nextFrameBtn');
+
+            let currentVideoFile = null; // Holds the selected File object
+            let generatedThumbnailDataUrl = ''; // Stores the base64 Data URL of the thumbnail
+            let currentObjectUrl = null; // Keeps track of the blob URL for cleanup
+            let isSeeking = false; // Flag to prevent infinite loops from seeked event
+
+            // --- HELPER: Extracts Rabbi Name from Page's H1 ---
+            function getRabbiNameFromPage() {
+                const pageH1 = document.querySelector('.rabbi-hero h1');
+                if (!pageH1) return "unknown";
+                const pageH1Text = pageH1.textContent;
+                if (pageH1Text.includes("Golker")) return "rabbi_golker";
+                if (pageH1Text.includes("Rosenfeld")) return "rabbi_rosenfeld";
+                if (pageH1Text.includes("Golker")) return "rabbi_golker";
+                return "unknown"; 
+            }
+
+            // --- FUNCTION: Loads Shiurim from API and Populates Grid ---
+            async function loadShiurim() {
+                const rabbiName = getRabbiNameFromPage();
+                shiurimGrid.innerHTML = '<p class="loading-message">Loading shiurim...</p>';
+
+                try {
+                    const response = await fetch(`${workerURL}/api/shiurim/${rabbiName}`);
+                    if (!response.ok) throw new Error(`API returned ${response.status}: Failed to load shiurim metadata.`);
+                    const shiurim = await response.json();
+                    shiurimGrid.innerHTML = '';
+
+                    const addBtnHTML = `<a href="#" class="add-shiur-card" id="addShiurBtn">+</a>`;
+                    shiurimGrid.insertAdjacentHTML('beforeend', addBtnHTML);
+                    // This listener now triggers the password modal
+                    document.getElementById('addShiurBtn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showPasswordModal();
+                    });
+
+                    if (shiurim.length === 0) {
+                        shiurimGrid.insertAdjacentHTML('beforeend', `<p>No shiurim uploaded yet for this Rabbi. Be the first!</p>`);
+                    } else {
+                        shiurim.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        for (const shiur of shiurim) {
+                            const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
+                            const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace('rabbi_', 'Rabbi ').replace('_', ' ') : 'Unknown Rabbi';
+                            const shiurCardHTML = `
+                                <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
+                                    <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});"></div>
+                                    <h4>${shiur.title}</h4>
+                                    <p>${rabbiDisplayName} | ${displayDate}</p>
+                                </a>
+                            `;
+                            shiurimGrid.insertAdjacentHTML('beforeend', shiurCardHTML);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading shiurim:", error);
+                    shiurimGrid.innerHTML = '';
+                    shiurimGrid.insertAdjacentHTML('beforeend', `<p style="color: red;">Could not load shiurim. Please try again later. (Error: ${error.message})</p>`);
+                }
+            }
+            
+            // --- PASSWORD MODAL LOGIC ---
+            function showPasswordModal() {
+                passwordModalOverlay.classList.remove('hidden');
+                passwordInput.focus();
+            }
+
+            function hidePasswordModal() {
+                passwordModalOverlay.classList.add('hidden');
+                passwordInput.value = ''; // Clear password on close
+                passwordError.style.display = 'none'; // Hide error message
+            }
+
+            function checkPassword() {
+                const correctPassword = 'beis24/7';
+                if (passwordInput.value === correctPassword) {
+                    hidePasswordModal();
+                    showUploadForm(); // Proceed to upload form
+                } else {
+                    passwordError.style.display = 'block';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }
+
+            // --- UI Toggle Functions ---
+            function showUploadForm(e) {
+                if(e) e.preventDefault();
+                shiurimSection.style.display = 'none';
+                uploadSection.style.display = 'block';
+                // Reset form fields
+                titleInput.value = ''; descriptionInput.value = ''; notesInput.value = '';
+                fileInput.value = ''; fileNameDisplay.textContent = '';
+                thumbnailPreview.style.display = 'none'; thumbnailPreview.src = '';
+                dropZoneText.style.display = 'block';
+                thumbnailScrubberControls.style.display = 'none';
+                generatedThumbnailDataUrl = '';
+                currentVideoFile = null;
+                if (currentObjectUrl) {
+                    URL.revokeObjectURL(currentObjectUrl);
+                    currentObjectUrl = null;
+                }
+                videoProcessor.removeAttribute('src');
+                videoProcessor.load();
+            }
+
+            function hideUploadForm() {
+                uploadSection.style.display = 'none';
+                shiurimSection.style.display = 'block';
+                if (currentObjectUrl) {
+                    URL.revokeObjectURL(currentObjectUrl);
+                    currentObjectUrl = null;
+                }
+                videoProcessor.removeAttribute('src');
+                videoProcessor.load();
+                loadShiurim();
+            }
+            cancelBtn.addEventListener('click', hideUploadForm);
+
+            // --- FORM DEFAULTS & LOCAL STORAGE ---
+            dateInput.value = new Date().toISOString().split('T')[0]; 
+            const savedName = localStorage.getItem('beisAnytimeUploaderName');
+            if (savedName) uploaderNameInput.value = savedName;
+            uploaderNameInput.addEventListener('input', () => {
+                localStorage.setItem('beisAnytimeUploaderName', uploaderNameInput.value);
+            });
+            
+            // --- THUMBNAIL GENERATION & SCRUBBER LOGIC ---
+            function captureFrameAndDisplay(time) {
+                if (!currentVideoFile || !currentVideoFile.type.startsWith('video/') || videoProcessor.readyState < 1) return;
+                if (typeof time === 'number') {
+                    videoProcessor.currentTime = Math.max(0, Math.min(time, videoProcessor.duration));
+                    return; 
+                }
+                if (videoProcessor.currentTime < 0 || videoProcessor.currentTime >= videoProcessor.duration) {
+                    videoProcessor.currentTime = 0;
+                }
+                if (videoProcessor.readyState < 2) {
+                    videoProcessor.addEventListener('canplay', () => captureFrameAndDisplay(videoProcessor.currentTime), { once: true });
+                    return;
+                }
+                const ctx = canvasProcessor.getContext('2d');
+                canvasProcessor.width = videoProcessor.videoWidth;
+                canvasProcessor.height = videoProcessor.videoHeight;
+                ctx.drawImage(videoProcessor, 0, 0, canvasProcessor.width, canvasProcessor.height);
+                generatedThumbnailDataUrl = canvasProcessor.toDataURL('image/jpeg', 0.8);
+                thumbnailPreview.src = generatedThumbnailDataUrl;
+                thumbnailPreview.style.display = 'block';
+                dropZoneText.style.display = 'none';
+                if (videoProcessor.duration) {
+                    videoScrubber.value = (videoProcessor.currentTime / videoProcessor.duration) * 100;
+                }
+            }
+            videoProcessor.addEventListener('seeked', () => { if (isSeeking) captureFrameAndDisplay(); });
+            videoProcessor.addEventListener('loadedmetadata', () => {
+                videoScrubber.min = 0; videoScrubber.max = 100; videoScrubber.value = 50;
+                captureFrameAndDisplay(videoProcessor.duration / 2); 
+                thumbnailScrubberControls.style.display = 'flex';
+            });
+            videoScrubber.addEventListener('input', () => {
+                if (currentVideoFile && videoProcessor.duration) {
+                    const seekTime = (parseFloat(videoScrubber.value) / 100) * videoProcessor.duration;
+                    isSeeking = true;
+                    videoProcessor.currentTime = seekTime;
+                }
+            });
+            prevFrameBtn.addEventListener('click', () => {
+                if (currentVideoFile && videoProcessor.duration) { isSeeking = true; videoProcessor.currentTime = Math.max(0, videoProcessor.currentTime - (1 / 30)); }
+            });
+            nextFrameBtn.addEventListener('click', () => {
+                if (currentVideoFile && videoProcessor.duration) { isSeeking = true; videoProcessor.currentTime = Math.min(videoProcessor.duration, videoProcessor.currentTime + (1 / 30)); }
+            });
+            function handleFileSelect(file) {
+                if (!file) return;
+                currentVideoFile = file;
+                fileNameDisplay.textContent = `File: ${file.name}`;
+                thumbnailPreview.style.display = 'none';
+                thumbnailScrubberControls.style.display = 'none';
+                if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+                if (file.type.startsWith('video/')) {
+                    currentObjectUrl = URL.createObjectURL(file);
+                    videoProcessor.src = currentObjectUrl;
+                    videoProcessor.load();
+                    isSeeking = false; 
+                } else {
+                    thumbnailPreview.src = '/images/placeholder-shiur.png';
+                    thumbnailPreview.style.display = 'block';
+                    dropZoneText.style.display = 'none';
+                    generatedThumbnailDataUrl = '';
+                    currentVideoFile = null;
+                }
+            }
+
+            // --- FILE DROP ZONE LOGIC ---
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+            fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFileSelect(fileInput.files[0]); });
+            
+            // --- UPLOAD LOGIC ---
+            uploadBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const file = fileInput.files[0];
+                if (!titleInput.value || !file) { alert('Please provide a title and select a file.'); return; }
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Preparing...';
+                try {
+                    const metadata = {
+                        title: titleInput.value, description: descriptionInput.value, notes: notesInput.value,
+                        date: dateInput.value, uploaderName: uploaderNameInput.value, rabbi: getRabbiNameFromPage(),
+                        fileName: file.name, fileType: file.type, thumbnailDataUrl: generatedThumbnailDataUrl
+                    };
+                    const apiResponse = await fetch(`${workerURL}/api/prepare-upload`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metadata)
+                    });
+                    if (!apiResponse.ok) { const errorText = await apiResponse.text(); throw new Error(`API returned ${apiResponse.status}: ${errorText}`); }
+                    const { signedUrl } = await apiResponse.json();
+                    uploadBtn.textContent = 'Uploading file...';
+                    const uploadResponse = await fetch(signedUrl, {
+                        method: 'PUT', body: file, headers: { 'Content-Type': file.type }
+                    });
+                    if (!uploadResponse.ok) { const r2ErrorText = await uploadResponse.text(); console.error("R2 Upload Raw Error:", r2ErrorText); throw new Error(`File upload to R2 failed with status ${uploadResponse.status}.`); }
+                    uploadBtn.textContent = 'Success!';
+                    uploadBtn.classList.add('success');
+                    setTimeout(hideUploadForm, 1500);
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                    alert(`Upload failed. Please check the console for details. Error: ${error.message}`);
+                    uploadBtn.textContent = 'Upload Failed';
+                } finally {
+                     setTimeout(() => {
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = 'Upload Shiur';
+                        uploadBtn.classList.remove('success');
+                    }, 2000);
+                }
+            });
+            // --- REMEMBER PASSWORD ENTRY ---
+            function hasEnteredPasswordBefore() {
+                return localStorage.getItem('beisAnytimePasswordEntered') === 'true';
+            }
+            function markPasswordEntered() {
+                localStorage.setItem('beisAnytimePasswordEntered', 'true');
+            }
+
+            // Override showPasswordModal to skip if already entered
+            function showPasswordModal() {
+                if (hasEnteredPasswordBefore()) {
+                    showUploadForm();
+                } else {
+                    passwordModalOverlay.classList.remove('hidden');
+                    passwordInput.focus();
+                }
+            }
+
+            // Update checkPassword to mark entry
+            function checkPassword() {
+                const correctPassword = 'beis24/7';
+                if (passwordInput.value === correctPassword) {
+                    markPasswordEntered();
+                    hidePasswordModal();
+                    showUploadForm();
+                } else {
+                    passwordError.style.display = 'block';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }
+            // --- MODAL EVENT LISTENERS ---
+            passwordModalOverlay.addEventListener('click', (e) => {
+                if (e.target === passwordModalOverlay) hidePasswordModal();
+            });
+            passwordSubmitBtn.addEventListener('click', checkPassword);
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') checkPassword();
+            });
+
+            // --- INITIALIZATION ---
+            loadShiurim();
+        });
+    </script>
+</body>
+</html>

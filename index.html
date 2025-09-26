@@ -8,8 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Icon Library for Dark Mode Toggle -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -22,7 +20,6 @@
                 <ul>
                     <li><a href="index.html">Home</a></li>
                     <li><a href="#">All Shiurim</a></li>
-                    <!-- "New Shiur" button removed -->
                 </ul>
             </nav>
         </div>
@@ -33,7 +30,7 @@
         <section class="hero-section">
             <div class="container">
                 <h1>Timeless Torah, Available Anytime.</h1>
-                <p class="subtitle">Find inspiration and clarity in our collection of shiurim from leading speakers.</p>
+                <p class="subtitle">Find inspiration and clarity in our collection of shiurim.</p>
                 <div class="search-bar">
                     <input type="search" placeholder="Search for a shiur or speaker..." id="mainSearchBar">
                     <button type="submit" id="mainSearchButton">Search</button>
@@ -45,17 +42,17 @@
         <section class="main-speakers-section">
             <div class="container">
                 <div class="speaker-grid">
-                    <a href="#" class="speaker-card" id="hartman-card">
+                    <a href="rabbi hartman" class="speaker-card" id="hartman-card">
                         <div class="speaker-card-content">
                             <h3>Rabbi Hartman's After Shacharis Shiurim</h3>
                         </div>
                     </a>
-                    <a href="#" class="speaker-card" id="rosenfeld-card">
+                    <a href="rabbi rosenfeld" class="speaker-card" id="rosenfeld-card">
                         <div class="speaker-card-content">
                             <h3>Rabbi Rosenfeld's Dvar Halacha Shiurim</h3>
                         </div>
                     </a>
-                    <a href="#" class="speaker-card" id="golker-card">
+                    <a href="rabbi golker" class="speaker-card" id="golker-card">
                         <div class="speaker-card-content">
                             <h3>Rabbi Golker's Friday Shiurim</h3>
                         </div>
@@ -68,15 +65,9 @@
         <section class="shiurim-section">
             <div class="container">
                  <h2>Recent Shiurim</h2>
-                 <div class="carousel">
-                    <div class="carousel-track">
-                        <div class="shiur-card"><h4>Recent Shiur 1</h4><p>Rabbi Hartman</p></div>
-                        <div class="shiur-card"><h4>Recent Shiur 2</h4><p>Rabbi Rosenfeld</p></div>
-                        <div class="shiur-card"><h4>Recent Shiur 3</h4><p>Rabbi Golker</p></div>
-                        <div class="shiur-card"><h4>Recent Shiur 4</h4><p>Rabbi Gerber</p></div>
-                        <div class="shiur-card"><h4>Recent Shiur 5</h4><p>Rabbi Konik</p></div>
-                        <div class="shiur-card"><h4>Recent Shiur 6</h4><p>Rabbi Hartman</p></div>
-                        <div class="shiur-card"><h4>Recent Shiur 7</h4><p>Rabbi Rosenfeld</p></div>
+                 <div class="carousel" id="recentShiurimCarousel">
+                    <div class="carousel-track" id="recentShiurimTrack">
+                        <p class="loading-message">Loading recent shiurim...</p>
                     </div>
                  </div>
             </div>
@@ -85,60 +76,92 @@
         <!-- All Shiurim Section -->
         <section class="shiurim-section">
             <div class="container">
-                <!-- NEW: Added main rabbis to the bottom list -->
-                <div class="rabbi-shiurim">
-                    <h2>Shiurim from Rabbi Hartman</h2>
-                    <div class="shiur-grid">
-                        <div class="shiur-card"><h4>Parashas Ki Savo</h4><p>Sept 18, 2025</p></div>
-                        <div class="shiur-card"><h4>The Essence of Rosh Hashana</h4><p>Sept 17, 2025</p></div>
-                        <div class="shiur-card"><h4>Hilchos Tzedakah</h4><p>Sept 16, 2025</p></div>
-                    </div>
-                </div>
-                 <div class="rabbi-shiurim">
-                    <h2>Shiurim from Rabbi Rosenfeld</h2>
-                    <div class="shiur-grid">
-                        <div class="shiur-card"><h4>Dvar Halacha: Bishul Akum</h4><p>Sept 18, 2025</p></div>
-                        <div class="shiur-card"><h4>Dvar Halacha: Tevilas Keilim</h4><p>Sept 17, 2025</p></div>
-                        <div class="shiur-card"><h4>Dvar Halacha: Laws of an Eruv</h4><p>Sept 16, 2025</p></div>
-                    </div>
-                </div>
-                 <div class="rabbi-shiurim">
-                    <h2>Shiurim from Rabbi Golker</h2>
-                    <div class="shiur-grid">
-                        <div class="shiur-card"><h4>Topics in Gemara</h4><p>Sept 18, 2025</p></div>
-                        <div class="shiur-card"><h4>The Philosophy of the Ramchal</h4><p>Sept 17, 2025</p></div>
-                        <div class="shiur-card"><h4>Chassidus Explained</h4><p>Sept 16, 2025</p></div>
-                    </div>
-                </div>
-                <!-- Other Rabbis -->
-                <div class="rabbi-shiurim">
-                    <h2>Shiurim from Rabbi Gerber</h2>
-                    <div class="shiur-grid">
-                        <div class="shiur-card"><h4>The Power of Gratitude</h4><p>Sept 15, 2025</p></div>
-                        <div class="shiur-card"><h4>Insights into Tefillah</h4><p>Sept 12, 2025</p></div>
-                        <div class="shiur-card"><h4>Lessons from the Avos</h4><p>Sept 10, 2025</p></div>
-                    </div>
-                </div>
-                <div class="rabbi-shiurim">
-                    <h2>Shiurim from Rabbi Konik</h2>
-                    <div class="shiur-grid">
-                        <div class="shiur-card"><h4>Understanding Emunah</h4><p>Sept 14, 2025</p></div>
-                        <div class="shiur-card"><h4>The Weekly Parsha</h4><p>Sept 11, 2025</p></div>
-                        <div class="shiur-card"><h4>Exploring Jewish History</h4><p>Sept 09, 2025</p></div>
-                    </div>
+                <h2>All Shiurim</h2>
+                <div class="shiur-grid" id="allShiurimGrid">
+                    <p class="loading-message">Loading all shiurim...</p>
                 </div>
             </div>
         </section>
     </main>
 
     <footer class="site-footer">
-        <div class="container footer-container">
-            <p>&copy; 2025 Beis Anytime</p>
-            <p>beisanytime@gmail.com</p>
-            <p>Designed by BIGJ</p>
+        <div class="container">
+            <p>&copy; 2025 Beis Anytime. All Rights Reserved.</p>
         </div>
     </footer>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev'; // Your Cloudflare Worker URL
+            const allShiurimGrid = document.getElementById('allShiurimGrid');
+            const recentShiurimTrack = document.getElementById('recentShiurimTrack');
+
+            async function fetchAndDisplayAllShiurim() {
+                allShiurimGrid.innerHTML = '<p class="loading-message">Loading all shiurim...</p>';
+                recentShiurimTrack.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
+
+                try {
+                    const response = await fetch(`${workerURL}/api/all-shiurim`);
+                    if (!response.ok) throw new Error(`API returned ${response.status}: Failed to load all shiurim.`);
+                    const allShiurim = await response.json();
+
+                    if (allShiurim.length === 0) {
+                        allShiurimGrid.innerHTML = '<p>No shiurim uploaded yet across all rabbis.</p>';
+                        recentShiurimTrack.innerHTML = '<p>No recent shiurim available.</p>';
+                        return;
+                    }
+
+                    allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+                    // --- Populate "All Shiurim" Grid ---
+                    allShiurimGrid.innerHTML = '';
+                    for (const shiur of allShiurim) {
+                        const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
+                        // --- FIX: Add defensive check for shiur.rabbi ---
+                        const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace('rabbi_', 'Rabbi ') : 'Unknown Rabbi';
+                        const shiurCardHTML = `
+                            <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
+                                <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});"></div>
+                                <h4>${shiur.title}</h4>
+                                <p>${rabbiDisplayName} | ${displayDate}</p>
+                            </a>
+                        `;
+                        allShiurimGrid.insertAdjacentHTML('beforeend', shiurCardHTML);
+                    }
+
+                    // --- Populate "Recent Shiurim" Carousel ---
+                    recentShiurimTrack.innerHTML = '';
+                    const recentCount = Math.min(allShiurim.length, 10);
+                    for (let i = 0; i < recentCount; i++) {
+                        const shiur = allShiurim[i];
+                        const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
+                        // --- FIX: Add defensive check for shiur.rabbi ---
+                        const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace('rabbi_', 'Rabbi ') : 'Unknown Rabbi';
+                        const shiurCardHTML = `
+                            <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
+                                <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});"></div>
+                                <h4>${shiur.title}</h4>
+                                <p>${rabbiDisplayName} | ${displayDate}</p>
+                            </a>
+                        `;
+                        recentShiurimTrack.insertAdjacentHTML('beforeend', shiurCardHTML);
+                    }
+
+                } catch (error) {
+                    console.error("Error loading all shiurim:", error);
+                    allShiurimGrid.innerHTML = `<p style="color: red;">Could not load all shiurim. Please try again later. (Error: ${error.message})</p>`;
+                    recentShiurimTrack.innerHTML = `<p style="color: red;">Could not load recent shiurim.</p>`;
+                }
+            }
+
+            fetchAndDisplayAllShiurim();
+
+            const mainSearchBar = document.getElementById('mainSearchBar');
+            const mainSearchButton = document.getElementById('mainSearchButton');
+            mainSearchButton.addEventListener('click', () => { alert(`Searching for: ${mainSearchBar.value}. (Search functionality not yet implemented)`); });
+            mainSearchBar.addEventListener('keypress', (e) => { if (e.key === 'Enter') { mainSearchButton.click(); } });
+        });
+    </script>
+    <script src="quiz.js"></script>
 </body>
 </html>
-

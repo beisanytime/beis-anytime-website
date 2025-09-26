@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function checkAnswerWithGemini(userAnswer, correctAnswer) {
         // In a real scenario, you would not use a "lite" model for security checks,
         // but this is suitable for the prompt's request.
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
         const prompt = `
             You are a strict quiz validation assistant.
