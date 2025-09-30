@@ -3,57 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Account - Beis Anytime</title>
+    <title>My Account - Beis Anytime</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
     <div class="site-wrapper">
-        <header class="site-header">
-            <div class="logo">
-                <a href="index.html">Beis Anytime</a>
+        <!-- ===== Sidebar (No active links on this page) ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <a href="index.html">
+                    <img src="images/logo-placeholder.png" alt="Beis Anytime Logo" class="logo-full">
+                    <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
+                </a>
             </div>
-        </header>
-        <main>
-            <section class="account-section">
-                <h1>Your Account</h1>
-                <div class="account-details">
-                    <p id="accountName">Name: </p>
-                    <p id="accountEmail">Email: </p>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
+                    <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
+                    <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+                </ul>
+                <p class="nav-section-title">BROWSE</p>
+                <ul>
+                    <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
+                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- ===== Main Content ===== -->
+        <div class="main-content">
+            
+            <!-- Paste the new Header HTML here as well -->
+            <header class="site-header">
+                <!-- ... (same header code from Step 2) ... -->
+            </header>
+
+            <main>
+                <div class="page-content-area">
+                    <h1 class="page-title">My Account</h1>
+                    <div class="account-card">
+                        <div class="account-header">
+                            <img src="/images/placeholder-shiur.png" alt="User Avatar" id="accountAvatar" class="account-avatar">
+                            <div>
+                                <h2 id="accountName">Loading...</h2>
+                                <p id="accountEmail">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="account-actions">
+                            <button class="sign-out-btn-main">
+                                <i class="fas fa-sign-out-alt"></i> Sign Out
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <button id="logoutBtn" class="logout-btn">Log Out</button>
-            </section>
-        </main>
+            </main>
+        </div>
     </div>
+    
+    <!-- Use the SAME google-login.js script -->
     <script src="google-login.js"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get user info from Google profile if available
-        let name = localStorage.getItem('userName');
-        let email = localStorage.getItem('userEmail');
-        if (name) document.getElementById('accountName').textContent = 'Name: ' + name;
-        if (email) document.getElementById('accountEmail').textContent = 'Email: ' + email;
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            // Google sign out
-            if (window.gapi && window.gapi.auth2) {
-                let auth2 = window.gapi.auth2.getAuthInstance();
-                if (auth2) {
-                    auth2.signOut().then(function () {
-                        localStorage.removeItem('userName');
-                        localStorage.removeItem('userEmail');
-                        window.location.href = 'index.html';
-                    });
-                }
+        // This small script populates the account page content
+        document.addEventListener('DOMContentLoaded', () => {
+            const userString = localStorage.getItem('loggedInUser');
+            if (userString) {
+                const user = JSON.parse(userString);
+                document.getElementById('accountAvatar').src = user.picture;
+                document.getElementById('accountName').textContent = user.name;
+                document.getElementById('accountEmail').textContent = user.email;
+
+                // Attach sign-out functionality to the main button
+                document.querySelector('.sign-out-btn-main').addEventListener('click', () => {
+                    signOut(); // This function is defined in google-login.js
+                });
+
             } else {
-                localStorage.removeItem('userName');
-                localStorage.removeItem('userEmail');
+                // If by some chance a user lands here without being logged in, send them home
                 window.location.href = 'index.html';
             }
         });
-    });
     </script>
 </body>
 </html>

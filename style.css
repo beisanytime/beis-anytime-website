@@ -677,3 +677,86 @@ main {
         font-size: 1.5rem;
     }
 }
+/* --- Dropdown User Info Styling --- */
+.user-info {
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px; /* Prevents long names from breaking layout */
+}
+
+/* --- Account Page Styling --- */
+.account-card {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 30px 40px;
+    max-width: 700px;
+}
+
+.account-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.account-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.account-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.8rem;
+    color: var(--text-primary);
+}
+
+.account-header p {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.account-actions {
+    padding-top: 25px;
+}
+
+.sign-out-btn-main {
+    background-color: #F8F9FA;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.sign-out-btn-main:hover {
+    background-color: #F0F5FA;
+    border-color: #C0D0E0;
+}
+
+.sign-out-btn-main i {
+    margin-right: 8px;
+}
