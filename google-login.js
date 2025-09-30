@@ -5,7 +5,7 @@ function handleCredentialResponse(response) {
     // Decode the JWT to get user profile information
     const base64Url = response.credential.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
 
@@ -29,7 +29,7 @@ function handleCredentialResponse(response) {
 function signOut() {
     // Clear the user's data from localStorage
     localStorage.removeItem('loggedInUser');
-    
+
     // Disable Google's one-tap sign-in for the next page load
     google.accounts.id.disableAutoSelect();
 
@@ -47,9 +47,9 @@ function updateUserUI() {
     if (userString) {
         // User is logged in
         const user = JSON.parse(userString);
-        
+
         loginBtnContainers.forEach(el => el.style.display = 'none');
-        
+
         userInfoContainers.forEach(el => {
             el.style.display = 'flex'; // Use 'flex' for proper alignment
             el.href = 'account.html';
@@ -93,7 +93,7 @@ window.onload = function () {
             { theme: "outline", size: "large", type: 'standard', text: 'signin_with', width: '200' }
         );
     }
-    
+
     // Update the UI immediately based on whether the user is already logged in
     updateUserUI();
 };

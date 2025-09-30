@@ -61,6 +61,12 @@
     </div>
     
     <div class="header-right">
+        <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
+            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                <span class="thumb" id="themeThumb"></span>
+            </button>
+        </div>
+
         <div class="header-dropdown" id="headerDropdown">
             <button class="dropdown-toggle" id="dropdownToggleBtn">
                 <i class="fas fa-ellipsis-v"></i>
@@ -132,6 +138,31 @@
     
     <script src="google-login.js"></script>
         <script src="google-login.js"></script>
+    <script>
+        // Theme toggle initialization
+        (function() {
+            const rootEl = document.documentElement || document.body;
+            const toggleBtn = document.getElementById('themeToggleBtn');
+            const wrap = document.getElementById('themeToggleWrap');
+            function applyTheme(t) {
+                if (t === 'dark') {
+                    rootEl.setAttribute('data-theme', 'dark');
+                    wrap && wrap.setAttribute('data-state', 'dark');
+                } else {
+                    rootEl.removeAttribute('data-theme');
+                    wrap && wrap.setAttribute('data-state', 'light');
+                }
+            }
+            const saved = localStorage.getItem('beisAnytimeTheme');
+            applyTheme(saved === 'dark' ? 'dark' : 'light');
+            if (toggleBtn) toggleBtn.addEventListener('click', () => {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                const next = isDark ? 'light' : 'dark';
+                applyTheme(next);
+                localStorage.setItem('beisAnytimeTheme', next);
+            });
+        })();
+    </script>
     <script>
         // --- Shiurim Loading Script ---
         document.addEventListener('DOMContentLoaded', () => {
