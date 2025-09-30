@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Icon Library (Font Awesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -17,13 +16,16 @@
         <!-- ===== Sidebar ===== -->
         <aside class="sidebar">
             <div class="sidebar-logo">
-                <a href="index.html"><img src="images/logo-placeholder.png" alt="Beis Anytime Logo"></a>
+                <a href="index.html">
+                    <img src="images/logo-placeholder.png" alt="Beis Anytime Logo" class="logo-full">
+                    <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
+                </a>
             </div>
             <nav class="sidebar-nav">
                 <p class="nav-section-title">BROWSE</p>
                 <ul>
-                    <li><a href="#"><i class="fas fa-bookmark"></i> Topics</a></li>
-                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> Speakers</a></li>
+                    <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
+                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
                 </ul>
             </nav>
         </aside>
@@ -31,11 +33,9 @@
         <!-- ===== Main Content ===== -->
         <div class="main-content">
             <header class="site-header">
-                <div class="header-left">
-                    <div class="search-bar">
-                         <i class="fas fa-search"></i>
-                        <input type="search" placeholder="Search TorahAnytime">
-                    </div>
+                <div class="search-bar">
+                     <i class="fas fa-search"></i>
+                    <input type="search" placeholder="Search TorahAnytime">
                 </div>
                 <nav class="main-nav">
                     <ul>
@@ -45,9 +45,16 @@
                     </ul>
                 </nav>
                 <div class="header-right">
-                    <button class="donate-btn">Donate</button>
-                    <a href="#" class="notification-bell"><i class="fas fa-bell"></i></a>
-                    <button class="signin-btn">Sign in</button>
+                    <div class="header-dropdown" id="headerDropdown">
+                        <button class="dropdown-toggle" id="dropdownToggleBtn">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item donate-btn">Donate</a>
+                            <a href="#" class="dropdown-item notification-bell"><i class="fas fa-bell"></i> Notifications</a>
+                            <a href="#" class="dropdown-item signin-btn">Sign In</a>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -83,6 +90,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // --- Shiur Loading Script ---
             const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
             const params = new URLSearchParams(window.location.search);
             const shiurId = params.get('id');
@@ -90,7 +98,6 @@
             const loadingMessage = document.getElementById('loading');
             const errorMessage = document.getElementById('error');
             const shiurContent = document.getElementById('shiurContent');
-
             const pageTitle = document.getElementById('pageTitle');
             const shiurTitle = document.getElementById('shiurTitle');
             const shiurRabbi = document.getElementById('shiurRabbi');
@@ -106,59 +113,60 @@
                 loadingMessage.style.display = 'none';
                 errorMessage.style.display = 'block';
                 errorMessage.textContent = 'Error: No shiur ID provided in the URL.';
-                return;
+            } else {
+                try {
+                    const response = await fetch(`${workerURL}/api/shiurim/id/${shiurId}`);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Failed to fetch shiur details (Status: ${response.status})`);
+                    }
+
+                    const shiurData = await response.json();
+                    const formattedRabbi = shiurData.rabbi ? shiurData.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
+                    const formattedDate = shiurData.date ? new Date(shiurData.date).toLocaleDateString() : 'N/A';
+
+                    pageTitle.textContent = `${shiurData.title} - Beis Anytime`;
+                    shiurTitle.textContent = shiurData.title;
+                    shiurRabbi.textContent = formattedRabbi;
+                    shiurDate.textContent = formattedDate;
+                    shiurUploader.textContent = shiurData.uploaderName || 'Anonymous';
+                    mediaPlayer.src = shiurData.playbackUrl;
+                    mediaPlayer.type = shiurData.fileType || 'video/mp4';
+
+                    if (shiurData.description && shiurData.description.trim() !== '') {
+                        descriptionHeading.style.display = 'block';
+                        shiurDescription.textContent = shiurData.description;
+                    }
+                    if (shiurData.notes && shiurData.notes.trim() !== '') {
+                        notesHeading.style.display = 'block';
+                        shiurNotes.textContent = shiurData.notes;
+                    }
+
+                    loadingMessage.style.display = 'none';
+                    shiurContent.style.display = 'block';
+                } catch (error) {
+                    console.error("Error loading shiur:", error);
+                    loadingMessage.style.display = 'none';
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = `Error loading shiur: ${error.message}.`;
+                }
             }
 
-            try {
-                const response = await fetch(`${workerURL}/api/shiurim/id/${shiurId}`);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `Failed to fetch shiur details (Status: ${response.status})`);
-                }
+            // --- UI Interactivity Script ---
+            const dropdown = document.getElementById('headerDropdown');
+            const dropdownToggle = document.getElementById('dropdownToggleBtn');
 
-                const shiurData = await response.json();
+            if (dropdown && dropdownToggle) {
+                dropdownToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('is-active');
+                });
 
-                // Format data
-                const formattedRabbi = shiurData.rabbi ? shiurData.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
-                const formattedDate = shiurData.date ? new Date(shiurData.date).toLocaleDateString() : 'N/A';
-
-                // Update page title and content
-                pageTitle.textContent = `${shiurData.title} - Beis Anytime`;
-                shiurTitle.textContent = shiurData.title;
-                shiurRabbi.textContent = formattedRabbi;
-                shiurDate.textContent = formattedDate;
-                shiurUploader.textContent = shiurData.uploaderName || 'Anonymous';
-
-                // Set media player source
-                mediaPlayer.src = shiurData.playbackUrl;
-                mediaPlayer.type = shiurData.fileType || 'video/mp4';
-
-                // Populate description
-                if (shiurData.description && shiurData.description.trim() !== '') {
-                    descriptionHeading.style.display = 'block';
-                    shiurDescription.textContent = shiurData.description;
-                } else {
-                    descriptionHeading.style.display = 'none';
-                    shiurDescription.textContent = '';
-                }
-
-                // Populate notes
-                if (shiurData.notes && shiurData.notes.trim() !== '') {
-                    notesHeading.style.display = 'block';
-                    shiurNotes.textContent = shiurData.notes;
-                } else {
-                    notesHeading.style.display = 'none';
-                    shiurNotes.textContent = '';
-                }
-
-                loadingMessage.style.display = 'none';
-                shiurContent.style.display = 'block';
-
-            } catch (error) {
-                console.error("Error loading shiur:", error);
-                loadingMessage.style.display = 'none';
-                errorMessage.style.display = 'block';
-                errorMessage.textContent = `Error loading shiur: ${error.message}.`;
+                window.addEventListener('click', (event) => {
+                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
+                        dropdown.classList.remove('is-active');
+                    }
+                });
             }
         });
     </script>

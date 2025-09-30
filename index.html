@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beis Anytime - Home</title>
     <link rel="stylesheet" href="style.css">
+    <meta name="google-signin-client_id" content="248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,17 +15,31 @@
 <body>
 
     <div class="site-wrapper">
+        <!-- Notification Settings Modal -->
+        <div id="notificationModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeNotificationModal">&times;</span>
+                <h2>Notification Settings</h2>
+                <label>
+                    <input type="checkbox" id="enableNotifications">
+                    Enable notifications for new video uploads
+                </label>
+                <p id="notificationStatus"></p>
+            </div>
+        </div>
         <!-- ===== Sidebar ===== -->
         <aside class="sidebar">
             <div class="sidebar-logo">
-                <!-- Replace with your logo -->
-                <img src="images/logo-placeholder.png" alt="Beis Anytime Logo">
+                <a href="index.html">
+                    <img src="images/logo-placeholder.png" alt="Beis Anytime Logo" class="logo-full">
+                    <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon"> <!-- Add a smaller icon version of your logo here -->
+                </a>
             </div>
             <nav class="sidebar-nav">
                 <p class="nav-section-title">BROWSE</p>
                 <ul>
-                    <li><a href="#"><i class="fas fa-bookmark"></i> Topics</a></li>
-                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> Speakers</a></li>
+                    <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
+                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
                 </ul>
             </nav>
         </aside>
@@ -32,12 +47,11 @@
         <!-- ===== Main Content ===== -->
         <div class="main-content">
             <header class="site-header">
-                <div class="header-left">
-                    <div class="search-bar">
-                         <i class="fas fa-search"></i>
-                        <input type="search" placeholder="Search TorahAnytime">
-                    </div>
+                <div class="search-bar">
+                     <i class="fas fa-search"></i>
+                    <input type="search" placeholder="Search TorahAnytime">
                 </div>
+                
                 <nav class="main-nav">
                     <ul>
                         <li><a href="index.html" class="active">Home</a></li>
@@ -45,10 +59,22 @@
                         <li><a href="trending.html">Trending</a></li>
                     </ul>
                 </nav>
+
                 <div class="header-right">
-                    <button class="donate-btn">Donate</button>
-                    <a href="#" class="notification-bell"><i class="fas fa-bell"></i></a>
-                    <button class="signin-btn">Sign in</button>
+                    <!-- Updated Dropdown -->
+                    <div class="header-dropdown" id="headerDropdown">
+                        <button class="dropdown-toggle" id="dropdownToggleBtn">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item" id="donateBtn">Donate</a>
+                            <a href="#" class="dropdown-item" id="notificationBell">
+                                <i class="fas fa-bell"></i> Notifications
+                            </a>
+                            <div id="googleLoginBtn" class="google-login-btn"></div>
+                            <span class="user-info" style="display:none;"></span>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -58,17 +84,15 @@
                 </section>
 
                 <section class="main-promo-banner">
-                    <!-- Replace with your banner content -->
                     <img src="images/jonah-banner-placeholder.jpg" alt="The Untold Story of Jonah Series">
                 </section>
 
                 <div class="home-content-area">
                     <div class="shiurim-feed">
-                         <!-- Recent Shiurim Section -->
-                        <section class="shiurim-section">
+                         <section class="shiurim-section">
                              <h2>Recent Shiurim</h2>
                              <div class="shiur-grid" id="recentShiurimGrid">
-                                 <p class="loading-message">Loading recent shiurim...</p>
+                                 <!-- Shiurim will be loaded here by JavaScript -->
                              </div>
                         </section>
                     </div>
@@ -83,16 +107,13 @@
                                <li>Mordechai Ben Chaim</li>
                                <li>HaRav Shalom Ben Chaim Noah HaLevi</li>
                                <li>Sima bas Zev</li>
-                               <li>YOSEF BEN MAGGIE</li>
-                               <li>Bolisa Brenda Bat Esther</li>
-                               <li>Shirin Bat Sarah</li>
                             </ul>
                         </div>
 
                         <div class="info-box newsletter-box">
                              <h3>GET OUR WEEKLY NEWSLETTER</h3>
                              <input type="email" placeholder="Enter your Email">
-                             <p>Your email is safe with us. We don't spam.</p>
+                             <p>Your email is safe with us.</p>
                         </div>
                     </aside>
                 </div>
@@ -100,57 +121,157 @@
         </div>
     </div>
     
+    <script src="google-login.js"></script>
+        <script src="google-login.js"></script>
     <script>
+        // --- Shiurim Loading Script ---
         document.addEventListener('DOMContentLoaded', () => {
             const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
             const recentShiurimGrid = document.getElementById('recentShiurimGrid');
 
-            function createShiurCard(shiur) {
-                const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
-                const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
-                
-                return `
-                    <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card">
-                        <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
-                            <span class="shiur-duration">31:11</span>
-                        </div>
-                        <div class="shiur-card-content">
-                            <h4>${shiur.title}</h4>
-                            <p>${rabbiDisplayName}</p>
-                        </div>
-                    </a>
-                `;
-            }
-
-            async function fetchAndDisplayRecent() {
-                recentShiurimGrid.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
-
-                try {
-                    const response = await fetch(`${workerURL}/api/all-shiurim`);
-                    if (!response.ok) throw new Error(`API returned ${response.status}`);
-                    const allShiurim = await response.json();
-
-                    if (allShiurim.length === 0) {
-                        recentShiurimGrid.innerHTML = '<p>No recent shiurim available.</p>';
-                        return;
-                    }
-                    
-                    allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                    
-                    recentShiurimGrid.innerHTML = '';
-                    // Display the 5 most recent on the homepage
-                    const recentCount = Math.min(allShiurim.length, 5);
-                    for (let i = 0; i < recentCount; i++) {
-                        recentShiurimGrid.insertAdjacentHTML('beforeend', createShiurCard(allShiurim[i]));
-                    }
-
-                } catch (error) {
-                    console.error("Error loading shiurim:", error);
-                    recentShiurimGrid.innerHTML = `<p class="error-message">Could not load recent shiurim.</p>`;
+            if (recentShiurimGrid) {
+                function createShiurCard(shiur) {
+                    const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
+                    return `
+                        <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card">
+                            <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
+                                <span class="shiur-duration">31:11</span>
+                            </div>
+                            <div class="shiur-card-content">
+                                <h4>${shiur.title}</h4>
+                                <p>${rabbiDisplayName}</p>
+                            </div>
+                        </a>
+                    `;
                 }
+
+                async function fetchAndDisplayRecent() {
+                    recentShiurimGrid.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
+                    try {
+                        const response = await fetch(`${workerURL}/api/all-shiurim`);
+                        if (!response.ok) throw new Error(`API returned ${response.status}`);
+                        const allShiurim = await response.json();
+
+                        if (allShiurim.length === 0) {
+                            recentShiurimGrid.innerHTML = '<p>No recent shiurim available.</p>';
+                            return;
+                        }
+                        
+                        allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+                        
+                        recentShiurimGrid.innerHTML = '';
+                        const recentCount = Math.min(allShiurim.length, 5);
+                        for (let i = 0; i < recentCount; i++) {
+                            recentShiurimGrid.insertAdjacentHTML('beforeend', createShiurCard(allShiurim[i]));
+                        }
+
+                    } catch (error) {
+                        console.error("Error loading shiurim:", error);
+                        recentShiurimGrid.innerHTML = `<p class="error-message">Could not load recent shiurim.</p>`;
+                    }
+                }
+                fetchAndDisplayRecent();
+            }
+        });
+
+        // --- Push Notification Registration ---
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.register('notification-service-worker.js').then(function(reg) {
+                // Service worker registered
+            }).catch(function(err) {
+                console.error('Service Worker registration failed:', err);
+            });
+        }
+
+        // --- UI Interactivity Script ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdown = document.getElementById('headerDropdown');
+            const dropdownToggle = document.getElementById('dropdownToggleBtn');
+            const dropdownMenu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
+            const donateBtn = document.getElementById('donateBtn');
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationModal = document.getElementById('notificationModal');
+            const closeNotificationModal = document.getElementById('closeNotificationModal');
+            const enableNotifications = document.getElementById('enableNotifications');
+            const notificationStatus = document.getElementById('notificationStatus');
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const userInfo = document.querySelector('.user-info');
+
+            if (dropdown && dropdownToggle) {
+                dropdownToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('is-active');
+                });
+                
+                window.addEventListener('click', (event) => {
+                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
+                        dropdown.classList.remove('is-active');
+                    }
+                });
             }
 
-            fetchAndDisplayRecent();
+            // Donate button handler (example: open external link)
+            if (donateBtn) {
+                donateBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.open('https://your-donation-link.com', '_blank');
+                    console.log('Donate button clicked');
+                });
+            }
+
+            // Notification modal logic
+            if (notificationBell && notificationModal && closeNotificationModal) {
+                notificationBell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    notificationModal.style.display = 'block';
+                    console.log('Notifications button clicked');
+                });
+                closeNotificationModal.addEventListener('click', () => {
+                    notificationModal.style.display = 'none';
+                });
+                window.addEventListener('click', (event) => {
+                    if (event.target === notificationModal) {
+                        notificationModal.style.display = 'none';
+                    }
+                });
+            }
+            // Google login fallback
+            if (googleLoginBtn) {
+                setTimeout(() => {
+                    if (!googleLoginBtn.hasChildNodes()) {
+                        googleLoginBtn.innerHTML = '<span style="color:red;">Google login failed to load.</span>';
+                        if (userInfo) userInfo.style.display = 'none';
+                    }
+                }, 3000);
+            }
+
+            // Notification permission logic
+            if (enableNotifications && notificationStatus) {
+                enableNotifications.checked = localStorage.getItem('notificationsEnabled') === 'true';
+                enableNotifications.addEventListener('change', async function() {
+                    if (this.checked) {
+                        if (Notification.permission === 'granted') {
+                            localStorage.setItem('notificationsEnabled', 'true');
+                            notificationStatus.textContent = 'Notifications enabled!';
+                        } else if (Notification.permission !== 'denied') {
+                            let perm = await Notification.requestPermission();
+                            if (perm === 'granted') {
+                                localStorage.setItem('notificationsEnabled', 'true');
+                                notificationStatus.textContent = 'Notifications enabled!';
+                            } else {
+                                this.checked = false;
+                                notificationStatus.textContent = 'Notifications blocked.';
+                            }
+                        } else {
+                            this.checked = false;
+                            notificationStatus.textContent = 'Notifications blocked.';
+                        }
+                    } else {
+                        localStorage.setItem('notificationsEnabled', 'false');
+                        notificationStatus.textContent = 'Notifications disabled.';
+                    }
+                });
+            }
         });
     </script>
 </body>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Account - Beis Anytime</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="site-wrapper">
+        <header class="site-header">
+            <div class="logo">
+                <a href="index.html">Beis Anytime</a>
+            </div>
+        </header>
+        <main>
+            <section class="account-section">
+                <h1>Your Account</h1>
+                <div class="account-details">
+                    <p id="accountName">Name: </p>
+                    <p id="accountEmail">Email: </p>
+                </div>
+                <button id="logoutBtn" class="logout-btn">Log Out</button>
+            </section>
+        </main>
+    </div>
+    <script src="google-login.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get user info from Google profile if available
+        let name = localStorage.getItem('userName');
+        let email = localStorage.getItem('userEmail');
+        if (name) document.getElementById('accountName').textContent = 'Name: ' + name;
+        if (email) document.getElementById('accountEmail').textContent = 'Email: ' + email;
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            // Google sign out
+            if (window.gapi && window.gapi.auth2) {
+                let auth2 = window.gapi.auth2.getAuthInstance();
+                if (auth2) {
+                    auth2.signOut().then(function () {
+                        localStorage.removeItem('userName');
+                        localStorage.removeItem('userEmail');
+                        window.location.href = 'index.html';
+                    });
+                }
+            } else {
+                localStorage.removeItem('userName');
+                localStorage.removeItem('userEmail');
+                window.location.href = 'index.html';
+            }
+        });
+    });
+    </script>
+</body>
+</html>
