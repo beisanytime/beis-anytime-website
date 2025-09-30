@@ -14,50 +14,54 @@
 
     <div class="site-wrapper">
         <!-- ===== Sidebar ===== -->
-        <aside class="sidebar">
-            <div class="sidebar-logo">
-                <a href="index.html">
-                    <img src="images/logo-placeholder.png" alt="Beis Anytime Logo" class="logo-full">
-                    <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
-                </a>
-            </div>
-            <nav class="sidebar-nav">
-                <p class="nav-section-title">BROWSE</p>
-                <ul>
-                    <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
-                    <li><a href="speakers.html" class="active"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
-                </ul>
-            </nav>
-        </aside>
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <a href="index.html">
+            <img src="images/logo-placeholder.png" alt="Beis Anytime Logo" class="logo-full">
+            <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
+        </a>
+    </div>
+    <nav class="sidebar-nav">
+        <ul>
+            <li><a href="index.html"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
+            <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
+            <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+        </ul>
+        <p class="nav-section-title">BROWSE</p>
+        <ul>
+            <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
+            <!-- Active link is Speakers -->
+            <li><a href="speakers.html" class="active"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+        </ul>
+    </nav>
+</aside>
 
-        <!-- ===== Main Content ===== -->
-        <div class="main-content">
-            <header class="site-header">
-                <div class="search-bar">
-                     <i class="fas fa-search"></i>
-                    <input type="search" placeholder="Search TorahAnytime">
+<!-- ===== Main Content Wrapper (Starts here on every page) ===== -->
+<div class="main-content">
+    <!-- ===== Header ===== -->
+    <header class="site-header">
+        <div class="search-bar">
+             <i class="fas fa-search"></i>
+            <input type="search" placeholder="Search TorahAnytime">
+        </div>
+        
+        <div class="header-right">
+            <!-- Dropdown code is identical on all pages -->
+            <div class="header-dropdown" id="headerDropdown">
+                <button class="dropdown-toggle" id="dropdownToggleBtn">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>
+                    <a href="#" class="dropdown-item" id="notificationBell">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+                    <div id="googleLoginBtn" class="google-login-btn"></div>
+                    <span class="user-info" style="display:none;"></span>
                 </div>
-                <nav class="main-nav">
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="recent.html">Recent</a></li>
-                        <li><a href="trending.html">Trending</a></li>
-                    </ul>
-                </nav>
-                <div class="header-right">
-                    <div class="header-dropdown" id="headerDropdown">
-                        <button class="dropdown-toggle" id="dropdownToggleBtn">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <div class="dropdown-menu">
-                            <a href="#" class="dropdown-item" id="donateBtn">Donate</a>
-                            <a href="#" class="dropdown-item" id="notificationBell"><i class="fas fa-bell"></i> Notifications</a>
-                            <div id="googleLoginBtn" class="google-login-btn"></div>
-                            <span class="user-info" style="display:none; cursor:pointer;" onclick="window.location.href='account.html'"></span>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            </div>
+        </div>
+    </header>
 
             <main>
                  <div class="page-content-area">
