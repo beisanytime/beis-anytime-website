@@ -7,120 +7,83 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Specific styles for the view page */
-        .view-shiur-container {
-            max-width: 800px;
-            margin: 40px auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-        .view-shiur-container h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            color: var(--primary-color);
-        }
-        .view-shiur-meta {
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 25px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-        }
-        .view-shiur-meta span {
-            margin-right: 15px;
-        }
-        #mediaPlayer {
-            width: 100%;
-            height: auto; /* Will adjust based on content */
-            background-color: #000;
-            border-radius: var(--border-radius);
-            margin-bottom: 25px;
-            display: block; /* Ensure it takes full width */
-        }
-        .view-shiur-content h2 {
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            margin-top: 30px;
-            margin-bottom: 15px;
-            border-bottom: 1px dashed #eee;
-            padding-bottom: 5px;
-        }
-        .view-shiur-content p {
-            margin-bottom: 1em;
-            color: #333;
-        }
-        .view-shiur-content pre {
-            background-color: #f8f8f8;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 15px;
-            white-space: pre-wrap; /* Preserve formatting but wrap long lines */
-            font-family: monospace;
-            font-size: 0.9em;
-            color: #333;
-        }
-        .loading-message, .error-message {
-            text-align: center;
-            padding: 50px;
-            font-size: 1.2em;
-            color: #555;
-        }
-        .error-message {
-            color: red;
-            font-weight: 600;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon Library (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
-    <header class="site-header">
-        <div class="container header-container">
-            <div class="logo"><a href="index.html">Beis Anytime</a></div>
-            <nav class="main-nav"><ul><li><a href="index.html">Home</a></li><li><a href="#">All Shiurim</a></li></ul></nav>
-        </div>
-    </header>
+    <div class="site-wrapper">
+        <!-- ===== Sidebar ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <a href="index.html"><img src="images/logo-placeholder.png" alt="Beis Anytime Logo"></a>
+            </div>
+            <nav class="sidebar-nav">
+                <p class="nav-section-title">BROWSE</p>
+                <ul>
+                    <li><a href="#"><i class="fas fa-bookmark"></i> Topics</a></li>
+                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> Speakers</a></li>
+                </ul>
+            </nav>
+        </aside>
 
-    <main>
-        <section class="shiurim-section">
-            <div class="container">
-                <div class="view-shiur-container">
-                    <div id="loading" class="loading-message">Loading shiur details...</div>
-                    <div id="error" class="error-message" style="display: none;"></div>
+        <!-- ===== Main Content ===== -->
+        <div class="main-content">
+            <header class="site-header">
+                <div class="header-left">
+                    <div class="search-bar">
+                         <i class="fas fa-search"></i>
+                        <input type="search" placeholder="Search TorahAnytime">
+                    </div>
+                </div>
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="recent.html">Recent</a></li>
+                        <li><a href="trending.html">Trending</a></li>
+                    </ul>
+                </nav>
+                <div class="header-right">
+                    <button class="donate-btn">Donate</button>
+                    <a href="#" class="notification-bell"><i class="fas fa-bell"></i></a>
+                    <button class="signin-btn">Sign in</button>
+                </div>
+            </header>
 
-                    <div id="shiurContent" style="display: none;">
-                        <h1 id="shiurTitle"></h1>
-                        <div class="view-shiur-meta">
-                            <span>Rabbi: <strong id="shiurRabbi"></strong></span>
-                            <span>Date: <strong id="shiurDate"></strong></span>
-                            <span>Uploaded By: <strong id="shiurUploader"></strong></span>
-                        </div>
-                        
-                        <video controls id="mediaPlayer"></video>
+            <main>
+                <div class="page-content-area">
+                    <div class="view-shiur-container">
+                        <div id="loading" class="loading-message">Loading shiur details...</div>
+                        <div id="error" class="error-message" style="display: none;"></div>
 
-                        <div class="view-shiur-content">
-                            <h2 id="descriptionHeading" style="display: none;">Description</h2>
-                            <p id="shiurDescription"></p>
+                        <div id="shiurContent" style="display: none;">
+                            <h1 id="shiurTitle"></h1>
+                            <div class="view-shiur-meta">
+                                <span>Rabbi: <strong id="shiurRabbi"></strong></span>
+                                <span>Date: <strong id="shiurDate"></strong></span>
+                                <span>Uploaded By: <strong id="shiurUploader"></strong></span>
+                            </div>
+                            
+                            <video controls id="mediaPlayer"></video>
 
-                            <h2 id="notesHeading" style="display: none;">Notes</h2>
-                            <pre id="shiurNotes"></pre>
+                            <div class="view-shiur-content">
+                                <h2 id="descriptionHeading" style="display: none;">Description</h2>
+                                <p id="shiurDescription"></p>
+
+                                <h2 id="notesHeading" style="display: none;">Notes</h2>
+                                <pre id="shiurNotes"></pre>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="container"><p>&copy; 2025 Beis Anytime. All Rights Reserved.</p></div>
-    </footer>
+            </main>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev'; // Your Cloudflare Worker URL
+            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
             const params = new URLSearchParams(window.location.search);
             const shiurId = params.get('id');
 
@@ -155,17 +118,20 @@
 
                 const shiurData = await response.json();
 
+                // Format data
+                const formattedRabbi = shiurData.rabbi ? shiurData.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A';
+                const formattedDate = shiurData.date ? new Date(shiurData.date).toLocaleDateString() : 'N/A';
+
                 // Update page title and content
                 pageTitle.textContent = `${shiurData.title} - Beis Anytime`;
                 shiurTitle.textContent = shiurData.title;
-                shiurRabbi.textContent = shiurData.rabbi.replace('rabbi_', 'Rabbi '); // Format "rabbi_hartman" to "Rabbi Hartman"
-                shiurDate.textContent = shiurData.date ? new Date(shiurData.date).toLocaleDateString() : 'N/A';
+                shiurRabbi.textContent = formattedRabbi;
+                shiurDate.textContent = formattedDate;
                 shiurUploader.textContent = shiurData.uploaderName || 'Anonymous';
 
                 // Set media player source
                 mediaPlayer.src = shiurData.playbackUrl;
-                mediaPlayer.type = shiurData.fileType || 'video/mp4'; // Fallback type
-                mediaPlayer.setAttribute('aria-label', `Playback of shiur: ${shiurData.title}`);
+                mediaPlayer.type = shiurData.fileType || 'video/mp4';
 
                 // Populate description
                 if (shiurData.description && shiurData.description.trim() !== '') {
@@ -192,7 +158,7 @@
                 console.error("Error loading shiur:", error);
                 loadingMessage.style.display = 'none';
                 errorMessage.style.display = 'block';
-                errorMessage.textContent = `Error loading shiur: ${error.message}. Please check the console for more details.`;
+                errorMessage.textContent = `Error loading shiur: ${error.message}.`;
             }
         });
     </script>

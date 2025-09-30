@@ -3,170 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beis Anytime</title>
+    <title>Beis Anytime - Home</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon Library (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
-    <header class="site-header">
-        <div class="container header-container">
-            <div class="logo">
-                <a href="index.html">Beis Anytime</a>
+    <div class="site-wrapper">
+        <!-- ===== Sidebar ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <!-- Replace with your logo -->
+                <img src="images/logo-placeholder.png" alt="Beis Anytime Logo">
             </div>
-            <nav class="main-nav">
+            <nav class="sidebar-nav">
+                <p class="nav-section-title">BROWSE</p>
                 <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="#">All Shiurim</a></li>
+                    <li><a href="#"><i class="fas fa-bookmark"></i> Topics</a></li>
+                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> Speakers</a></li>
                 </ul>
             </nav>
-        </div>
-    </header>
+        </aside>
 
-    <main>
-        <!-- Hero Search Section -->
-        <section class="hero-section">
-            <div class="container">
-                <h1>Timeless Torah, Available Anytime.</h1>
-                <p class="subtitle">Find inspiration and clarity in our collection of shiurim.</p>
-                <div class="search-bar">
-                    <input type="search" placeholder="Search for a shiur or speaker..." id="mainSearchBar">
-                    <button type="submit" id="mainSearchButton">Search</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Speakers Section -->
-        <section class="main-speakers-section">
-            <div class="container">
-                <div class="speaker-grid">
-                    <a href="rabbi hartman" class="speaker-card" id="hartman-card">
-                        <div class="speaker-card-content">
-                            <h3>Rabbi Hartman's After Shacharis Shiurim</h3>
-                        </div>
-                    </a>
-                    <a href="rabbi rosenfeld" class="speaker-card" id="rosenfeld-card">
-                        <div class="speaker-card-content">
-                            <h3>Rabbi Rosenfeld's Dvar Halacha Shiurim</h3>
-                        </div>
-                    </a>
-                    <a href="rabbi golker" class="speaker-card" id="golker-card">
-                        <div class="speaker-card-content">
-                            <h3>Rabbi Golker's Friday Shiurim</h3>
-                        </div>
-                    </a>
-                    <a href="Special" class="speaker-card" id="special-card">
-                        <div class="speaker-card-content">
-                            <h3>Guest/Special Shiurim</h3>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Recent Shiurim Carousel -->
-        <section class="shiurim-section">
-            <div class="container">
-                 <h2>Recent Shiurim</h2>
-                 <div class="carousel" id="recentShiurimCarousel">
-                    <div class="carousel-track" id="recentShiurimTrack">
-                        <p class="loading-message">Loading recent shiurim...</p>
+        <!-- ===== Main Content ===== -->
+        <div class="main-content">
+            <header class="site-header">
+                <div class="header-left">
+                    <div class="search-bar">
+                         <i class="fas fa-search"></i>
+                        <input type="search" placeholder="Search TorahAnytime">
                     </div>
-                 </div>
-            </div>
-        </section>
-
-        <!-- All Shiurim Section -->
-        <section class="shiurim-section">
-            <div class="container">
-                <h2>All Shiurim</h2>
-                <div class="shiur-grid" id="allShiurimGrid">
-                    <p class="loading-message">Loading all shiurim...</p>
                 </div>
-            </div>
-        </section>
-    </main>
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="index.html" class="active">Home</a></li>
+                        <li><a href="recent.html">Recent</a></li>
+                        <li><a href="trending.html">Trending</a></li>
+                    </ul>
+                </nav>
+                <div class="header-right">
+                    <button class="donate-btn">Donate</button>
+                    <a href="#" class="notification-bell"><i class="fas fa-bell"></i></a>
+                    <button class="signin-btn">Sign in</button>
+                </div>
+            </header>
 
-    <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2025 Beis Anytime. All Rights Reserved.</p>
+            <main>
+                <section class="sponsored-banner">
+                    <p>Today's Learning is sponsored as a Refuah Sheleima for Ruchel bas Miriam | 8 Tishri 5786 | September 30, 2025</p>
+                </section>
+
+                <section class="main-promo-banner">
+                    <!-- Replace with your banner content -->
+                    <img src="images/jonah-banner-placeholder.jpg" alt="The Untold Story of Jonah Series">
+                </section>
+
+                <div class="home-content-area">
+                    <div class="shiurim-feed">
+                         <!-- Recent Shiurim Section -->
+                        <section class="shiurim-section">
+                             <h2>Recent Shiurim</h2>
+                             <div class="shiur-grid" id="recentShiurimGrid">
+                                 <p class="loading-message">Loading recent shiurim...</p>
+                             </div>
+                        </section>
+                    </div>
+
+                    <aside class="right-column">
+                        <div class="info-box yahrzeits-box">
+                            <div class="info-box-header">
+                                <h3>Yahrzeits: 8 Tishri</h3>
+                                <a href="#">Add free dedication →</a>
+                            </div>
+                            <ul>
+                               <li>Mordechai Ben Chaim</li>
+                               <li>HaRav Shalom Ben Chaim Noah HaLevi</li>
+                               <li>Sima bas Zev</li>
+                               <li>YOSEF BEN MAGGIE</li>
+                               <li>Bolisa Brenda Bat Esther</li>
+                               <li>Shirin Bat Sarah</li>
+                            </ul>
+                        </div>
+
+                        <div class="info-box newsletter-box">
+                             <h3>GET OUR WEEKLY NEWSLETTER</h3>
+                             <input type="email" placeholder="Enter your Email">
+                             <p>Your email is safe with us. We don't spam.</p>
+                        </div>
+                    </aside>
+                </div>
+            </main>
         </div>
-    </footer>
-
+    </div>
+    
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev'; // Your Cloudflare Worker URL
-            const allShiurimGrid = document.getElementById('allShiurimGrid');
-            const recentShiurimTrack = document.getElementById('recentShiurimTrack');
+            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
+            const recentShiurimGrid = document.getElementById('recentShiurimGrid');
 
-            async function fetchAndDisplayAllShiurim() {
-                allShiurimGrid.innerHTML = '<p class="loading-message">Loading all shiurim...</p>';
-                recentShiurimTrack.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
+            function createShiurCard(shiur) {
+                const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
+                const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
+                
+                return `
+                    <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card">
+                        <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
+                            <span class="shiur-duration">31:11</span>
+                        </div>
+                        <div class="shiur-card-content">
+                            <h4>${shiur.title}</h4>
+                            <p>${rabbiDisplayName}</p>
+                        </div>
+                    </a>
+                `;
+            }
+
+            async function fetchAndDisplayRecent() {
+                recentShiurimGrid.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
 
                 try {
                     const response = await fetch(`${workerURL}/api/all-shiurim`);
-                    if (!response.ok) throw new Error(`API returned ${response.status}: Failed to load all shiurim.`);
+                    if (!response.ok) throw new Error(`API returned ${response.status}`);
                     const allShiurim = await response.json();
 
                     if (allShiurim.length === 0) {
-                        allShiurimGrid.innerHTML = '<p>No shiurim uploaded yet across all rabbis.</p>';
-                        recentShiurimTrack.innerHTML = '<p>No recent shiurim available.</p>';
+                        recentShiurimGrid.innerHTML = '<p>No recent shiurim available.</p>';
                         return;
                     }
-
+                    
                     allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-
-                    // --- Populate "All Shiurim" Grid ---
-                    allShiurimGrid.innerHTML = '';
-                    for (const shiur of allShiurim) {
-                        const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
-                        // --- FIX: Add defensive check for shiur.rabbi ---
-                        const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace('rabbi_', 'Rabbi ') : 'Unknown Rabbi';
-                        const shiurCardHTML = `
-                            <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
-                                <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});"></div>
-                                <h4>${shiur.title}</h4>
-                                <p>${rabbiDisplayName} | ${displayDate}</p>
-                            </a>
-                        `;
-                        allShiurimGrid.insertAdjacentHTML('beforeend', shiurCardHTML);
-                    }
-
-                    // --- Populate "Recent Shiurim" Carousel ---
-                    recentShiurimTrack.innerHTML = '';
-                    const recentCount = Math.min(allShiurim.length, 10);
+                    
+                    recentShiurimGrid.innerHTML = '';
+                    // Display the 5 most recent on the homepage
+                    const recentCount = Math.min(allShiurim.length, 5);
                     for (let i = 0; i < recentCount; i++) {
-                        const shiur = allShiurim[i];
-                        const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
-                        // --- FIX: Add defensive check for shiur.rabbi ---
-                        const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace('rabbi_', 'Rabbi ') : 'Unknown Rabbi';
-                        const shiurCardHTML = `
-                            <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
-                                <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});"></div>
-                                <h4>${shiur.title}</h4>
-                                <p>${rabbiDisplayName} | ${displayDate}</p>
-                            </a>
-                        `;
-                        recentShiurimTrack.insertAdjacentHTML('beforeend', shiurCardHTML);
+                        recentShiurimGrid.insertAdjacentHTML('beforeend', createShiurCard(allShiurim[i]));
                     }
 
                 } catch (error) {
-                    console.error("Error loading all shiurim:", error);
-                    allShiurimGrid.innerHTML = `<p style="color: red;">Could not load all shiurim. Please try again later. (Error: ${error.message})</p>`;
-                    recentShiurimTrack.innerHTML = `<p style="color: red;">Could not load recent shiurim.</p>`;
+                    console.error("Error loading shiurim:", error);
+                    recentShiurimGrid.innerHTML = `<p class="error-message">Could not load recent shiurim.</p>`;
                 }
             }
 
-            fetchAndDisplayAllShiurim();
-
-            const mainSearchBar = document.getElementById('mainSearchBar');
-            const mainSearchButton = document.getElementById('mainSearchButton');
-            mainSearchButton.addEventListener('click', () => { alert(`Searching for: ${mainSearchBar.value}. (Search functionality not yet implemented)`); });
-            mainSearchBar.addEventListener('keypress', (e) => { if (e.key === 'Enter') { mainSearchButton.click(); } });
+            fetchAndDisplayRecent();
         });
     </script>
-    <script src="quiz.js"></script>
 </body>
 </html>
