@@ -824,6 +824,97 @@
             // --- INITIALIZATION ---
             loadShiurim();
         });
+
+          // --- UI Interactivity Script ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdown = document.getElementById('headerDropdown');
+            const dropdownToggle = document.getElementById('dropdownToggleBtn');
+            const dropdownMenu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
+            const donateBtn = document.getElementById('donateBtn');
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationModal = document.getElementById('notificationModal');
+            const closeNotificationModal = document.getElementById('closeNotificationModal');
+            const enableNotifications = document.getElementById('enableNotifications');
+            const notificationStatus = document.getElementById('notificationStatus');
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const userInfo = document.querySelector('.user-info');
+
+            if (dropdown && dropdownToggle) {
+                dropdownToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('is-active');
+                });
+                
+                window.addEventListener('click', (event) => {
+                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
+                        dropdown.classList.remove('is-active');
+                    }
+                });
+            }
+
+            // Donate button handler (example: open external link)
+            if (donateBtn) {
+                donateBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.open('https://your-donation-link.com', '_blank');
+                    console.log('Donate button clicked');
+                });
+            }
+
+            // Notification modal logic
+            if (notificationBell && notificationModal && closeNotificationModal) {
+                notificationBell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    notificationModal.style.display = 'block';
+                    console.log('Notifications button clicked');
+                });
+                closeNotificationModal.addEventListener('click', () => {
+                    notificationModal.style.display = 'none';
+                });
+                window.addEventListener('click', (event) => {
+                    if (event.target === notificationModal) {
+                        notificationModal.style.display = 'none';
+                    }
+                });
+            }
+            // Google login fallback
+            if (googleLoginBtn) {
+                setTimeout(() => {
+                    if (!googleLoginBtn.hasChildNodes()) {
+                        googleLoginBtn.innerHTML = '<span style="color:red;">Google login failed to load.</span>';
+                        if (userInfo) userInfo.style.display = 'none';
+                    }
+                }, 3000);
+            }
+
+            // Notification permission logic
+            if (enableNotifications && notificationStatus) {
+                enableNotifications.checked = localStorage.getItem('notificationsEnabled') === 'true';
+                enableNotifications.addEventListener('change', async function() {
+                    if (this.checked) {
+                        if (Notification.permission === 'granted') {
+                            localStorage.setItem('notificationsEnabled', 'true');
+                            notificationStatus.textContent = 'Notifications enabled!';
+                        } else if (Notification.permission !== 'denied') {
+                            let perm = await Notification.requestPermission();
+                            if (perm === 'granted') {
+                                localStorage.setItem('notificationsEnabled', 'true');
+                                notificationStatus.textContent = 'Notifications enabled!';
+                            } else {
+                                this.checked = false;
+                                notificationStatus.textContent = 'Notifications blocked.';
+                            }
+                        } else {
+                            this.checked = false;
+                            notificationStatus.textContent = 'Notifications blocked.';
+                        }
+                    } else {
+                        localStorage.setItem('notificationsEnabled', 'false');
+                        notificationStatus.textContent = 'Notifications disabled.';
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
