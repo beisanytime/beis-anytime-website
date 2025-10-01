@@ -215,13 +215,13 @@
         });
 
         // --- Push Notification Registration ---
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            navigator.serviceWorker.register('notification-service-worker.js').then(function(reg) {
+        //if ('serviceWorker' in navigator && 'PushManager' in window) {
+          //  navigator.serviceWorker.register('notification-service-worker.js').then(function(reg) {
                 // Service worker registered
-            }).catch(function(err) {
-                console.error('Service Worker registration failed:', err);
-            });
-        }
+        //    }).catch(function(err) {
+         //       console.error('Service Worker registration failed:', err);
+         //   });
+       // }
 
         // --- UI Interactivity Script ---
         document.addEventListener('DOMContentLoaded', () => {
