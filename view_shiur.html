@@ -33,30 +33,43 @@
         <!-- ===== Main Content ===== -->
         <div class="main-content">
             <header class="site-header">
-                <div class="search-bar">
-                     <i class="fas fa-search"></i>
-                    <input type="search" placeholder="Search TorahAnytime">
-                </div>
-                <nav class="main-nav">
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="recent.html">Recent</a></li>
-                        <li><a href="trending.html">Trending</a></li>
-                    </ul>
-                </nav>
-                <div class="header-right">
-                    <div class="header-dropdown" id="headerDropdown">
-                        <button class="dropdown-toggle" id="dropdownToggleBtn">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <div class="dropdown-menu">
-                            <a href="#" class="dropdown-item donate-btn">Donate</a>
-                            <a href="#" class="dropdown-item notification-bell"><i class="fas fa-bell"></i> Notifications</a>
-                            <a href="#" class="dropdown-item signin-btn">Sign In</a>
-                        </div>
-                    </div>
-                </div>
-            </header>
+    <div class="search-bar">
+         <i class="fas fa-search"></i>
+        <input type="search" placeholder="Search TorahAnytime">
+    </div>
+    
+    <div class="header-right">
+        <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
+            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                <span class="thumb" id="themeThumb"></span>
+            </button>
+        </div>
+
+        <div class="header-dropdown" id="headerDropdown">
+            <button class="dropdown-toggle" id="dropdownToggleBtn">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <div class="dropdown-menu">
+                <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>
+                <a href="#" class="dropdown-item" id="notificationBell">
+                    <i class="fas fa-bell"></i> Notifications
+                </a>
+
+                <!-- DYNAMIC LOGIN/USER SECTION -->
+                <div id="googleLoginBtn" class="google-login-btn"></div>
+                
+                <a href="account.html" class="dropdown-item user-info" style="display:none;">
+                    <img src="" alt="User" class="user-avatar">
+                    <span class="user-name"></span>
+                </a>
+                <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </a>
+                <!-- END DYNAMIC SECTION -->
+            </div>
+        </div>
+    </div>
+</header>
 
             <main>
                 <div class="page-content-area">
@@ -165,6 +178,96 @@
                 window.addEventListener('click', (event) => {
                     if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
                         dropdown.classList.remove('is-active');
+                    }
+                });
+            }
+        });
+          // --- UI Interactivity Script ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdown = document.getElementById('headerDropdown');
+            const dropdownToggle = document.getElementById('dropdownToggleBtn');
+            const dropdownMenu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
+            const donateBtn = document.getElementById('donateBtn');
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationModal = document.getElementById('notificationModal');
+            const closeNotificationModal = document.getElementById('closeNotificationModal');
+            const enableNotifications = document.getElementById('enableNotifications');
+            const notificationStatus = document.getElementById('notificationStatus');
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const userInfo = document.querySelector('.user-info');
+
+            if (dropdown && dropdownToggle) {
+                dropdownToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('is-active');
+                });
+                
+                window.addEventListener('click', (event) => {
+                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
+                        dropdown.classList.remove('is-active');
+                    }
+                });
+            }
+
+            // Donate button handler (example: open external link)
+            if (donateBtn) {
+                donateBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.open('https://your-donation-link.com', '_blank');
+                    console.log('Donate button clicked');
+                });
+            }
+
+            // Notification modal logic
+            if (notificationBell && notificationModal && closeNotificationModal) {
+                notificationBell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    notificationModal.style.display = 'block';
+                    console.log('Notifications button clicked');
+                });
+                closeNotificationModal.addEventListener('click', () => {
+                    notificationModal.style.display = 'none';
+                });
+                window.addEventListener('click', (event) => {
+                    if (event.target === notificationModal) {
+                        notificationModal.style.display = 'none';
+                    }
+                });
+            }
+            // Google login fallback
+            if (googleLoginBtn) {
+                setTimeout(() => {
+                    if (!googleLoginBtn.hasChildNodes()) {
+                        googleLoginBtn.innerHTML = '<span style="color:red;">Google login failed to load.</span>';
+                        if (userInfo) userInfo.style.display = 'none';
+                    }
+                }, 3000);
+            }
+
+            // Notification permission logic
+            if (enableNotifications && notificationStatus) {
+                enableNotifications.checked = localStorage.getItem('notificationsEnabled') === 'true';
+                enableNotifications.addEventListener('change', async function() {
+                    if (this.checked) {
+                        if (Notification.permission === 'granted') {
+                            localStorage.setItem('notificationsEnabled', 'true');
+                            notificationStatus.textContent = 'Notifications enabled!';
+                        } else if (Notification.permission !== 'denied') {
+                            let perm = await Notification.requestPermission();
+                            if (perm === 'granted') {
+                                localStorage.setItem('notificationsEnabled', 'true');
+                                notificationStatus.textContent = 'Notifications enabled!';
+                            } else {
+                                this.checked = false;
+                                notificationStatus.textContent = 'Notifications blocked.';
+                            }
+                        } else {
+                            this.checked = false;
+                            notificationStatus.textContent = 'Notifications blocked.';
+                        }
+                    } else {
+                        localStorage.setItem('notificationsEnabled', 'false');
+                        notificationStatus.textContent = 'Notifications disabled.';
                     }
                 });
             }
