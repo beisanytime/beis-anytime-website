@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shiurim from Guest Speaker/Special Events - Beis Anytime</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Special Shiurim  - Beis Anytime</title>
+    <link rel="stylesheet" href="/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-<!-- Removed inline styles -->
-<!-- Migrated styles to style.css -->
-<!-- End of migrated styles -->
+    <!-- Icon Library (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
         /* --- Existing CSS moved from style.css --- */
         /* Basic styling for the placeholder image */
         .shiur-card-image {
@@ -108,28 +108,17 @@
         h1, h2, h3, h4 { color: var(--primary-color); font-weight: 700; }
         a { text-decoration: none; color: var(--primary-color); }
 
-        /* --- Header --- */
-        .site-header { background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); padding: 15px 0; position: sticky; top: 0; z-index: 1000; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; }
-        .logo a { font-size: 1.6em; font-weight: 700; }
-        .main-nav ul { margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 30px; }
-        .main-nav a { font-weight: 600; transition: color 0.3s ease; }
-        .main-nav a:hover { color: var(--accent-color); }
-
         /* --- Hero Section (Homepage) --- */
         .hero-section { text-align: center; padding: 90px 0; }
         .hero-section h1 { font-size: 3.5rem; line-height: 1.1; margin-bottom: 1rem; }
         .hero-section .subtitle { font-size: 1.2rem; color: #555; margin-bottom: 2rem; }
-        .search-bar { display: flex; max-width: 550px; margin: 0 auto; }
-        .search-bar input { flex-grow: 1; border: 1px solid #ddd; padding: 15px 20px; font-size: 1rem; border-radius: var(--border-radius) 0 0 var(--border-radius); }
-        .search-bar button { border: none; background-color: var(--primary-color); color: white; padding: 0 25px; font-size: 1rem; cursor: pointer; border-radius: 0 var(--border-radius) var(--border-radius) 0; }
 
         /* --- Main Speakers Section (Homepage) --- */
         .main-speakers-section { padding: 40px 0; }
         .speaker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
         .speaker-card { height: 350px; border-radius: var(--border-radius); overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 25px; background-size: cover; background-position: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .speaker-card:hover { transform: scale(1.03); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
-        #rowe-card { background-image: url('images/rabbi_rowe.png'); }
+        #hartman-card { background-image: url('images/rabbi_hartman.png'); }
         #rosenfeld-card { background-image: url('images/rabbi_rosenfeld.jpg'); background-position: top center;}
         #golker-card { background-image: url('images/rabbi_golker.png'); }
         .speaker-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); }
@@ -178,8 +167,8 @@
         .site-footer { text-align: center; padding: 40px 0; color: #777; margin-top: 40px; }
 
         /* --- Rabbi Page Hero --- */
-        .rabbi-hero { height: 40vh; width: 100%; background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center; color: white; text-align: center; }
-        .rabbi-hero::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .rabbi-hero { height: 40vh; width: 100%; background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center; color: white; text-align: center; margin: 10px; border-radius: 20px; }
+        .rabbi-hero::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); border-radius: 20px; }
         .rabbi-hero-content { position: relative; z-index: 2; }
         .rabbi-hero h1 { color: white; font-size: 3.5rem; text-shadow: 0 3px 15px rgba(0,0,0,0.5); margin: 0; }
 
@@ -314,25 +303,73 @@
 </head>
 <body>
 
+    <div class="site-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <a href="../index.html">
+                <img src="../images/logo.png" alt="Beis Anytime Logo" class="logo-full">
+                <img src="../images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="../index.html"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
+                <li><a href="../recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
+                <li><a href="../trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+            </ul>
+            <p class="nav-section-title">BROWSE</p>
+            <ul>
+                <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
+                <li><a href="../speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <div class="main-content">
+
     <header class="site-header">
-        <div class="container header-container">
-            <div class="logo">
-                <a href="index.html">Beis Anytime</a>
+        <div class="search-bar">
+             <i class="fas fa-search"></i>
+            <input type="search" placeholder="Search TorahAnytime">
+        </div>
+        
+        <div class="header-right">
+            <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
+                <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <span class="thumb" id="themeThumb"></span>
+                </button>
             </div>
-            <nav class="main-nav">
-                <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="#">All Shiurim</a></li>
-                </ul>
-            </nav>
+
+            <div class="header-dropdown" id="headerDropdown">
+                <button class="dropdown-toggle" id="dropdownToggleBtn">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>
+                    <a href="#" class="dropdown-item" id="notificationBell">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+
+                    <!-- DYNAMIC LOGIN/USER SECTION -->
+                    <div id="googleLoginBtn" class="google-login-btn"></div>
+                    
+                    <a href="../account.html" class="dropdown-item user-info" style="display:none;">
+                        <img src="" alt="User" class="user-avatar">
+                        <span class="user-name"></span>
+                    </a>
+                    <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
+                        <i class="fas fa-sign-out-alt"></i> Sign Out
+                    </a>
+                    <!-- END DYNAMIC SECTION -->
+                </div>
+            </div>
         </div>
     </header>
 
     <main>
-        <!-- Rabbi Hero Section: Specific to Guest Speaker -->
-        <section class="rabbi-hero" style="background-image: url('../images/guest.png');">
+        <section class="rabbi-hero" style="background-image: url('../images/special_.png');">
             <div class="rabbi-hero-content">
-                <h1>Shiurim from Guest Speaker</h1>
+                <h1>Special Shiurim</h1>
             </div>
         </section>
 
@@ -426,6 +463,8 @@
         </div>
 
     </main>
+    </div> <!-- .main-content -->
+    </div> <!-- .site-wrapper -->
     
     <footer class="site-footer">
         <div class="container">
@@ -438,6 +477,29 @@
     <canvas id="canvas-processor" style="display: none;"></canvas>
 
     <script>
+        // Theme toggle initialization (shared header)
+        (function() {
+            const rootEl = document.documentElement || document.body;
+            const toggleBtn = document.getElementById('themeToggleBtn');
+            const wrap = document.getElementById('themeToggleWrap');
+            function applyTheme(t) {
+                if (t === 'dark') {
+                    rootEl.setAttribute('data-theme', 'dark');
+                    wrap && wrap.setAttribute('data-state', 'dark');
+                } else {
+                    rootEl.removeAttribute('data-theme');
+                    wrap && wrap.setAttribute('data-state', 'light');
+                }
+            }
+            const saved = localStorage.getItem('beisAnytimeTheme');
+            applyTheme(saved === 'dark' ? 'dark' : 'light');
+            if (toggleBtn) toggleBtn.addEventListener('click', () => {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                const next = isDark ? 'light' : 'dark';
+                applyTheme(next);
+                localStorage.setItem('beisAnytimeTheme', next);
+            });
+        })();
         document.addEventListener('DOMContentLoaded', () => {
             // --- CONFIGURATION ---
             const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev'; // Your Cloudflare Worker URL
@@ -485,7 +547,7 @@
                 const pageH1 = document.querySelector('.rabbi-hero h1');
                 if (!pageH1) return "unknown";
                 const pageH1Text = pageH1.textContent;
-                if (pageH1Text.includes("Buckman")) return "rabbi_rowe";
+                if (pageH1Text.includes("Hartman")) return "rabbi_hartman";
                 if (pageH1Text.includes("Rosenfeld")) return "rabbi_rosenfeld";
                 if (pageH1Text.includes("Golker")) return "rabbi_golker";
                 return "unknown"; 
@@ -761,6 +823,97 @@
             // --- INITIALIZATION ---
             loadShiurim();
         });
+
+          // --- UI Interactivity Script ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdown = document.getElementById('headerDropdown');
+            const dropdownToggle = document.getElementById('dropdownToggleBtn');
+            const dropdownMenu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
+            const donateBtn = document.getElementById('donateBtn');
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationModal = document.getElementById('notificationModal');
+            const closeNotificationModal = document.getElementById('closeNotificationModal');
+            const enableNotifications = document.getElementById('enableNotifications');
+            const notificationStatus = document.getElementById('notificationStatus');
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const userInfo = document.querySelector('.user-info');
+
+            if (dropdown && dropdownToggle) {
+                dropdownToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('is-active');
+                });
+                
+                window.addEventListener('click', (event) => {
+                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
+                        dropdown.classList.remove('is-active');
+                    }
+                });
+            }
+
+            // Donate button handler (example: open external link)
+            if (donateBtn) {
+                donateBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.open('https://your-donation-link.com', '_blank');
+                    console.log('Donate button clicked');
+                });
+            }
+
+            // Notification modal logic
+            if (notificationBell && notificationModal && closeNotificationModal) {
+                notificationBell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    notificationModal.style.display = 'block';
+                    console.log('Notifications button clicked');
+                });
+                closeNotificationModal.addEventListener('click', () => {
+                    notificationModal.style.display = 'none';
+                });
+                window.addEventListener('click', (event) => {
+                    if (event.target === notificationModal) {
+                        notificationModal.style.display = 'none';
+                    }
+                });
+            }
+            // Google login fallback
+            if (googleLoginBtn) {
+                setTimeout(() => {
+                    if (!googleLoginBtn.hasChildNodes()) {
+                        googleLoginBtn.innerHTML = '<span style="color:red;">Google login failed to load.</span>';
+                        if (userInfo) userInfo.style.display = 'none';
+                    }
+                }, 3000);
+            }
+
+            // Notification permission logic
+            if (enableNotifications && notificationStatus) {
+                enableNotifications.checked = localStorage.getItem('notificationsEnabled') === 'true';
+                enableNotifications.addEventListener('change', async function() {
+                    if (this.checked) {
+                        if (Notification.permission === 'granted') {
+                            localStorage.setItem('notificationsEnabled', 'true');
+                            notificationStatus.textContent = 'Notifications enabled!';
+                        } else if (Notification.permission !== 'denied') {
+                            let perm = await Notification.requestPermission();
+                            if (perm === 'granted') {
+                                localStorage.setItem('notificationsEnabled', 'true');
+                                notificationStatus.textContent = 'Notifications enabled!';
+                            } else {
+                                this.checked = false;
+                                notificationStatus.textContent = 'Notifications blocked.';
+                            }
+                        } else {
+                            this.checked = false;
+                            notificationStatus.textContent = 'Notifications blocked.';
+                        }
+                    } else {
+                        localStorage.setItem('notificationsEnabled', 'false');
+                        notificationStatus.textContent = 'Notifications disabled.';
+                    }
+                });
+            }
+        });
     </script>
-</body>
-</html>
+    <script src="quiz.js"></script>
+</body></html>

@@ -3,7 +3,7 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'New Video Uploaded!';
   const options = {
     body: data.body || 'A new shiur has been uploaded. Check it out!',
-    icon: '/images/logo-placeholder.png',
+    icon: '/images/logo.png',
     badge: '/images/logo-icon-placeholder.png',
     data: data.url || '/recent.html'
   };

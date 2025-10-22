@@ -825,3 +825,95 @@ body,
 .dropdown-menu {
     transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
+
+/* --- Quiz Modal Styles --- */
+body.quiz-active > *:not(#quiz-modal-backdrop) {
+    display: none !important;
+}
+
+#quiz-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+}
+
+#quiz-modal {
+    background-color: white;
+    padding: 30px 40px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    max-width: 500px;
+    width: 90%;
+}
+
+#quiz-modal h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+#quiz-modal p {
+    color: #555;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.quiz-question {
+    margin-bottom: 20px;
+}
+
+/* Using existing .input-group styles for consistency */
+#quiz-modal .input-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+#quiz-modal .input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    background-color: #fff;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+#quiz-modal button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    background-color: #13405f;
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+#quiz-modal button:hover:not(:disabled) {
+    background-color: #081c2b;
+}
+
+#quiz-modal button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+
+.quiz-status-message {
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-top: 15px;
+    min-height: 1.2em;
+}
