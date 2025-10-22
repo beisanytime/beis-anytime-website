@@ -8,7 +8,7 @@
     --accent-orange: #F57F17;
     --sidebar-bg: #FFFFFF;
     --header-height: 70px;
-    --sidebar-width: 240px;
+    --sidebar-width: 280px; /* increased from 240px to make sidebar thicker */
     --light-gray-bg: #F8F9FA; /* new: default track/background used by the theme toggle */
 }
 
@@ -56,6 +56,7 @@ main {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    justify-content: flex-start; /* changed: keep logo + nav at the top */
     z-index: 200;
     transition: width 0.3s ease-in-out;
     overflow-x: hidden;
@@ -71,8 +72,7 @@ main {
 }
 
 .sidebar-logo img {
-    height: 90px;
-
+    height: 70px; /* reduce logo image height slightly so it doesn't push nav down */
 }
 
 .logo-icon {
@@ -104,8 +104,9 @@ main {
 .sidebar-nav li a {
     display: flex;
     align-items: center;
-    padding: 10px 12px;
-    border-radius: 6px;
+    padding: 15px 12px;
+    margin: 5px;
+    border-radius: 15px;
     font-weight: 500;
     font-size: 0.95rem;
     transition: background-color 0.2s, color 0.2s;
@@ -133,6 +134,27 @@ main {
 
 .sidebar-nav li a.active i {
     color: var(--primary-blue);
+}
+
+/* New: sidebar contact area */
+.sidebar-contact {
+    margin-top: auto; /* new: push contact to bottom while keeping nav at top */
+    padding: 12px 10px;
+    border-top: 1px solid var(--border-color);
+    text-align: left;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+.sidebar-contact p {
+    margin: 0 0 6px 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.sidebar-contact .contact-email {
+    color: var(--primary-blue);
+    font-weight: 600;
+    word-break: break-all;
+    display: inline-block;
 }
 
 /* --- Header --- */
@@ -916,4 +938,45 @@ body.quiz-active > *:not(#quiz-modal-backdrop) {
     font-weight: 600;
     margin-top: 15px;
     min-height: 1.2em;
+}
+
+/* Make range scrubbers visible and styled (for thumbnail scrubbing controls) */
+.thumbnail-scrubber {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--primary-blue) 0%, var(--primary-blue) 50%, #e6eef8 50%, #e6eef8 100%);
+    outline: none;
+    margin: 8px 0;
+    cursor: pointer;
+}
+
+/* Thumb */
+.thumbnail-scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--primary-blue);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.thumbnail-scrubber::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--primary-blue);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Provide a simple background handling for Firefox (fill track) */
+.thumbnail-scrubber::-moz-range-progress {
+    background: var(--primary-blue);
+    height: 8px;
+    border-radius: 8px;
 }

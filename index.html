@@ -28,7 +28,7 @@
             </div>
         </div>
         <!-- ===== Sidebar ===== -->
-       <aside class="sidebar">
+<aside class="sidebar">
     <div class="sidebar-logo">
         <a href="index.html">
             <img src="images/logo.png" alt="Beis Anytime Logo" class="logo-full">
@@ -48,6 +48,12 @@
             <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
         </ul>
     </nav>
+
+    <!-- Added: Contact us pinned to bottom -->
+    <div class="sidebar-contact">
+        <p>Contact us</p>
+        <a href="mailto:beisanytime@gmail.com" class="contact-email">beisanytime@gmail.com</a>
+    </div>
 </aside>
 
 <!-- ===== Main Content Wrapper (Starts here on every page) ===== -->
@@ -57,7 +63,7 @@
 <header class="site-header">
     <div class="search-bar">
          <i class="fas fa-search"></i>
-        <input type="search" placeholder="Search BeisAnytime">
+        <input type="search" placeholder="Search BeisAnytime" id="shiurSearchInput">
     </div>
     
     <div class="header-right">
@@ -96,33 +102,15 @@
             <main>
                 <div class="home-content-area">
                     <div class="shiurim-feed">
-                         <section class="shiurim-section">
-                             <h2>Recent Shiurim</h2>
-                             <div class="shiur-grid" id="recentShiurimGrid">
-                                 <!-- Shiurim will be loaded here by JavaScript -->
-                             </div>
+                        <section class="shiurim-section">
+                            <h2>Recent Shiurim</h2>
+                            <div class="shiur-grid" id="recentShiurimGrid">
+                                <!-- Shiurim will be loaded here by JavaScript -->
+                            </div>
                         </section>
                     </div>
 
-                    <aside class="right-column">
-                        <div class="info-box yahrzeits-box">
-                            <div class="info-box-header">
-                                <h3>Yahrzeits: 8 Tishri</h3>
-                                <a href="#">Add free dedication →</a>
-                            </div>
-                            <ul>
-                               <li>Mordechai Ben Chaim</li>
-                               <li>HaRav Shalom Ben Chaim Noah HaLevi</li>
-                               <li>Sima bas Zev</li>
-                            </ul>
-                        </div>
-
-                        <div class="info-box newsletter-box">
-                             <h3>GET OUR WEEKLY NEWSLETTER</h3>
-                             <input type="email" placeholder="Enter your Email">
-                             <p>Your email is safe with us.</p>
-                        </div>
-                    </aside>
+                    <!-- Right column removed per request -->
                 </div>
             </main>
         </div>
@@ -160,49 +148,73 @@
         document.addEventListener('DOMContentLoaded', () => {
             const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
             const recentShiurimGrid = document.getElementById('recentShiurimGrid');
+            const shiurSearchInput = document.getElementById('shiurSearchInput');
+            let allShiurim = [];
 
-            if (recentShiurimGrid) {
-                function createShiurCard(shiur) {
-                    const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
-                    return `
-                        <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card">
-                            <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
-                                <span class="shiur-duration">31:11</span>
-                            </div>
-                            <div class="shiur-card-content">
-                                <h4>${shiur.title}</h4>
-                                <p>${rabbiDisplayName}</p>
-                            </div>
-                        </a>
-                    `;
+            function createShiurCard(shiur) {
+                const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
+                const cardElement = document.createElement('div');
+                cardElement.innerHTML = `
+                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
+                        <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
+                        </div>
+                        <div class="shiur-card-content">
+                            <h4>${shiur.title || 'Untitled Shiur'}</h4>
+                            <p>${rabbiDisplayName}</p>
+                        </div>
+                    </a>
+                `;
+                return cardElement.firstElementChild;
+            }
+
+            function displayShiurim(shiurim) {
+                if (!recentShiurimGrid) return;
+                if (shiurim.length === 0) {
+                    recentShiurimGrid.innerHTML = '<p>No shiurim found.</p>';
+                    return;
                 }
+                recentShiurimGrid.innerHTML = '';
+                shiurim.forEach(shiur => {
+                    recentShiurimGrid.appendChild(createShiurCard(shiur));
+                });
+            }
 
-                async function fetchAndDisplayRecent() {
-                    recentShiurimGrid.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
-                    try {
-                        const response = await fetch(`${workerURL}/api/all-shiurim`);
-                        if (!response.ok) throw new Error(`API returned ${response.status}`);
-                        const allShiurim = await response.json();
+            async function fetchAndDisplayRecent() {
+                recentShiurimGrid.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
+                try {
+                    const response = await fetch(`${workerURL}/api/all-shiurim`);
+                    if (!response.ok) throw new Error(`API returned ${response.status}`);
+                    allShiurim = await response.json();
 
-                        if (allShiurim.length === 0) {
-                            recentShiurimGrid.innerHTML = '<p>No recent shiurim available.</p>';
-                            return;
-                        }
-                        
-                        allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                        
-                        recentShiurimGrid.innerHTML = '';
-                        const recentCount = Math.min(allShiurim.length, 5);
-                        for (let i = 0; i < recentCount; i++) {
-                            recentShiurimGrid.insertAdjacentHTML('beforeend', createShiurCard(allShiurim[i]));
-                        }
-
-                    } catch (error) {
-                        console.error("Error loading shiurim:", error);
-                        recentShiurimGrid.innerHTML = `<p class="error-message">Could not load recent shiurim.</p>`;
+                    if (allShiurim.length === 0) {
+                        recentShiurimGrid.innerHTML = '<p>No recent shiurim available.</p>';
+                        return;
                     }
+                    
+                    allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+                    
+                    displayShiurim(allShiurim.slice(0, 5));
+                } catch (error) {
+                    console.error("Error loading shiurim:", error);
+                    recentShiurimGrid.innerHTML = `<p class="error-message">Could not load recent shiurim.</p>`;
                 }
-                fetchAndDisplayRecent();
+            }
+            fetchAndDisplayRecent();
+
+            // --- Search Functionality ---
+            if (shiurSearchInput) {
+                shiurSearchInput.addEventListener('input', function() {
+                    const query = this.value.trim().toLowerCase();
+                    if (!query) {
+                        displayShiurim(allShiurim.slice(0, 5));
+                        return;
+                    }
+                    const filtered = allShiurim.filter(shiur =>
+                        (shiur.title && shiur.title.toLowerCase().includes(query)) ||
+                        (shiur.rabbi && shiur.rabbi.replace(/_/g, ' ').toLowerCase().includes(query))
+                    );
+                    displayShiurim(filtered);
+                });
             }
         });
 
@@ -306,5 +318,70 @@
             }
         });
     </script>
+    <!-- Added: Generic thumbnail scrubber wiring for upload / rabbis pages.
+         Usage examples on other pages:
+         1) <input type="range" class="thumbnail-scrubber" data-count="10" data-src-template="/thumbs/thumb_{index}.jpg" ...>
+         2) <input type="range" class="thumbnail-scrubber" data-thumbs="a.jpg,b.jpg,c.jpg" ...>
+         3) Provide data-preview-selector to target the preview element (img or element with background)
+    -->
+    <script>
+    (function(){
+        function initScrubbers() {
+            document.querySelectorAll('.thumbnail-scrubber').forEach(function(input){
+                var previewSelector = input.dataset.previewSelector;
+                var preview = previewSelector ? document.querySelector(previewSelector) : input.nextElementSibling;
+                var thumbsCsv = input.dataset.thumbs;
+                var srcTemplate = input.dataset.srcTemplate;
+                var count = parseInt(input.dataset.count, 10) || (thumbsCsv ? thumbsCsv.split(',').length : 10);
+
+                function setPreviewByIndex(idx) {
+                    idx = Math.max(0, Math.min(idx, count - 1));
+                    var src = '';
+                    if (thumbsCsv) {
+                        var arr = thumbsCsv.split(',');
+                        src = (arr[Math.min(idx, arr.length - 1)] || '').trim();
+                    } else if (srcTemplate) {
+                        src = srcTemplate.replace(/\{index\}/g, idx);
+                    } else if (preview && preview.dataset && (preview.dataset.thumbPrefix || preview.dataset.thumbSuffix)) {
+                        var pre = preview.dataset.thumbPrefix || '';
+                        var suf = preview.dataset.thumbSuffix || '';
+                        src = pre + idx + suf;
+                    }
+                    if (!src || !preview) return;
+                    if (preview.tagName && preview.tagName.toLowerCase() === 'img') {
+                        preview.src = src;
+                    } else {
+                        preview.style.backgroundImage = 'url(' + src + ')';
+                    }
+                }
+
+                // Make control visible (in case page CSS hides range)
+                input.style.opacity = input.style.opacity || '';
+                input.addEventListener('input', function(e){
+                    var val = Math.round(Number(e.target.value) || 0);
+                    setPreviewByIndex(val);
+                });
+                input.addEventListener('change', function(e){
+                    var val = Math.round(Number(e.target.value) || 0);
+                    setPreviewByIndex(val);
+                });
+
+                // initialize position
+                setTimeout(function(){
+                    var initial = Math.round(Number(input.value) || 0);
+                    setPreviewByIndex(initial);
+                }, 0);
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initScrubbers);
+        } else {
+            initScrubbers();
+        }
+    })();
+    </script>
+
+    <!-- ...existing code... -->
     <script src="quiz.js"></script>
 </body></html>
