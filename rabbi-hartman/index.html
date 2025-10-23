@@ -66,22 +66,22 @@
             color: #555;
         }
         #thumbnailPreview {
-            max-width: 100%;
-            max-height: 200px; /* Limit preview height */
-            margin-top: 10px;
-            border: 1px solid #ddd; /* Subtle border for preview */
-            border-radius: 4px;
+            max-width: 90%; /* Keep some margin on sides */
+            max-height: 180px; /* Limit height to leave room for controls */
+            border-radius: 8px;
+            object-fit: contain;
+            border: 1px solid var(--border-color);
+            margin: 15px auto 0;
         }
         .thumbnail-controls {
+            width: 100%; /* Make controls full width */
+            max-width: 90%; /* Keep some margin on sides */
+            margin: 15px auto 0;
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 15px;
         }
-        #videoScrubber {
-            flex-grow: 1; /* Allow scrubber to take available space */
-        }
-
         /* --- General Setup & Variables (Copied from style.css) --- */
         :root {
             --primary-color: #0c2d48;
@@ -187,10 +187,20 @@
         .upload-full-width { grid-column: 1 / -1; }
 
         .file-drop-zone {
-            border: 2px dashed var(--border-color); border-radius: var(--border-radius); display: flex;
-            flex-direction: column; align-items: center; justify-content: center; text-align: center;
-            padding: 20px; cursor: pointer; transition: background-color 0.3s ease, border-color 0.3s ease;
-            height: 100%; position: relative; overflow: hidden;
+            border: 2px dashed var(--border-color); 
+            border-radius: var(--border-radius); 
+            display: flex;
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            text-align: center;
+            padding: 20px; 
+            cursor: pointer; 
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            height: 100%; 
+            min-height: 300px; /* Added minimum height */
+            position: relative; 
+            overflow: visible; /* Changed from hidden to visible */
         }
         .file-drop-zone.dragover { background-color: #e9eff5; border-color: var(--primary-color); }
         .file-drop-zone .file-drop-zone-icon {
@@ -203,9 +213,23 @@
         .file-drop-zone p { margin: 10px 0 0 0; color: #555; font-weight: 600; }
         .file-drop-zone span { font-size: 0.9rem; color: #888; }
         #fileName { font-weight: 600; color: var(--accent-color); margin-top: 15px; }
-        #thumbnailPreview { max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: contain; border: 1px solid var(--border-color); display: block; margin: 10px auto 0; }
+        #thumbnailPreview { max-width: 90%; /* Keep some margin on sides */
+            max-height: 180px; /* Limit height to leave room for controls */
+            border-radius: 8px;
+            object-fit: contain;
+            border: 1px solid var(--border-color);
+            margin: 15px auto 0;
+        }
 
-        .thumbnail-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; }
+        .thumbnail-controls {
+            width: 100%; /* Make controls full width */
+            max-width: 90%; /* Keep some margin on sides */
+            margin: 15px auto 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
         .thumbnail-controls button {
             background-color: transparent; color: var(--primary-color); border: 1px solid var(--border-color);
             font-size: 1.2rem; line-height: 1; width: 38px; height: 38px; border-radius: 50%;
@@ -412,15 +436,14 @@
                             <p id="fileName"></p>
                             <!-- Image tag to display the generated thumbnail -->
                             <img id="thumbnailPreview" src="" alt="Video thumbnail preview" style="display: none;">
+                            <!-- Moved inside drop zone -->
+                            <div id="thumbnailScrubberControls" class="thumbnail-controls" style="display: none;">
+                                <button type="button" id="prevFrameBtn"> &lt; </button>
+                                <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1">
+                                <button type="button" id="nextFrameBtn"> &gt; </button>
+                            </div>
                         </div>
                         <input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;">
-                        
-                        <!-- Thumbnail Scrubber Controls -->
-                        <div id="thumbnailScrubberControls" class="thumbnail-controls" style="display: none;">
-                            <button id="prevFrameBtn"> &lt; </button>
-                            <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1">
-                            <button id="nextFrameBtn"> &gt; </button>
-                        </div>
                     </div>
 
                     <!-- Full Width: Notes -->
@@ -538,6 +561,16 @@
             const prevFrameBtn = document.getElementById('prevFrameBtn');
             const nextFrameBtn = document.getElementById('nextFrameBtn');
 
+            // Prevent clicks on scrubber controls from bubbling to dropZone (which triggers fileInput.click())
+            if (thumbnailScrubberControls) {
+                thumbnailScrubberControls.addEventListener('click', (e) => e.stopPropagation());
+            }
+            if (videoScrubber) {
+                ['pointerdown','pointerup','mousedown','mouseup','click'].forEach(ev => {
+                    videoScrubber.addEventListener(ev, (e) => e.stopPropagation());
+                });
+            }
+            
             let currentVideoFile = null; // Holds the selected File object
             let generatedThumbnailDataUrl = ''; // Stores the base64 Data URL of the thumbnail
             let currentObjectUrl = null; // Keeps track of the blob URL for cleanup
@@ -702,10 +735,12 @@
                     videoProcessor.currentTime = seekTime;
                 }
             });
-            prevFrameBtn.addEventListener('click', () => {
+            prevFrameBtn.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
                 if (currentVideoFile && videoProcessor.duration) { isSeeking = true; videoProcessor.currentTime = Math.max(0, videoProcessor.currentTime - (1 / 30)); }
             });
-            nextFrameBtn.addEventListener('click', () => {
+            nextFrameBtn.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
                 if (currentVideoFile && videoProcessor.duration) { isSeeking = true; videoProcessor.currentTime = Math.min(videoProcessor.duration, videoProcessor.currentTime + (1 / 30)); }
             });
             function handleFileSelect(file) {

@@ -67,7 +67,7 @@
         }
         #thumbnailPreview {
             max-width: 100%;
-            max-height: 200px; /* Limit preview height */
+            max-height: 200px; /* Example height */
             margin-top: 10px;
             border: 1px solid #ddd; /* Subtle border for preview */
             border-radius: 4px;
@@ -276,7 +276,8 @@
             margin-bottom: 15px; text-align: center;
         }
         .modal-content input[type="password"]:focus {
-          outline: none; border-color: var(--primary-color);
+          outline: none;
+          border-color: var(--primary-color);
           box-shadow: 0 0 0 3px rgba(12, 45, 72, 0.1);
         }
         .modal-content button {
@@ -411,15 +412,15 @@
                             <p id="fileName"></p>
                             <!-- Image tag to display the generated thumbnail -->
                             <img id="thumbnailPreview" src="" alt="Video thumbnail preview" style="display: none;">
+                            <!-- Thumbnail Scrubber Controls (moved inside drop zone) -->
+                            <div id="thumbnailScrubberControls" class="thumbnail-controls" style="display: none;">
+                                <button type="button" id="prevFrameBtn"> &lt; </button>
+                                <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1">
+                                <button type="button" id="nextFrameBtn"> &gt; </button>
+                            </div>
                         </div>
                         <input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;">
                         
-                        <!-- Thumbnail Scrubber Controls -->
-                        <div id="thumbnailScrubberControls" class="thumbnail-controls" style="display: none;">
-                            <button id="prevFrameBtn"> &lt; </button>
-                            <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1">
-                            <button id="nextFrameBtn"> &gt; </button>
-                        </div>
                     </div>
 
                     <!-- Full Width: Notes -->
@@ -532,6 +533,9 @@
             const prevFrameBtn = document.getElementById('prevFrameBtn');
             const nextFrameBtn = document.getElementById('nextFrameBtn');
 
+            if (thumbnailScrubberControls) thumbnailScrubberControls.addEventListener('click', (e)=>e.stopPropagation());
+            if (videoScrubber) ['pointerdown','pointerup','mousedown','mouseup','click'].forEach(ev=>videoScrubber.addEventListener(ev, (e)=>e.stopPropagation()));
+            
             let currentVideoFile = null; // Holds the selected File object
             let generatedThumbnailDataUrl = ''; // Stores the base64 Data URL of the thumbnail
             let currentObjectUrl = null; // Keeps track of the blob URL for cleanup
@@ -544,13 +548,14 @@
                 const pageH1Text = pageH1.textContent;
                 if (pageH1Text.includes("Golker")) return "rabbi_golker";
                 if (pageH1Text.includes("Rosenfeld")) return "rabbi_rosenfeld";
-                if (pageH1Text.includes("Golker")) return "rabbi_golker";
-                return "unknown"; 
+                // Removed the duplicate 'Golker' line from the original code for cleanliness
+                return "unknown";
             }
 
             // --- FUNCTION: Loads Shiurim from API and Populates Grid ---
             async function loadShiurim() {
                 const rabbiName = getRabbiNameFromPage();
+                const shiurimGrid = document.getElementById('shiurimGrid'); // Ensure this is correctly scoped
                 shiurimGrid.innerHTML = '<p class="loading-message">Loading shiurim...</p>';
 
                 try {
@@ -616,6 +621,11 @@
             }
 
             // --- UI Toggle Functions ---
+            const shiurimSection = document.getElementById('shiurimSection');
+            const uploadSection = document.getElementById('uploadSection');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            
             function showUploadForm(e) {
                 if(e) e.preventDefault();
                 shiurimSection.style.display = 'none';
@@ -650,7 +660,7 @@
             cancelBtn.addEventListener('click', hideUploadForm);
 
             // --- FORM DEFAULTS & LOCAL STORAGE ---
-            dateInput.value = new Date().toISOString().split('T')[0]; 
+            document.getElementById('date').value = new Date().toISOString().split('T')[0]; 
             const savedName = localStorage.getItem('beisAnytimeUploaderName');
             if (savedName) uploaderNameInput.value = savedName;
             uploaderNameInput.addEventListener('input', () => {
@@ -696,10 +706,12 @@
                     videoProcessor.currentTime = seekTime;
                 }
             });
-            prevFrameBtn.addEventListener('click', () => {
+            prevFrameBtn.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
                 if (currentVideoFile && videoProcessor.duration) { isSeeking = true; videoProcessor.currentTime = Math.max(0, videoProcessor.currentTime - (1 / 30)); }
             });
-            nextFrameBtn.addEventListener('click', () => {
+            nextFrameBtn.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
                 if (currentVideoFile && videoProcessor.duration) { isSeeking = true; videoProcessor.currentTime = Math.min(videoProcessor.duration, videoProcessor.currentTime + (1 / 30)); }
             });
             function handleFileSelect(file) {
@@ -747,7 +759,7 @@
                 try {
                     const metadata = {
                         title: titleInput.value, description: descriptionInput.value, notes: notesInput.value,
-                        date: dateInput.value, uploaderName: uploaderNameInput.value, rabbi: getRabbiNameFromPage(),
+                        date: document.getElementById('date').value, uploaderName: uploaderNameInput.value, rabbi: getRabbiNameFromPage(),
                         fileName: file.name, fileType: file.type, thumbnailDataUrl: generatedThumbnailDataUrl
                     };
                     const apiResponse = await fetch(`${workerURL}/api/prepare-upload`, {
