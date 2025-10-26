@@ -440,38 +440,96 @@
             uploadBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const file = fileInput.files[0];
-                if (!titleInput.value || !file) { alert('Please provide a title and select a file.'); return; }
+
+                if (!titleInput.value || !file) {
+                    alert('Please provide a title and select a file.');
+                    return;
+                }
+
                 uploadBtn.disabled = true;
                 uploadBtn.textContent = 'Preparing...';
+
                 try {
+                    // --- Step 1: Prepare metadata and get the signed URL (This part is unchanged) ---
                     const metadata = {
-                        title: titleInput.value, description: descriptionInput.value, notes: notesInput.value,
-                        date: dateInput.value, uploaderName: uploaderNameInput.value, rabbi: getRabbiNameFromPage(),
-                        fileName: file.name, fileType: file.type, thumbnailDataUrl: generatedThumbnailDataUrl
+                        title: titleInput.value,
+                        description: descriptionInput.value,
+                        notes: notesInput.value,
+                        date: dateInput.value,
+                        uploaderName: uploaderNameInput.value,
+                        rabbi: getRabbiNameFromPage(),
+                        fileName: file.name,
+                        fileType: file.type,
+                        thumbnailDataUrl: generatedThumbnailDataUrl
                     };
+
                     const apiResponse = await fetch(`${workerURL}/api/prepare-upload`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metadata)
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(metadata)
                     });
-                    if (!apiResponse.ok) { const errorText = await apiResponse.text(); throw new Error(`API returned ${apiResponse.status}: ${errorText}`); }
+
+                    if (!apiResponse.ok) {
+                        const errorText = await apiResponse.text();
+                        throw new Error(`API Error: ${errorText}`);
+                    }
+
                     const { signedUrl } = await apiResponse.json();
-                    uploadBtn.textContent = 'Uploading file...';
-                    const uploadResponse = await fetch(signedUrl, {
-                        method: 'PUT', body: file, headers: { 'Content-Type': file.type }
-                    });
-                    if (!uploadResponse.ok) { const r2ErrorText = await uploadResponse.text(); console.error("R2 Upload Raw Error:", r2ErrorText); throw new Error(`File upload to R2 failed with status ${uploadResponse.status}.`); }
-                    uploadBtn.textContent = 'Success!';
-                    uploadBtn.classList.add('success');
-                    setTimeout(hideUploadForm, 1500);
+
+                    // --- Step 2: Upload the file to R2 using XMLHttpRequest for progress tracking ---
+                    // This is the new, robust upload implementation.
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', signedUrl, true);
+                    xhr.setRequestHeader('Content-Type', file.type);
+
+                    // --- THIS IS THE KEY: Listen for progress events ---
+                    xhr.upload.onprogress = function(event) {
+                        if (event.lengthComputable) {
+                            const percentComplete = Math.round((event.loaded / event.total) * 100);
+                            uploadBtn.textContent = `Uploading... ${percentComplete}%`;
+                            console.log(`Upload progress: ${percentComplete}%`);
+                        }
+                    };
+
+                    // Handle successful upload
+                    xhr.onload = function() {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            console.log('Upload to R2 successful.');
+                            uploadBtn.textContent = 'Success!';
+                            uploadBtn.classList.add('success');
+                            setTimeout(hideUploadForm, 1500); // Redirect after success
+                        } else {
+                            // Handle a failed upload (e.g., R2 returns an error)
+                            console.error('R2 upload failed!', { status: xhr.status, response: xhr.responseText });
+                            alert(`Upload failed with status ${xhr.status}. Please try again.`);
+                            uploadBtn.textContent = 'Upload Failed';
+                        }
+                    };
+
+                    // Handle network errors (e.g., internet connection lost)
+                    xhr.onerror = function() {
+                        console.error('Network error during R2 upload.');
+                        alert('Upload failed due to a network error. Please check your internet connection and try again.');
+                        uploadBtn.textContent = 'Upload Failed';
+                    };
+
+                    // Start the upload
+                    xhr.send(file);
+
                 } catch (error) {
-                    console.error('Upload failed:', error);
-                    alert(`Upload failed. Please check the console for details. Error: ${error.message}`);
+                    // This will catch errors from the 'prepare-upload' step
+                    console.error('Upload preparation failed:', error);
+                    alert(`Could not start upload. Error: ${error.message}`);
                     uploadBtn.textContent = 'Upload Failed';
                 } finally {
-                     setTimeout(() => {
-                        uploadBtn.disabled = false;
-                        uploadBtn.textContent = 'Upload Shiur';
-                        uploadBtn.classList.remove('success');
-                    }, 2000);
+                    // Reset the button to its original state after a short delay, but only on failure.
+                    // Success case is handled by hideUploadForm().
+                    setTimeout(() => {
+                        if (!uploadBtn.classList.contains('success')) {
+                            uploadBtn.disabled = false;
+                            uploadBtn.textContent = 'Upload Shiur';
+                        }
+                    }, 3000);
                 }
             });
             // --- REMEMBER PASSWORD ENTRY ---
