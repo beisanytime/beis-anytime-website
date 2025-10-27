@@ -46,6 +46,9 @@
         <ul>
             <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
             <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+
+            <!-- Admin nav item (hidden by default; shown when signed-in user is an admin) -->
+            <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
         </ul>
     </nav>
 
@@ -379,6 +382,70 @@
         } else {
             initScrubbers();
         }
+    })();
+    </script>
+
+    <!-- Admin authorization: reveal Admin link when signed in as an admin user -->
+    <script>
+    (function(){
+        const adminNavItem = document.getElementById('adminNavItem');
+        const adminsUrl = '/admins.json';
+
+        async function getAdmins() {
+            try {
+                const res = await fetch(adminsUrl, {cache: "no-store"});
+                if (!res.ok) return [];
+                return await res.json();
+            } catch (e) { console.warn('Could not load admins.json', e); return []; }
+        }
+
+        // Try several places your google-login implementation might set the signed-in email.
+        function getSignedInEmail() {
+            // common globals some implementations use:
+            if (window.currentGoogleUser && window.currentGoogleUser.email) return window.currentGoogleUser.email;
+            if (window.googleUser && window.googleUser.email) return window.googleUser.email;
+            // localStorage fallback - your google-login.js could store email at this key
+            const ls = localStorage.getItem('googleUserEmail');
+            if (ls) return ls;
+            // try reading a DOM-rendered user-info block
+            try {
+                const nameEl = document.querySelector('.user-info .user-name');
+                const dataEmail = nameEl && nameEl.dataset && nameEl.dataset.email;
+                if (dataEmail) return dataEmail;
+            } catch (e) {}
+            return null;
+        }
+
+        function applyAdminUI(isAdmin) {
+            if (adminNavItem) adminNavItem.style.display = isAdmin ? '' : 'none';
+        }
+
+        async function checkAdminNow() {
+            const admins = await getAdmins();
+            const email = (getSignedInEmail() || '').toLowerCase();
+            const isAdmin = email && admins.map(e => e.toLowerCase()).includes(email);
+            applyAdminUI(isAdmin);
+        }
+
+        // initial check on load
+        document.addEventListener('DOMContentLoaded', checkAdminNow);
+
+        // If your google-login.js dispatches a custom event on sign-in, watch for it.
+        window.addEventListener('googleSignIn', (e) => {
+            // event.detail should contain { email: '...' } ideally
+            if (e && e.detail && e.detail.email) {
+                localStorage.setItem('googleUserEmail', e.detail.email);
+            }
+            checkAdminNow();
+        });
+
+        // also poll a couple of times after load in case google-login populates asynchronously
+        let polls = 0;
+        const pollInterval = setInterval(() => {
+            polls++;
+            checkAdminNow();
+            if (polls > 10) clearInterval(pollInterval);
+        }, 700);
     })();
     </script>
 
