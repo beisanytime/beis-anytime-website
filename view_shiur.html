@@ -9,40 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-
     <div class="site-wrapper">
-        <!-- ===== Sidebar ===== -->
-         <aside class="sidebar">
-    <div class="sidebar-logo">
-        <a href="index.html">
-            <img src="images/logo.png" alt="Beis Anytime Logo" class="logo-full">
-            <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
-        </a>
-    </div>
-    <nav class="sidebar-nav">
-        <ul>
-            <!-- Active link is Home -->
-            <li><a href="index.html" class="active"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
-            <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
-            <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-        </ul>
-        <p class="nav-section-title">BROWSE</p>
-        <ul>
-            <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
-            <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
-        </ul>
-    </nav>
-</aside>
- <script src="google-login.js"></script>
- <script src="theme-toggle.js"></script>
-        <!-- ===== Main Content ===== -->
+        <!-- Main content will be injected here by common-template.js -->
         <div class="main-content">
-            <header class="site-header">
-    <div class="search-bar">
-         <i class="fas fa-search"></i>
-        <input type="search" placeholder="Search TorahAnytime">
+            <div class="shiur-content">
     </div>
     
     <div class="header-right">
@@ -281,4 +254,9 @@
         });
     </script>
     <script src="quiz.js"></script>
-</body></html>
+    <script src="theme-toggle.js"></script>
+    <script src="google-login.js"></script>
+    <script src="assets/common-template.js"></script>
+    <script src="notification-service-worker.js"></script>
+</body>
+</html>

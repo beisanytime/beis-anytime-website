@@ -54,29 +54,8 @@
   }
 
   function ensureThemeToggleInit() {
-    const toggleBtn = document.getElementById('themeToggleBtn');
-    const wrap = document.getElementById('themeToggleWrap');
-    if (!toggleBtn) return;
-    if (toggleBtn.__beisInitialized) return;
-    const rootEl = document.documentElement || document.body;
-    function applyTheme(t) {
-      if (t === 'dark') {
-        rootEl.setAttribute('data-theme', 'dark');
-        wrap && wrap.setAttribute('data-state', 'dark');
-      } else {
-        rootEl.removeAttribute('data-theme');
-        wrap && wrap.setAttribute('data-state', 'light');
-      }
-    }
-    const saved = localStorage.getItem('beisAnytimeTheme');
-    applyTheme(saved === 'dark' ? 'dark' : 'light');
-    toggleBtn.addEventListener('click', () => {
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      const next = isDark ? 'light' : 'dark';
-      applyTheme(next);
-      localStorage.setItem('beisAnytimeTheme', next);
-    });
-    toggleBtn.__beisInitialized = true;
+    // Theme is now handled by theme-toggle.js
+    // This function is kept for backward compatibility
   }
 
   function applyRabbiTemplate() {

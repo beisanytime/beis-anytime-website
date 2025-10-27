@@ -32,6 +32,7 @@
   function createEditableRow(shiur) {
     const container = document.createElement('div');
     container.className = 'admin-row';
+    container.setAttribute('data-id', shiur.id);
     container.innerHTML = `
       <div class="admin-row-inner" style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;padding:12px;border:1px solid #ddd;border-radius:6px;">
         <div style="width:160px;flex-shrink:0;">
@@ -72,6 +73,7 @@
       previewImg.src = shiur.thumbnailUrl || '/images/placeholder-shiur.png';
       statusDiv.textContent = 'Reset';
       setTimeout(()=> statusDiv.textContent = '', 1200);
+      untrackChanges(shiur.id);
     });
 
     saveBtn.addEventListener('click', async () => {
@@ -115,11 +117,17 @@
 
         statusDiv.textContent = 'Saved';
         setTimeout(()=> statusDiv.textContent = '', 1500);
+        untrackChanges(shiur.id);
       } catch (err) {
         console.error('Save failed', err);
         statusDiv.textContent = 'Save failed: ' + (err.message || err);
       }
     });
+
+    titleEl.addEventListener('input', () => trackChanges(shiur.id));
+    rabbiEl.addEventListener('input', () => trackChanges(shiur.id));
+    uploaderEl.addEventListener('input', () => trackChanges(shiur.id));
+    thumbnailEl.addEventListener('input', () => trackChanges(shiur.id));
 
     return container;
   }
@@ -171,6 +179,72 @@
       adminList.innerHTML = '<p>Error loading videos: ' + (err.message || err) + '</p>';
     }
   }
+
+  // Add after initialization code:
+  let modifiedShiurim = new Set();
+  const saveAllBtn = document.getElementById('saveAllBtn');
+
+  function trackChanges(shiurId) {
+      modifiedShiurim.add(shiurId);
+      updateSaveAllButton();
+  }
+
+  function updateSaveAllButton() {
+      const count = modifiedShiurim.size;
+      saveAllBtn.disabled = count === 0;
+      saveAllBtn.querySelector('.changes-count').textContent = `(${count})`;
+  }
+
+  function untrackChanges(shiurId) {
+      modifiedShiurim.delete(shiurId);
+      updateSaveAllButton();
+  }
+
+  saveAllBtn.addEventListener('click', async () => {
+      saveAllBtn.classList.add('saving');
+      const errors = [];
+      
+      for (const shiurId of modifiedShiurim) {
+          const row = document.querySelector(`.admin-row[data-id="${shiurId}"]`);
+          if (!row) continue;
+          
+          try {
+              const payload = {
+                  id: shiurId,
+                  title: row.querySelector('.title').value.trim(),
+                  rabbi: row.querySelector('.rabbi').value.trim().replace(/\s+/g, '_'),
+                  uploader: row.querySelector('.uploader').value.trim(),
+                  thumbnailUrl: row.querySelector('.thumbnail').value.trim()
+              };
+              
+              const res = await fetch(`${workerURL}/api/shiur/${shiurId}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+              });
+              
+              if (!res.ok) throw new Error(`Failed to save shiur ${shiurId}`);
+              
+              row.querySelector('.status').textContent = 'Saved';
+              untrackChanges(shiurId);
+          } catch (err) {
+              errors.push(`Shiur ${shiurId}: ${err.message}`);
+              row.querySelector('.status').textContent = 'Save failed';
+          }
+      }
+      
+      saveAllBtn.classList.remove('saving');
+      
+      if (errors.length) {
+          alert(`Some changes failed to save:\n${errors.join('\n')}`);
+      } else {
+          const notice = document.createElement('div');
+          notice.className = 'save-success-notice';
+          notice.textContent = 'All changes saved successfully';
+          document.querySelector('.admin-header').appendChild(notice);
+          setTimeout(() => notice.remove(), 3000);
+      }
+  });
 
   // init on DOM ready
   if (document.readyState === 'loading') {

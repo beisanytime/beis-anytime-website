@@ -76,7 +76,6 @@ function updateUserUI() {
     }
 }
 
-
 // This code runs when the page is loaded
 window.onload = function () {
     // Initialize Google Identity Services

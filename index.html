@@ -122,31 +122,6 @@
     <script src="google-login.js"></script>
         <script src="google-login.js"></script>
     <script>
-        // Theme toggle initialization
-        (function() {
-            const rootEl = document.documentElement || document.body;
-            const toggleBtn = document.getElementById('themeToggleBtn');
-            const wrap = document.getElementById('themeToggleWrap');
-            function applyTheme(t) {
-                if (t === 'dark') {
-                    rootEl.setAttribute('data-theme', 'dark');
-                    wrap && wrap.setAttribute('data-state', 'dark');
-                } else {
-                    rootEl.removeAttribute('data-theme');
-                    wrap && wrap.setAttribute('data-state', 'light');
-                }
-            }
-            const saved = localStorage.getItem('beisAnytimeTheme');
-            applyTheme(saved === 'dark' ? 'dark' : 'light');
-            if (toggleBtn) toggleBtn.addEventListener('click', () => {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                const next = isDark ? 'light' : 'dark';
-                applyTheme(next);
-                localStorage.setItem('beisAnytimeTheme', next);
-            });
-        })();
-    </script>
-    <script>
         // --- Shiurim Loading Script ---
         document.addEventListener('DOMContentLoaded', () => {
             const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
@@ -390,56 +365,113 @@
     (function(){
         const adminNavItem = document.getElementById('adminNavItem');
         const adminsUrl = '/admins.json';
+        const DEBUG = true; // Enable debug logging
+
+        function debugLog(...args) {
+            if (DEBUG) console.log('[Admin Auth]', ...args);
+        }
 
         async function getAdmins() {
             try {
                 const res = await fetch(adminsUrl, {cache: "no-store"});
-                if (!res.ok) return [];
+                if (!res.ok) {
+                    debugLog('Failed to load admins.json:', res.status);
+                    return ['bigj.devacc@gmail.com']; // Fallback to hardcoded admin
+                }
                 return await res.json();
-            } catch (e) { console.warn('Could not load admins.json', e); return []; }
+            } catch (e) {
+                debugLog('Error loading admins.json:', e);
+                return ['bigj.devacc@gmail.com']; // Fallback to hardcoded admin
+            }
         }
 
-        // Try several places your google-login implementation might set the signed-in email.
         function getSignedInEmail() {
-            // common globals some implementations use:
-            if (window.currentGoogleUser && window.currentGoogleUser.email) return window.currentGoogleUser.email;
-            if (window.googleUser && window.googleUser.email) return window.googleUser.email;
-            // localStorage fallback - your google-login.js could store email at this key
-            const ls = localStorage.getItem('googleUserEmail');
-            if (ls) return ls;
-            // try reading a DOM-rendered user-info block
-            try {
-                const nameEl = document.querySelector('.user-info .user-name');
-                const dataEmail = nameEl && nameEl.dataset && nameEl.dataset.email;
-                if (dataEmail) return dataEmail;
-            } catch (e) {}
-            return null;
-        }
+            // Try all possible places where the email might be stored
+            const sources = {
+                'google.accounts.id.userData': () => {
+                    if (google?.accounts?.id?.userData) return google.accounts.id.userData.email;
+                    return null;
+                },
+                'currentGoogleUser': () => window.currentGoogleUser?.email,
+                'googleUser': () => window.googleUser?.email,
+                'localStorage': () => localStorage.getItem('googleUserEmail'),
+                'credential.email': () => {
+                    const cred = localStorage.getItem('googleCredential');
+                    if (cred) {
+                        try {
+                            return JSON.parse(cred).email;
+                        } catch(e) {}
+                    }
+                    return null;
+                },
+                'DOM': () => {
+                    const nameEl = document.querySelector('.user-info .user-name');
+                    return nameEl?.dataset?.email;
+                }
+            };
 
-        function applyAdminUI(isAdmin) {
-            if (adminNavItem) adminNavItem.style.display = isAdmin ? '' : 'none';
+            for (const [source, getter] of Object.entries(sources)) {
+                try {
+                    const email = getter();
+                    if (email) {
+                        debugLog(`Found email in ${source}:`, email);
+                        return email;
+                    }
+                } catch (e) {
+                    debugLog(`Error checking ${source}:`, e);
+                }
+            }
+            
+            debugLog('No email found in any source');
+            return null;
         }
 
         async function checkAdminNow() {
             const admins = await getAdmins();
+            debugLog('Loaded admins:', admins);
+            
             const email = (getSignedInEmail() || '').toLowerCase();
+            debugLog('Current user email:', email);
+            
             const isAdmin = email && admins.map(e => e.toLowerCase()).includes(email);
-            applyAdminUI(isAdmin);
+            debugLog('Is admin?', isAdmin);
+            
+            if (adminNavItem) {
+                adminNavItem.style.display = isAdmin ? '' : 'none';
+                debugLog('Updated admin nav visibility:', isAdmin);
+            }
         }
 
-        // initial check on load
-        document.addEventListener('DOMContentLoaded', checkAdminNow);
+        // Check on DOM load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkAdminNow);
+        } else {
+            checkAdminNow();
+        }
 
-        // If your google-login.js dispatches a custom event on sign-in, watch for it.
+        // Watch for Google Sign-In events
         window.addEventListener('googleSignIn', (e) => {
-            // event.detail should contain { email: '...' } ideally
-            if (e && e.detail && e.detail.email) {
+            debugLog('Received googleSignIn event:', e?.detail);
+            if (e?.detail?.email) {
                 localStorage.setItem('googleUserEmail', e.detail.email);
             }
             checkAdminNow();
         });
 
-        // also poll a couple of times after load in case google-login populates asynchronously
+        // Also watch for credential response
+        window.handleCredentialResponse = function(response) {
+            debugLog('Received credential response');
+            if (response?.credential) {
+                const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                debugLog('Credential payload:', payload);
+                if (payload.email) {
+                    localStorage.setItem('googleUserEmail', payload.email);
+                    checkAdminNow();
+                }
+            }
+        };
+
+        // Poll a few times for delayed initialization
         let polls = 0;
         const pollInterval = setInterval(() => {
             polls++;

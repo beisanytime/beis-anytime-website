@@ -170,29 +170,6 @@
     <canvas id="canvas-processor" style="display: none;"></canvas>
 
     <script>
-        // Theme toggle initialization (shared header)
-        (function() {
-            const rootEl = document.documentElement || document.body;
-            const toggleBtn = document.getElementById('themeToggleBtn');
-            const wrap = document.getElementById('themeToggleWrap');
-            function applyTheme(t) {
-                if (t === 'dark') {
-                    rootEl.setAttribute('data-theme', 'dark');
-                    wrap && wrap.setAttribute('data-state', 'dark');
-                } else {
-                    rootEl.removeAttribute('data-theme');
-                    wrap && wrap.setAttribute('data-state', 'light');
-                }
-            }
-            const saved = localStorage.getItem('beisAnytimeTheme');
-            applyTheme(saved === 'dark' ? 'dark' : 'light');
-            if (toggleBtn) toggleBtn.addEventListener('click', () => {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                const next = isDark ? 'light' : 'dark';
-                applyTheme(next);
-                localStorage.setItem('beisAnytimeTheme', next);
-            });
-        })();
         document.addEventListener('DOMContentLoaded', () => {
             // --- CONFIGURATION ---
             const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev'; // Your Cloudflare Worker URL
