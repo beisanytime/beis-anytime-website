@@ -45,7 +45,9 @@ function updateUserUI() {
         loginBtnContainers.forEach(el => el.style.display = 'none');
 
         userInfoContainers.forEach(el => {
-            el.style.display = 'flex'; // Use 'flex' for proper alignment
+            // Check if the user element is within the header dropdown for proper display control
+            const isDropdownElement = el.closest('#headerDropdown');
+            el.style.display = isDropdownElement ? 'flex' : ''; // Use 'flex' for dropdown items
             el.href = 'account.html';
             // FIX: Add email to dataset for the admin script's DOM check
             el.dataset.email = user.email; 
@@ -56,7 +58,8 @@ function updateUserUI() {
         });
 
         signOutBtnContainers.forEach(el => {
-            el.style.display = 'flex';
+            const isDropdownElement = el.closest('#headerDropdown');
+            el.style.display = isDropdownElement ? 'flex' : '';
             // Ensure there isn't a duplicate event listener
             el.onclick = (e) => {
                 e.preventDefault();
@@ -68,7 +71,8 @@ function updateUserUI() {
         // User is logged out
         // FIX: Clear the email key when logged out
         localStorage.removeItem('googleUserEmail'); 
-
+        
+        // Only show the Google Login Button when logged out
         loginBtnContainers.forEach(el => el.style.display = 'block');
         userInfoContainers.forEach(el => {
             el.style.display = 'none';
@@ -87,8 +91,8 @@ function signOut() {
     localStorage.removeItem('googleUserEmail'); 
 
     // Disable Google's one-tap sign-in for the next page load
-    // FIX: Safely check for 'google' before calling disableAutoSelect()
     if (window.google && google.accounts && google.accounts.id) {
+        // This clears Google's session/cookie for this client_id
         google.accounts.id.disableAutoSelect();
     }
 
@@ -107,6 +111,9 @@ function initGoogleLogin() {
         return;
     }
     
+    // Check if the user is already logged in via localStorage
+    const userString = localStorage.getItem('userInfo');
+    
     // Initialize Google Sign-In (now 'google' is guaranteed to be defined)
     google.accounts.id.initialize({
         client_id: '248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com', // Your Client ID
@@ -115,16 +122,32 @@ function initGoogleLogin() {
         auto_select: true 
     });
 
-    google.accounts.id.renderButton(
-        document.getElementById('googleLoginBtn'),
-        { theme: 'outline', size: 'large', type: 'standard' }
-    );
+    // We only want to RENDER the button if the user is not locally logged in
+    // GSI will handle the "one-tap" display automatically if auto_select is true
+    if (!userString) {
+        const loginBtn = document.getElementById('googleLoginBtn');
+        if (loginBtn) {
+            google.accounts.id.renderButton(
+                loginBtn,
+                { theme: 'outline', size: 'large', type: 'standard' }
+            );
+        }
+    } else {
+         // If locally logged in, make sure the login container is hidden
+        document.querySelectorAll('.google-login-btn').forEach(el => el.style.display = 'none');
+    }
+
+    // Since the user is not logging in on every page load, 
+    // we need to ask GSI to check for a valid session using prompt()
+    // This will trigger one-tap or auto_select, which calls handleCredentialResponse if successful
+    google.accounts.id.prompt();
 }
 
 
 // Check for existing session and start initialization on page load
 document.addEventListener('DOMContentLoaded', () => {
     // Always update UI based on login state (safe to run immediately as it uses only DOM/localStorage)
+    // This initial call will show the UI if 'userInfo' is in localStorage.
     updateUserUI();
 
     // Start the Google initialization check/retry loop
