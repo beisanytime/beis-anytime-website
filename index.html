@@ -120,7 +120,6 @@
     </div>
     
     <script src="google-login.js"></script>
-        <script src="google-login.js"></script>
     <script>
         // --- Shiurim Loading Script ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -394,7 +393,8 @@
                 },
                 'currentGoogleUser': () => window.currentGoogleUser?.email,
                 'googleUser': () => window.googleUser?.email,
-                'localStorage': () => localStorage.getItem('googleUserEmail'),
+                // The issue: google-login.js was NOT setting 'googleUserEmail'
+                'localStorage': () => localStorage.getItem('googleUserEmail'), 
                 'credential.email': () => {
                     const cred = localStorage.getItem('googleCredential');
                     if (cred) {
@@ -404,9 +404,11 @@
                     }
                     return null;
                 },
+                // The issue: google-login.js was NOT setting the data-email attribute
                 'DOM': () => {
                     const nameEl = document.querySelector('.user-info .user-name');
-                    return nameEl?.dataset?.email;
+                    const infoEl = document.querySelector('.user-info');
+                    return infoEl?.dataset?.email || nameEl?.dataset?.email;
                 }
             };
 

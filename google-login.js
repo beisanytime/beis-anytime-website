@@ -2,6 +2,9 @@
 
 // This function is called when the Google Sign-In is successful
 function handleCredentialResponse(response) {
+    // The index.html has a listener on window.handleCredentialResponse
+    // that will also set googleUserEmail. We will ensure it is set here too.
+
     // Decode the JWT token
     const payload = decodeJwtResponse(response.credential);
 
@@ -13,8 +16,14 @@ function handleCredentialResponse(response) {
     };
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
 
+    // FIX: Store the email in the specific key expected by the admin script
+    localStorage.setItem('googleUserEmail', payload.email); 
+
     // Update UI for all relevant elements
     updateUserUI();
+
+    // Optional: Dispatch a custom event to immediately notify other scripts (like the admin check)
+    window.dispatchEvent(new CustomEvent('googleSignIn', { detail: userInfo }));
 }
 
 function decodeJwtResponse(token) {
@@ -33,11 +42,16 @@ function updateUserUI() {
         // User is logged in
         const user = JSON.parse(userString);
 
+        // FIX: Ensure the admin script's expected email key is set on session load
+        localStorage.setItem('googleUserEmail', user.email); 
+
         loginBtnContainers.forEach(el => el.style.display = 'none');
 
         userInfoContainers.forEach(el => {
             el.style.display = 'flex'; // Use 'flex' for proper alignment
             el.href = 'account.html';
+            // FIX: Add email to dataset for the admin script's DOM check
+            el.dataset.email = user.email; 
             const avatar = el.querySelector('.user-avatar');
             const name = el.querySelector('.user-name');
             if (avatar) avatar.src = user.picture;
@@ -55,8 +69,15 @@ function updateUserUI() {
 
     } else {
         // User is logged out
+        // FIX: Clear the email key when logged out
+        localStorage.removeItem('googleUserEmail'); 
+
         loginBtnContainers.forEach(el => el.style.display = 'block');
-        userInfoContainers.forEach(el => el.style.display = 'none');
+        userInfoContainers.forEach(el => {
+            el.style.display = 'none';
+            // Clear the dataset email
+            delete el.dataset.email;
+        });
         signOutBtnContainers.forEach(el => el.style.display = 'none');
     }
 }
@@ -65,28 +86,16 @@ function updateUserUI() {
 function signOut() {
     // Clear the user's data from localStorage
     localStorage.removeItem('userInfo');
+    // FIX: Ensure admin script key is also cleared
+    localStorage.removeItem('googleUserEmail'); 
 
     // Disable Google's one-tap sign-in for the next page load
-    google.accounts.id.disableAutoSelect();
+    if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+    }
 
     // Refresh the page to reflect the signed-out state
     window.location.reload();
-}
-
-function handleSignOut(e) {
-    e.preventDefault();
-    localStorage.removeItem('userInfo');
-
-    const loginBtn = document.getElementById('googleLoginBtn');
-    const userInfoEl = document.querySelector('.user-info');
-    const signOutBtn = document.querySelector('.sign-out-btn');
-
-    if (loginBtn) loginBtn.style.display = 'block';
-    if (userInfoEl) userInfoEl.style.display = 'none';
-    if (signOutBtn) signOutBtn.style.display = 'none';
-
-    // Clear Google session
-    google.accounts.id.disableAutoSelect();
 }
 
 // Check for existing session on page load
@@ -97,7 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Google Sign-In
     google.accounts.id.initialize({
         client_id: '248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com', // Your Client ID
-        callback: handleCredentialResponse
+        callback: handleCredentialResponse,
+        // Recommended for persistent login experience
+        auto_select: true 
     });
 
     google.accounts.id.renderButton(
