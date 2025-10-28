@@ -980,3 +980,39 @@ body.quiz-active > *:not(#quiz-modal-backdrop) {
     height: 8px;
     border-radius: 8px;
 }
+
+/* Account Page Styles */
+.account-content {
+    padding: 2rem;
+}
+
+.profile-info {
+    background: var(--surface-color);
+    border-radius: 8px;
+    padding: 2rem;
+    margin-top: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.profile-picture {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-details h2 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.profile-details p {
+    margin: 0.5rem 0 0;
+    color: var(--text-secondary);
+}

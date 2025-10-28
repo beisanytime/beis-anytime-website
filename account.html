@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Account - Beis Anytime</title>
+    <title>Beis Anytime - My Account</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-
     <div class="site-wrapper">
         <!-- ===== Sidebar (No active links on this page) ===== -->
         <aside class="sidebar">
@@ -32,62 +28,112 @@
                 <ul>
                     <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
                     <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+                    <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
                 </ul>
             </nav>
+            <div class="sidebar-contact">
+                <p>Contact us</p>
+                <a href="mailto:beisanytime@gmail.com" class="contact-email">beisanytime@gmail.com</a>
+            </div>
         </aside>
 
         <!-- ===== Main Content ===== -->
         <div class="main-content">
-            
-            <!-- Paste the new Header HTML here as well -->
+            <!-- Header -->
             <header class="site-header">
-                <!-- ... (same header code from Step 2) ... -->
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="search" placeholder="Search BeisAnytime">
+                </div>
+                
+                <div class="header-right">
+                    <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
+                        <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                            <span class="thumb" id="themeThumb"></span>
+                        </button>
+                    </div>
+
+                    <div class="header-dropdown" id="headerDropdown">
+                        <button class="dropdown-toggle" id="dropdownToggleBtn">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item" id="donateBtn">
+                                <i class="fas fa-hand-holding-heart"></i> Donate
+                            </a>
+                            <a href="#" class="dropdown-item" id="notificationBell">
+                                <i class="fas fa-bell"></i> Notifications
+                            </a>
+                            <div id="googleLoginBtn" class="google-login-btn"></div>
+                            <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
+                                <i class="fas fa-sign-out-alt"></i> Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <div class="page-content-area">
-                    <h1 class="page-title">My Account</h1>
-                    <div class="account-card">
-                        <div class="account-header">
-                            <img src="/images/placeholder-shiur.png" alt="User Avatar" id="accountAvatar" class="account-avatar">
-                            <div>
-                                <h2 id="accountName">Loading...</h2>
-                                <p id="accountEmail">Loading...</p>
+                <div class="account-content">
+                    <section class="user-profile">
+                        <h1>My Account</h1>
+                        <div class="profile-info">
+                            <div class="profile-header">
+                                <img src="" alt="Profile Picture" id="userProfilePic" class="profile-picture">
+                                <div class="profile-details">
+                                    <h2 id="userDisplayName">Loading...</h2>
+                                    <p id="userEmail">Loading...</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="account-actions">
-                            <button class="sign-out-btn-main">
-                                <i class="fas fa-sign-out-alt"></i> Sign Out
-                            </button>
-                        </div>
-                    </div>
+                    </section>
                 </div>
             </main>
         </div>
     </div>
-    
-    <!-- Use the SAME google-login.js script -->
+
+    <script src="theme-toggle.js"></script>
     <script src="google-login.js"></script>
     <script>
-        // This small script populates the account page content
         document.addEventListener('DOMContentLoaded', () => {
-            const userString = localStorage.getItem('loggedInUser');
-            if (userString) {
-                const user = JSON.parse(userString);
-                document.getElementById('accountAvatar').src = user.picture;
-                document.getElementById('accountName').textContent = user.name;
-                document.getElementById('accountEmail').textContent = user.email;
-
-                // Attach sign-out functionality to the main button
-                document.querySelector('.sign-out-btn-main').addEventListener('click', () => {
-                    signOut(); // This function is defined in google-login.js
-                });
-
-            } else {
-                // If by some chance a user lands here without being logged in, send them home
+            // Check if user is logged in
+            const userInfo = localStorage.getItem('userInfo');
+            if (!userInfo) {
                 window.location.href = 'index.html';
+                return;
+            }
+
+            // Update profile information
+            const user = JSON.parse(userInfo);
+            document.getElementById('userProfilePic').src = user.picture;
+            document.getElementById('userDisplayName').textContent = user.name;
+            document.getElementById('userEmail').textContent = user.email;
+
+            // Update dropdown user info and sign out button
+            // This ensures the dropdown reflects the signed-in state
+            if (typeof updateUserUI === 'function') {
+                updateUserUI();
+            } else if (typeof updateUIForUser === 'function') {
+                updateUIForUser(user);
+            }
+
+            // Handle UI interactions
+            const dropdown = document.getElementById('headerDropdown');
+            const dropdownToggle = document.getElementById('dropdownToggleBtn');
+
+            if (dropdown && dropdownToggle) {
+                dropdownToggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('is-active');
+                });
+                
+                window.addEventListener('click', (event) => {
+                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
+                        dropdown.classList.remove('is-active');
+                    }
+                });
             }
         });
     </script>
-    <script src="quiz.js"></script>
-</body></html>
+</body>
+</html>
