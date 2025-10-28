@@ -78,7 +78,7 @@
 
         <div class="header-dropdown" id="headerDropdown">
             <button class="dropdown-toggle" id="dropdownToggleBtn">
-                <i class="fas fa-ellipsis-v"></i>
+                <i class="fas fa-bars"></i>
             </button>
             <div class="dropdown-menu">
                 <a href="#" class="dropdown-item" id="donateBtn">
@@ -359,6 +359,8 @@
     })();
     </script>
 
+    <!-- ... code above this ... -->
+
     <!-- Admin authorization: reveal Admin link when signed in as an admin user -->
     <script>
     (function(){
@@ -393,8 +395,7 @@
                 },
                 'currentGoogleUser': () => window.currentGoogleUser?.email,
                 'googleUser': () => window.googleUser?.email,
-                // The issue: google-login.js was NOT setting 'googleUserEmail'
-                'localStorage': () => localStorage.getItem('googleUserEmail'), 
+                'localStorage': () => localStorage.getItem('googleUserEmail'),
                 'credential.email': () => {
                     const cred = localStorage.getItem('googleCredential');
                     if (cred) {
@@ -404,11 +405,9 @@
                     }
                     return null;
                 },
-                // The issue: google-login.js was NOT setting the data-email attribute
                 'DOM': () => {
-                    const nameEl = document.querySelector('.user-info .user-name');
                     const infoEl = document.querySelector('.user-info');
-                    return infoEl?.dataset?.email || nameEl?.dataset?.email;
+                    return infoEl?.dataset?.email;
                 }
             };
 
@@ -451,7 +450,7 @@
             checkAdminNow();
         }
 
-        // Watch for Google Sign-In events
+        // Watch for Google Sign-In events (This is now the primary trigger)
         window.addEventListener('googleSignIn', (e) => {
             debugLog('Received googleSignIn event:', e?.detail);
             if (e?.detail?.email) {
@@ -460,7 +459,10 @@
             checkAdminNow();
         });
 
-        // Also watch for credential response
+        // ==========================================================
+        // ===== DELETE THE FOLLOWING FUNCTION ======================
+        // ==========================================================
+        /*
         window.handleCredentialResponse = function(response) {
             debugLog('Received credential response');
             if (response?.credential) {
@@ -472,13 +474,17 @@
                 }
             }
         };
+        */
+        // ==========================================================
+        // ===== END DELETION =======================================
+        // ==========================================================
 
         // Poll a few times for delayed initialization
         let polls = 0;
         const pollInterval = setInterval(() => {
             polls++;
             checkAdminNow();
-            if (polls > 10) clearInterval(pollInterval);
+            if (polls > 10 || getSignedInEmail()) clearInterval(pollInterval); // Stop polling if logged in
         }, 700);
     })();
     </script>
