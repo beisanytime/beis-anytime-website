@@ -2,9 +2,6 @@
 
 // This function is called when the Google Sign-In is successful
 function handleCredentialResponse(response) {
-    // The index.html has a listener on window.handleCredentialResponse
-    // that will also set googleUserEmail. We will ensure it is set here too.
-
     // Decode the JWT token
     const payload = decodeJwtResponse(response.credential);
 
@@ -90,6 +87,7 @@ function signOut() {
     localStorage.removeItem('googleUserEmail'); 
 
     // Disable Google's one-tap sign-in for the next page load
+    // FIX: Safely check for 'google' before calling disableAutoSelect()
     if (window.google && google.accounts && google.accounts.id) {
         google.accounts.id.disableAutoSelect();
     }
@@ -98,12 +96,18 @@ function signOut() {
     window.location.reload();
 }
 
-// Check for existing session on page load
-document.addEventListener('DOMContentLoaded', () => {
-    // Always update UI based on login state
-    updateUserUI();
-
-    // Initialize Google Sign-In
+/**
+ * Initializes the Google Sign-In SDK, retrying if the 'google' object is not yet defined.
+ */
+function initGoogleLogin() {
+    // FIX: The core logic to check if GSI script has loaded
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+        // GSI not loaded yet, retry after a short delay
+        setTimeout(initGoogleLogin, 100);
+        return;
+    }
+    
+    // Initialize Google Sign-In (now 'google' is guaranteed to be defined)
     google.accounts.id.initialize({
         client_id: '248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com', // Your Client ID
         callback: handleCredentialResponse,
@@ -115,4 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('googleLoginBtn'),
         { theme: 'outline', size: 'large', type: 'standard' }
     );
+}
+
+
+// Check for existing session and start initialization on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Always update UI based on login state (safe to run immediately as it uses only DOM/localStorage)
+    updateUserUI();
+
+    // Start the Google initialization check/retry loop
+    initGoogleLogin();
 });
