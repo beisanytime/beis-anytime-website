@@ -640,16 +640,33 @@ main {
         --sidebar-width: 80px;
     }
     .sidebar {
-        padding: 15px;
+        padding: 10px 5px; /* reduce padding for mobile */
+        width: var(--sidebar-width);
     }
     .logo-full {
         display: none;
     }
     .logo-icon {
         display: block;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto;
+    }
+    .logo-icon img {
+        display: block !important;
+        width: 40px !important;
+        height: 40px !important;
+        object-fit: contain;
+    }
+    .sidebar-logo img {
+        display: none;
     }
     .sidebar-logo {
         justify-content: center;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        height: 40px;
+        border-bottom: 1px solid var(--border-color);
     }
     .sidebar .nav-text,
     .sidebar .nav-section-title {
@@ -657,50 +674,107 @@ main {
     }
     .sidebar-nav li a {
         justify-content: center;
-        padding: 12px;
+        padding: 10px 0;
+        margin: 0;
+        font-size: 1.3rem; /* make icons larger for touch */
     }
     .sidebar-nav li a i {
         margin-right: 0;
-        font-size: 1.4rem;
+        font-size: 1.5rem;
+    }
+    .sidebar-contact {
+        font-size: 0.85rem;
+        padding: 8px 2px;
+        text-align: center;
+        word-break: break-word;
+    }
+    .sidebar-contact .contact-email {
+        font-size: 0.85rem;
+        word-break: break-all;
+        display: block;
+        margin-top: 2px;
     }
     .search-bar {
-        flex-grow: 1; /* Allow search to take up available space */
+        flex-grow: 1;
+        max-width: 100%;
+        min-width: 0;
+        width: 100%;
+    }
+    .main-content {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+        padding: 0;
+    }
+    main {
+        padding: 0 8px;
+    }
+    .shiur-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .shiur-card-image {
+        aspect-ratio: 16/9;
+        min-height: 120px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+    }
+    .shiur-card-content h4 {
+        font-size: 1rem;
+        margin-bottom: 2px;
+    }
+    .shiur-card-content p {
+        font-size: 0.8rem;
+    }
+    .page-title,
+    .shiurim-section h2 {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+    }
+    .right-column {
+        padding-top: 0;
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 }
 
-@media (max-width: 768px) {
-    main,
-    .site-header {
-        padding: 0 15px;
+/* Extra mobile tweaks */
+@media (max-width: 600px) {
+    .sidebar {
+        padding: 6px 2px;
+        width: var(--sidebar-width);
     }
-    .right-column {
-        grid-template-columns: 1fr;
+    .sidebar-contact {
+        font-size: 0.8rem;
+        padding: 4px 0;
     }
-    .shiur-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    .sidebar-contact .contact-email {
+        font-size: 0.8rem;
     }
-    .modal-content {
-        width: 95%;
-        padding: 20px;
+    .main-content {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+        padding: 0;
     }
-    .speaker-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 20px;
+    main {
+        padding: 0 4px;
     }
-    .speaker-card img {
-        width: 100px;
-        height: 100px;
+    .shiur-card-image {
+        min-height: 80px;
+        border-radius: 4px;
     }
-    .speaker-card h3 {
+    .shiur-card-content h4 {
+        font-size: 0.95rem;
+    }
+    .shiur-card-content p {
+        font-size: 0.75rem;
+    }
+    .page-title,
+    .shiurim-section h2 {
         font-size: 1rem;
-    }
-    .view-shiur-container {
-        padding: 20px;
-    }
-    .view-shiur-container h1 {
-        font-size: 1.5rem;
+        margin-bottom: 8px;
     }
 }
+
 /* --- Dropdown User Info Styling --- */
 .user-info {
     align-items: center;
