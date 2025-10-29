@@ -13,120 +13,103 @@
 </head>
 <body>
     <div class="site-wrapper">
-        <!-- Main content will be injected here by common-template.js -->
-        <div class="main-content">
-            <div class="search-results">
-    </div>
-    
-    <div class="header-right">
-        <div class="header-dropdown" id="headerDropdown">
-            <button class="dropdown-toggle" id="dropdownToggleBtn">
-                <i class="fas fa-ellipsis-v"></i>
-            </button>
-            <div class="dropdown-menu">
-                <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>
-                <a href="#" class="dropdown-item" id="notificationBell">
-                    <i class="fas fa-bell"></i> Notifications
-                </a>
-
-                <!-- DYNAMIC LOGIN/USER SECTION -->
-                <div id="googleLoginBtn" class="google-login-btn"></div>
-                
-                <a href="account.html" class="dropdown-item user-info" style="display:none;">
-                    <img src="" alt="User" class="user-avatar">
-                    <span class="user-name"></span>
-                </a>
-                <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
-                    <i class="fas fa-sign-out-alt"></i> Sign Out
-                </a>
-                <!-- END DYNAMIC SECTION -->
+        <!-- Notification Settings Modal -->
+        <div id="notificationModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeNotificationModal">&times;</span>
+                <h2>Notification Settings</h2>
+                <label>
+                    <input type="checkbox" id="enableNotifications">
+                    Enable notifications for new video uploads
+                </label>
+                <p id="notificationStatus"></p>
             </div>
         </div>
-    </div>
-</header>
+        <!-- ===== Sidebar ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <a href="index.html">
+                    <img src="images/logo.png" alt="Beis Anytime Logo" class="logo-full">
+                    <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
+                    <li><a href="recent.html" class="active"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
+                    <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+                </ul>
+                <p class="nav-section-title">BROWSE</p>
+                <ul>
+                    <li><a href="#"><i class="fas fa-bookmark"></i> <span class="nav-text">Topics</span></a></li>
+                    <li><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+                    <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-contact">
+                <p>Contact us</p>
+                <a href="mailto:beisanytime@gmail.com" class="contact-email">beisanytime@gmail.com</a>
+            </div>
+        </aside>
+
+        <!-- ===== Main Content Wrapper ===== -->
+        <div class="main-content">
+            <!-- ===== Header ===== -->
+            <header class="site-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="search" placeholder="Search BeisAnytime" id="shiurSearchInput">
+                </div>
+                
+                <div class="header-right">
+                    <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
+                        <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                            <span class="thumb" id="themeThumb"></span>
+                        </button>
+                    </div>
+
+                    <div class="header-dropdown" id="headerDropdown">
+                        <button class="dropdown-toggle" id="dropdownToggleBtn">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item" id="donateBtn">
+                                <i class="fas fa-hand-holding-heart"></i> Donate
+                            </a>
+                            <a href="#" class="dropdown-item" id="notificationBell">
+                                <i class="fas fa-bell"></i> Notifications
+                            </a>
+                            <div id="googleLoginBtn" class="google-login-btn"></div>
+                            <a href="account.html" class="dropdown-item user-info" style="display:none;">
+                                <img src="" alt="User" class="user-avatar">
+                                <span class="user-name"></span>
+                            </a>
+                            <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
+                                <i class="fas fa-sign-out-alt"></i> Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
             <main>
-                 <div class="page-content-area">
+                <div class="page-content-area">
                     <section class="shiurim-section">
-                         <h1 class="page-title">All Recent Shiurim</h1>
-                         <div class="shiur-grid" id="allShiurimGrid">
-                             <!-- All shiurim will be loaded here by JavaScript -->
-                         </div>
+                        <h1 class="page-title">All Recent Shiurim</h1>
+                        <div class="shiur-grid" id="allShiurimGrid">
+                            <!-- All shiurim will be loaded here by JavaScript -->
+                        </div>
                     </section>
                 </div>
             </main>
         </div>
     </div>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Shiurim Loading Script ---
-            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
-            const allShiurimGrid = document.getElementById('allShiurimGrid');
-
-            if (allShiurimGrid) {
-                function createShiurCard(shiur) {
-                    const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
-                    return `
-                        <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card">
-                            <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
-                            </div>
-                            <div class="shiur-card-content">
-                                <h4>${shiur.title}</h4>
-                                <p>${rabbiDisplayName}</p>
-                            </div>
-                        </a>
-                    `;
-                }
-
-                async function fetchAndDisplayAll() {
-                    allShiurimGrid.innerHTML = '<p class="loading-message">Loading all shiurim...</p>';
-                    try {
-                        const response = await fetch(`${workerURL}/api/all-shiurim`);
-                        if (!response.ok) throw new Error(`API returned ${response.status}`);
-                        const allShiurim = await response.json();
-
-                        if (allShiurim.length === 0) {
-                            allShiurimGrid.innerHTML = '<p>No shiurim have been uploaded yet.</p>';
-                            return;
-                        }
-                        
-                        allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                        
-                        allShiurimGrid.innerHTML = '';
-                        allShiurim.forEach(shiur => {
-                            allShiurimGrid.insertAdjacentHTML('beforeend', createShiurCard(shiur));
-                        });
-                    } catch (error) {
-                        console.error("Error loading shiurim:", error);
-                        allShiurimGrid.innerHTML = `<p class="error-message">Could not load shiurim.</p>`;
-                    }
-                }
-                fetchAndDisplayAll();
-            }
-
-            // --- UI Interactivity Script ---
-            const dropdown = document.getElementById('headerDropdown');
-            const dropdownToggle = document.getElementById('dropdownToggleBtn');
-
-            if (dropdown && dropdownToggle) {
-                dropdownToggle.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    dropdown.classList.toggle('is-active');
-                });
-
-                window.addEventListener('click', (event) => {
-                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
-                        dropdown.classList.remove('is-active');
-                    }
-                });
-            }
-        });
-    </script>
     <script src="quiz.js"></script>
     <script src="theme-toggle.js"></script>
     <script src="google-login.js"></script>
     <script src="assets/common-template.js"></script>
     <script src="notification-service-worker.js"></script>
+    <!-- ...existing code... -->
 </body>
 </html>

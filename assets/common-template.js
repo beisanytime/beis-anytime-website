@@ -101,10 +101,12 @@
             siteWrapper.insertAdjacentHTML('afterbegin', modalHtml);
         }
 
-        // Add sidebar
-        const sidebarEl = document.createElement('div');
-        sidebarEl.innerHTML = SIDEBAR_HTML;
-        siteWrapper.appendChild(sidebarEl.firstElementChild);
+        // Add sidebar only if not present
+        if (!siteWrapper.querySelector('.sidebar')) {
+            const sidebarEl = document.createElement('div');
+            sidebarEl.innerHTML = SIDEBAR_HTML;
+            siteWrapper.appendChild(sidebarEl.firstElementChild);
+        }
 
         // Create main-content wrapper if it doesn't exist
         let mainContent = document.querySelector('.main-content');
@@ -118,10 +120,12 @@
             siteWrapper.appendChild(mainContent);
         }
 
-        // Add header at the start of main-content
-        const headerEl = document.createElement('div');
-        headerEl.innerHTML = HEADER_HTML;
-        mainContent.insertAdjacentElement('afterbegin', headerEl.firstElementChild);
+        // Add header only if not present
+        if (!mainContent.querySelector('.site-header')) {
+            const headerEl = document.createElement('div');
+            headerEl.innerHTML = HEADER_HTML;
+            mainContent.insertAdjacentElement('afterbegin', headerEl.firstElementChild);
+        }
 
         // Set active link in sidebar
         const currentPath = window.location.pathname;

@@ -52,17 +52,6 @@
         </ul>
     </nav>
 
-    <!-- Sidebar User Info (shown when signed in) -->
-    <div class="sidebar-user-wrap" style="display:none; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; margin: 16px 0 0 0;">
-        <a href="account.html" class="sidebar-user-info" style="display:flex; align-items:center; text-decoration:none;">
-            <img src="" alt="User" class="user-avatar" style="width:32px;height:32px;border-radius:50%;margin-right:8px;">
-            <span class="user-name" style="font-weight:500;"></span>
-        </a>
-        <button class="sidebar-sign-out-btn" style="background:none;border:none;color:#c00;cursor:pointer;font-size:1.2em;" title="Sign Out">
-            <i class="fas fa-sign-out-alt"></i>
-        </button>
-    </div>
-
     <!-- Added: Contact us pinned to bottom (appears on all pages that include this sidebar) -->
     <div class="sidebar-contact">
         <p>Contact us</p>
@@ -82,10 +71,11 @@
     
     <div class="header-right">
         <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
-            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode" type="button">
                 <span class="thumb" id="themeThumb"></span>
             </button>
         </div>
+        <script src="theme-toggle.js"></script>
 
         <div class="header-dropdown" id="headerDropdown">
             <button class="dropdown-toggle" id="dropdownToggleBtn">
@@ -228,25 +218,6 @@
             const notificationStatus = document.getElementById('notificationStatus');
             const googleLoginBtn = document.getElementById('googleLoginBtn');
             const userInfo = document.querySelector('.user-info');
-            const signOutBtn = document.querySelector('.sign-out-btn');
-            // Sidebar user info/sign out
-            const sidebarUserWrap = document.querySelector('.sidebar-user-wrap');
-            const sidebarUserInfo = document.querySelector('.sidebar-user-info');
-            const sidebarUserName = sidebarUserInfo ? sidebarUserInfo.querySelector('.user-name') : null;
-            const sidebarUserAvatar = sidebarUserInfo ? sidebarUserInfo.querySelector('.user-avatar') : null;
-            const sidebarSignOutBtn = document.querySelector('.sidebar-sign-out-btn');
-
-            // Helper to show/hide sidebar user info
-            function showSidebarUser(user) {
-                if (!sidebarUserWrap || !sidebarUserInfo || !sidebarUserName || !sidebarUserAvatar) return;
-                sidebarUserWrap.style.display = '';
-                sidebarUserName.textContent = user.name || user.email || '';
-                sidebarUserAvatar.src = user.picture || '/images/default-avatar.png';
-                sidebarUserAvatar.alt = user.name || user.email || 'User';
-            }
-            function hideSidebarUser() {
-                if (sidebarUserWrap) sidebarUserWrap.style.display = 'none';
-            }
 
             if (dropdown && dropdownToggle) {
                 dropdownToggle.addEventListener('click', (event) => {
@@ -320,48 +291,6 @@
                     } else {
                         localStorage.setItem('notificationsEnabled', 'false');
                         notificationStatus.textContent = 'Notifications disabled.';
-                    }
-                });
-            }
-
-            // Listen for Google sign-in event
-            window.addEventListener('googleSignIn', (e) => {
-                const user = e.detail || {};
-                // Hide dropdown user info/sign out, show sidebar user info/sign out
-                if (userInfo) userInfo.style.display = 'none';
-                if (signOutBtn) signOutBtn.style.display = 'none';
-                if (googleLoginBtn) googleLoginBtn.style.display = 'none';
-                showSidebarUser(user);
-            });
-
-            // Listen for sign out event (you may need to trigger this event in your sign-out logic)
-            window.addEventListener('googleSignOut', () => {
-                if (userInfo) userInfo.style.display = 'none';
-                if (signOutBtn) signOutBtn.style.display = 'none';
-                if (googleLoginBtn) googleLoginBtn.style.display = '';
-                hideSidebarUser();
-            });
-
-            // Also, if user is already signed in on page load, show sidebar user info
-            if (window.currentGoogleUser) {
-                showSidebarUser(window.currentGoogleUser);
-                if (userInfo) userInfo.style.display = 'none';
-                if (signOutBtn) signOutBtn.style.display = 'none';
-                if (googleLoginBtn) googleLoginBtn.style.display = 'none';
-            }
-
-            // Sidebar sign out button handler
-            if (sidebarSignOutBtn) {
-                sidebarSignOutBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Trigger sign out logic (should sign out and fire googleSignOut event)
-                    if (window.signOutGoogleUser) {
-                        window.signOutGoogleUser();
-                    } else {
-                        // Fallback: clear localStorage and reload
-                        localStorage.removeItem('googleUserEmail');
-                        window.dispatchEvent(new CustomEvent('googleSignOut'));
-                        location.reload();
                     }
                 });
             }
