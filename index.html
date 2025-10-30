@@ -123,6 +123,67 @@
         </div>
     </div>
     
+    <script>
+(function(){
+    // Return an email if the page already knows the signed-in user (same checks used elsewhere)
+    function getSignedInEmail() {
+        try {
+            if (window.currentGoogleUser && window.currentGoogleUser.email) return window.currentGoogleUser.email;
+            if (window.googleUser && window.googleUser.email) return window.googleUser.email;
+            const ls = localStorage.getItem('googleUserEmail'); if (ls) return ls;
+            const cred = localStorage.getItem('googleCredential'); if (cred) {
+                try { return JSON.parse(cred).email; } catch(e) { /* ignore */ }
+            }
+            const ui = document.querySelector('.user-info');
+            if (ui && ui.dataset && ui.dataset.email) return ui.dataset.email;
+        } catch(e) {}
+        return null;
+    }
+
+    // If no signed-in email found, do nothing (allow normal GSI flow)
+    if (!getSignedInEmail()) return;
+
+    // If signed in, wait briefly for the GSI client then suppress one-tap / auto-prompt
+    function disableGsiOneTap() {
+        if (!window.google || !google.accounts || !google.accounts.id) return false;
+
+        try {
+            // Wrap initialize to force auto_select = false (prevents auto sign-in)
+            const originalInit = google.accounts.id.initialize.bind(google.accounts.id);
+            google.accounts.id.initialize = function(opts) {
+                if (opts && opts.auto_select) opts.auto_select = false;
+                return originalInit(opts);
+            };
+        } catch (e) {
+            // ignore if unable to wrap
+        }
+
+        try {
+            // Make prompt a no-op to block one-tap, and cancel any active prompt
+            google.accounts.id.prompt = function() {};
+            if (typeof google.accounts.id.cancel === 'function') {
+                try { google.accounts.id.cancel(); } catch(e) {}
+            }
+        } catch (e) {
+            // ignore if methods not present
+        }
+
+        console.debug('[GSI] One-tap suppressed because user appears already signed-in:', getSignedInEmail());
+        return true;
+    }
+
+    // Poll briefly for the GSI client to appear (adjust timeout if needed)
+    (function waitForGsi(timeoutMs = 3000, intervalMs = 100) {
+        const start = Date.now();
+        (function poll() {
+            if (disableGsiOneTap()) return;
+            if (Date.now() - start > timeoutMs) return;
+            setTimeout(poll, intervalMs);
+        })();
+    })();
+})();
+</script>
+
     <script src="google-login.js"></script>
     <script>
         // --- Shiurim Loading Script ---
