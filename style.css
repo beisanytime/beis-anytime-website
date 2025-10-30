@@ -32,11 +32,14 @@ a {
 }
 
 .main-content {
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    /* Account for floating sidebar with extra offset */
+    margin-left: calc(var(--sidebar-width) + 40px);
+    width: calc(100% - (var(--sidebar-width) + 40px));
     display: flex;
     flex-direction: column;
-    transition: margin-left 0.3s ease-in-out;
+    transition: margin-left 0.3s ease-in-out, padding-top 0.3s ease-in-out;
+    /* Add top padding so content isn't hidden behind the floating header */
+    padding-top: calc(var(--header-height) + 40px);
 }
 
 main {
@@ -46,21 +49,27 @@ main {
 /* --- Sidebar --- */
 .sidebar {
     width: var(--sidebar-width);
-    height: 100vh;
+    max-height: calc(100vh - 40px);
     background-color: var(--sidebar-bg);
     border-right: 1px solid var(--border-color);
     position: fixed;
-    top: 0;
-    left: 0;
-    padding: 20px;
+    top: 20px;
+    left: 20px;
+    padding: 18px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* changed: keep logo + nav at the top */
-    z-index: 200;
-    transition: width 0.3s ease-in-out;
-    overflow-x: hidden;
+    justify-content: flex-start;
+    z-index: 400;
+    transition: width 0.3s ease-in-out, transform 0.2s ease;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(6, 30, 60, 0.12);
+    height: 100%;
 }
+
+/* Collapsed-by-default behavior: expand on hover */
+/* Sidebar has fixed width by default (no collapse on hover) */
 
 .sidebar-logo {
     display: flex;
@@ -85,12 +94,7 @@ main {
     margin: 0;
 }
 
-/* Add a separator between the main nav and the browse nav */
-.sidebar-nav ul:first-of-type {
-    padding-bottom: 10px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
-}
+
 
 .sidebar-nav .nav-section-title {
     font-size: 0.75rem;
@@ -164,11 +168,15 @@ main {
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
-    padding: 0 30px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    padding: 0 20px;
+    position: fixed;
+    top: 20px;
+    left: calc(var(--sidebar-width) + 40px);
+    right: 20px;
+    z-index: 350;
     gap: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(6, 30, 60, 0.08);
 }
 
 .search-bar {
@@ -754,10 +762,20 @@ main {
         min-width: 0;
         width: 100%;
     }
+    /* Adjust floating header position on smaller screens */
+    .site-header {
+        left: calc(var(--sidebar-width) + 20px);
+        right: 12px;
+        top: 12px;
+        border-radius: 10px;
+        padding: 0 14px;
+    }
     .main-content {
-        margin-left: var(--sidebar-width);
-        width: calc(100% - var(--sidebar-width));
+        /* keep a small offset from the floating sidebar on narrow screens */
+        margin-left: calc(var(--sidebar-width) + 20px);
+        width: calc(100% - (var(--sidebar-width) + 20px));
         padding: 0;
+        padding-top: calc(var(--header-height) + 20px);
     }
     main {
         padding: 0 8px;
@@ -797,6 +815,13 @@ main {
         padding: 6px 2px;
         width: var(--sidebar-width);
     }
+    .site-header {
+        left: calc(var(--sidebar-width) + 12px);
+        right: 8px;
+        top: 8px;
+        border-radius: 10px;
+        padding: 0 10px;
+    }
     .sidebar-contact {
         font-size: 0.8rem;
         padding: 4px 0;
@@ -805,9 +830,10 @@ main {
         font-size: 0.8rem;
     }
     .main-content {
-        margin-left: var(--sidebar-width);
-        width: calc(100% - var(--sidebar-width));
+        margin-left: calc(var(--sidebar-width) + 12px);
+        width: calc(100% - (var(--sidebar-width) + 12px));
         padding: 0;
+        padding-top: calc(var(--header-height) + 16px);
     }
     main {
         padding: 0 4px;
