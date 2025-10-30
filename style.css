@@ -427,6 +427,20 @@ main {
     overflow: hidden;
 }
 
+/* small badge on thumbnail cards showing view counts */
+.thumbnail-view-badge {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 20;
+}
+
 .shiur-duration {
     position: absolute;
     bottom: 8px;
@@ -593,6 +607,46 @@ main {
     border-radius: 8px;
     margin-bottom: 30px;
     display: block;
+}
+
+/* Video wrapper + view count badge */
+.view-shiur-video-wrapper {
+    position: relative;
+    display: block;
+}
+
+.view-shiur-video-wrapper video {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.view-count-badge {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 30; /* above video controls */
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+
+@media (max-width: 600px) {
+    .view-count-badge {
+        left: 8px;
+        bottom: 10px;
+        padding: 5px 7px;
+        font-size: 12px;
+        border-radius: 6px;
+    }
 }
 
 .view-shiur-content h2 {

@@ -21,9 +21,12 @@
                 <span class="close" id="closeNotificationModal">&times;</span>
                 <h2>Notification Settings</h2>
                 <label>
-                    <input type="checkbox" id="enableNotifications">
-                    Enable notifications for new video uploads
-                </label>
+                    recentShiurimGrid.innerHTML = '';
+                    shiurim.forEach(shiur => {
+                        const card = createShiurCard(shiur);
+                        recentShiurimGrid.appendChild(card);
+                        // update view count for this card (don't block rendering)
+                        updateCardViewCount(shiur.id).catch(() => {});
                 <p id="notificationStatus"></p>
             </div>
         </div>
@@ -133,8 +136,9 @@
                 const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
                 const cardElement = document.createElement('div');
                 cardElement.innerHTML = `
-                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card">
+                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
                         <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
+                            <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
                         </div>
                         <div class="shiur-card-content">
                             <h4>${shiur.title || 'Untitled Shiur'}</h4>
@@ -145,6 +149,26 @@
                 return cardElement.firstElementChild;
             }
 
+            // View Worker URL for counts (dedicated worker)
+            const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
+
+            // Fetch view count for a given shiur and update the badge element
+            async function updateCardViewCount(shiurId) {
+                try {
+                    const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${shiurId}"]`);
+                    if (!el) return;
+                    const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data && typeof data.views === 'number') {
+                        el.textContent = data.views + ' views';
+                    }
+                } catch (e) {
+                    // ignore errors: keep badge as placeholder
+                    console.warn('Could not load view count for', shiurId, e);
+                }
+            }
+
             function displayShiurim(shiurim) {
                 if (!recentShiurimGrid) return;
                 if (shiurim.length === 0) {
@@ -153,7 +177,10 @@
                 }
                 recentShiurimGrid.innerHTML = '';
                 shiurim.forEach(shiur => {
-                    recentShiurimGrid.appendChild(createShiurCard(shiur));
+                    const card = createShiurCard(shiur);
+                    recentShiurimGrid.appendChild(card);
+                    // update count for each card asynchronously
+                    updateCardViewCount(shiur.id).catch(() => {});
                 });
             }
 

@@ -557,13 +557,24 @@
                             const displayDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'No Date';
                             const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace('rabbi_', 'Rabbi ').replace('_', ' ') : 'Unknown Rabbi';
                             const shiurCardHTML = `
-                                <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card">
-                                    <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});"></div>
+                                <a href="../view_shiur.html?id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
+                                    <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
+                                        <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
+                                    </div>
                                     <h4>${shiur.title}</h4>
                                     <p>${rabbiDisplayName} | ${displayDate}</p>
                                 </a>
                             `;
                             shiurimGrid.insertAdjacentHTML('beforeend', shiurCardHTML);
+                            (async () => {
+                                try {
+                                    const res = await fetch(`https://beis-anytime-view-counter.beisanytime.workers.dev/api/views/${shiur.id}`);
+                                    if (!res.ok) return;
+                                    const d = await res.json();
+                                    const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${shiur.id}"]`);
+                                    if (el && d && typeof d.views === 'number') el.textContent = d.views + ' views';
+                                } catch (e) { /* ignore */ }
+                            })();
                         }
                     }
                 } catch (error) {

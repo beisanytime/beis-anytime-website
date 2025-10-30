@@ -65,7 +65,13 @@
                                 <span>Uploaded By: <strong id="shiurUploader"></strong></span>
                             </div>
                             
-                            <video controls id="mediaPlayer"></video>
+                            <div class="view-shiur-video-wrapper">
+                                <video controls id="mediaPlayer"></video>
+                                <div id="viewCountBadge" class="view-count-badge" aria-hidden="false">
+                                    <span id="viewCount">—</span>
+                                    <span style="margin-left:6px; font-size:11px; opacity:0.85">views</span>
+                                </div>
+                            </div>
 
                             <div class="view-shiur-content">
                                 <h2 id="descriptionHeading" style="display: none;">Description</h2>
@@ -144,6 +150,97 @@
                     errorMessage.textContent = `Error loading shiur: ${error.message}.`;
                 }
             }
+
+                // --- View counter client logic (Cloudflare Worker endpoints) ---
+                // Use the dedicated view-counter worker domain for view count requests.
+                const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
+                const viewCountEl = document.getElementById('viewCount');
+
+                async function fetchViewCount() {
+                    if (!viewCountEl) return;
+                    try {
+                        const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`);
+                        if (!res.ok) {
+                            viewCountEl.textContent = '—';
+                            return;
+                        }
+                        const data = await res.json();
+                        viewCountEl.textContent = (typeof data.views === 'number') ? data.views : '—';
+                    } catch (e) {
+                        console.warn('Error fetching view count', e);
+                        viewCountEl.textContent = '—';
+                    }
+                }
+
+                function userAlreadyCounted() {
+                    try {
+                        const key = `shiur_viewed_${shiurId}`;
+                        const record = localStorage.getItem(key);
+                        if (!record) return false;
+                        const { ts } = JSON.parse(record);
+                        // consider already counted within 12 hours
+                        return (Date.now() - ts) < (12 * 60 * 60 * 1000);
+                    } catch (e) { return false; }
+                }
+
+                function markUserCounted() {
+                    try { localStorage.setItem(`shiur_viewed_${shiurId}`, JSON.stringify({ ts: Date.now() })); } catch(e) {}
+                }
+
+                async function incrementViewCount() {
+                    if (userAlreadyCounted()) {
+                        fetchViewCount();
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}/increment`, { method: 'POST' });
+                        if (!res.ok) {
+                            fetchViewCount();
+                            return;
+                        }
+                        const data = await res.json();
+                        if (typeof data.views === 'number') {
+                            viewCountEl.textContent = data.views;
+                            markUserCounted();
+                        } else {
+                            fetchViewCount();
+                        }
+                    } catch (e) {
+                        console.warn('Error incrementing view count', e);
+                        fetchViewCount();
+                    }
+                }
+
+                // increment after a user actually watches (threshold guard)
+                (function setupIncrementOnPlay() {
+                    if (!mediaPlayer) return;
+                    let incremented = false;
+                    function onTimeUpdate() {
+                        if (incremented) return;
+                        const current = mediaPlayer.currentTime || 0;
+                        const duration = mediaPlayer.duration || 0;
+                        const thresholdSeconds = 10;
+                        const thresholdPercent = 0.10;
+                        const meetsSeconds = current >= thresholdSeconds;
+                        const meetsPercent = duration > 0 && (current / duration) >= thresholdPercent;
+                        if (meetsSeconds || meetsPercent) {
+                            incremented = true;
+                            incrementViewCount();
+                            mediaPlayer.removeEventListener('timeupdate', onTimeUpdate);
+                        }
+                    }
+                    mediaPlayer.addEventListener('timeupdate', onTimeUpdate);
+                    mediaPlayer.addEventListener('playing', () => {
+                        setTimeout(() => {
+                            if (!incremented && (mediaPlayer.currentTime || 0) >= 3) {
+                                incremented = true;
+                                incrementViewCount();
+                            }
+                        }, 3000);
+                    });
+                    // fetch initial count
+                    fetchViewCount();
+                })();
 
             // --- UI Interactivity Script ---
             const dropdown = document.getElementById('headerDropdown');
