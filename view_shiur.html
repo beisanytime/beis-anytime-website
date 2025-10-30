@@ -129,8 +129,43 @@
                     shiurRabbi.textContent = formattedRabbi;
                     shiurDate.textContent = formattedDate;
                     shiurUploader.textContent = shiurData.uploaderName || 'Anonymous';
-                    mediaPlayer.src = shiurData.playbackUrl;
-                    mediaPlayer.type = shiurData.fileType || 'video/mp4';
+                    // Use a <source> element inside the <video> so the browser gets the correct `type`.
+                    try {
+                        // remove any existing sources
+                        while (mediaPlayer.firstChild) mediaPlayer.removeChild(mediaPlayer.firstChild);
+                        const srcEl = document.createElement('source');
+                        srcEl.src = shiurData.playbackUrl || '';
+                        srcEl.type = shiurData.fileType || 'video/mp4';
+                        mediaPlayer.appendChild(srcEl);
+                        // attempt to load the media; errors will be handled by the error listener below
+                        mediaPlayer.load();
+                    } catch (e) {
+                        console.error('Failed to prepare media element:', e);
+                    }
+
+                    // Attach a graceful error handler that logs details but only shows a safe message to users
+                    mediaPlayer.addEventListener('error', (ev) => {
+                        console.error('Media playback error:', ev, mediaPlayer.error, mediaPlayer.currentSrc);
+                        loadingMessage.style.display = 'none';
+                        errorMessage.style.display = 'block';
+
+                        // Friendly message for users; avoid exposing internal secrets or server tokens.
+                        let userMessage = 'Unable to play the video. Please try again later.';
+
+                        try {
+                            const src = mediaPlayer.currentSrc || '';
+                            // common symptom: signed URL missing/invalid key. Detect and show a helpful, non-sensitive message.
+                            if (/errorkey|invalid[_-]?key|missing[_-]?key|forbidden|403/i.test(src) || /errorkey|invalid[_-]?key|missing[_-]?key|forbidden|403/i.test(String(mediaPlayer.error && mediaPlayer.error.message))) {
+                                userMessage = 'This video is not available (playback key invalid).';
+                            } else if (mediaPlayer.error && mediaPlayer.error.code === 4) {
+                                userMessage = 'Video format is not supported by your browser.';
+                            }
+                        } catch (e) {
+                            // swallow
+                        }
+
+                        errorMessage.textContent = userMessage;
+                    });
 
                     if (shiurData.description && shiurData.description.trim() !== '') {
                         descriptionHeading.style.display = 'block';
@@ -144,10 +179,27 @@
                     loadingMessage.style.display = 'none';
                     shiurContent.style.display = 'block';
                 } catch (error) {
+                    // Log full error for debugging
                     console.error("Error loading shiur:", error);
                     loadingMessage.style.display = 'none';
                     errorMessage.style.display = 'block';
-                    errorMessage.textContent = `Error loading shiur: ${error.message}.`;
+
+                    // Protect internal/server-side error details from end users.
+                    // Show a friendly message unless the error looks safe to display.
+                    let userMessage = 'Error loading shiur. Please try again later.';
+                    try {
+                        const errMsg = (error && error.message) ? String(error.message) : String(error || '');
+                        // If the message doesn't look like an internal/server ReferenceError, show it to the user.
+                        // Hide anything mentioning 'secretKey', 'ReferenceError' or other internal tokens.
+                        const suspiciousPattern = /secretKey|ReferenceError|internal|undefined|TypeError/i;
+                        if (errMsg && !suspiciousPattern.test(errMsg)) {
+                            userMessage = `Error loading shiur: ${errMsg}.`;
+                        }
+                    } catch (e) {
+                        // ignore and use generic message
+                    }
+
+                    errorMessage.textContent = userMessage;
                 }
             }
 

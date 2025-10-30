@@ -28,8 +28,27 @@
 .file-drop-zone { border: 2px dashed #e6edf3; border-radius: 8px; padding: 16px; text-align: center; background: #fbfdff; cursor: pointer; }
 
 /* Video helper */
-.rabbi-videos-container { display: grid; gap: 14px; margin: 18px 0; }
-.rabbi-video-wrap video { width: 100%; height: auto; border-radius: 8px; background: #000; display: block; }
+.rabbi-videos-container {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+  /* make rabbis' videos show in a responsive grid */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start;
+}
+
+.rabbi-video-wrap {
+  display: block;
+  width: 100%;
+}
+
+.rabbi-video-wrap video {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: #000;
+  display: block;
+}
 
 /* Responsive tweaks (non-layout) */
 @media (max-width: 900px) {
