@@ -42,12 +42,12 @@
         <ul>
             <!-- Active link is Home -->
             <li><a href="index.html" class="active"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
-            <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
-            <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-            <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+            <li><a href="?page=recent.js"><i class="fas fa-clock"></i> <span class="nav-text">All Shiurim</span></a></li>
+            <li><a href="?page=trending.js"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+            <li style="margin-bottom:10px;"><a href="?page=speakers.js"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
         </ul>
             <!-- Admin nav item (hidden by default; shown when signed-in user is an admin) -->
-            <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
+            <li id="adminNavItem" style="display:none;"><a href="?page=admin.js"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
         </ul>
     </nav>
 
@@ -90,7 +90,7 @@
 
                 <!-- Login/User Section -->
                 <div id="googleLoginBtn" class="google-login-btn"></div>
-                <a href="account.html" class="dropdown-item user-info" style="display:none;">
+                <a href="?page=account.js" class="dropdown-item user-info" style="display:none;">
                     <img src="" alt="User" class="user-avatar">
                     <span class="user-name"></span>
                 </a>
@@ -193,7 +193,7 @@
                 const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
                 const cardElement = document.createElement('div');
                 cardElement.innerHTML = `
-                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
+                    <a href="?page=view_shiur.js&id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
                         <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
                             <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
                         </div>
@@ -575,5 +575,7 @@
     </script>
 
     <!-- ...existing code... -->
+    <script src="assets/common-template.js"></script>
+    <script src="page-router.js" defer></script>
     <script src="quiz.js"></script>
 </body></html>
