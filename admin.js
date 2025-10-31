@@ -4,6 +4,7 @@ const adminsUrl = '/admins.json';
 let modifiedShiurim = new Set();
 let saveAllBtn = null;
 
+
 function getSignedInEmail() {
   if (window.currentGoogleUser && window.currentGoogleUser.email) return window.currentGoogleUser.email;
   if (window.googleUser && window.googleUser.email) return window.googleUser.email;
@@ -154,25 +155,33 @@ function createEditableRow(shiur) {
     statusDiv.textContent = 'Deleting...';
     try {
       const id = shiur.id;
-      let res = await fetch(`${workerURL}/api/shiur/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      // First try the standard DELETE endpoint
+      let res = await fetch(`${workerURL}/api/shiurim/${encodeURIComponent(id)}`, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      // If that fails, try the legacy endpoint
       if (!res.ok) {
-        // fallback endpoint
         res = await fetch(`${workerURL}/api/delete-shiur`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id })
         });
       }
+
       if (!res.ok) {
-        const text = await res.text().catch(() => res.statusText);
-        throw new Error('Delete failed: ' + res.status + ' ' + text);
+        const errorData = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(`Delete failed: ${res.status} ${errorData.error || 'Unknown error'}`);
       }
-      // Remove row from DOM and untrack
+
+      // Only remove from DOM on successful deletion
       container.remove();
       untrackChanges(shiur.id);
+      statusDiv.textContent = 'Deleted successfully';
     } catch (err) {
-      console.error('Delete failed', err);
-      statusDiv.textContent = 'Delete failed: ' + (err.message || err);
+      console.error('Delete failed:', err);
+      statusDiv.textContent = err.message || 'Delete failed: Network error';
     }
   });
 
