@@ -156,7 +156,6 @@
             const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
             const viewCountEl = document.getElementById('viewCount');
 
-            // GET current count (always skip caches)
             async function fetchViewCount() {
                 if (!viewCountEl) return;
                 try {
@@ -173,38 +172,15 @@
                 }
             }
 
-            function userAlreadyCounted() {
-                try {
-                    const key = `shiur_viewed_${shiurId}`;
-                    const record = localStorage.getItem(key);
-                    if (!record) return false;
-                    const { ts } = JSON.parse(record);
-                    // consider already counted within 12 hours
-                    return (Date.now() - ts) < (12 * 60 * 60 * 1000);
-                } catch (e) { return false; }
-            }
-
-            function markUserCounted() {
-                try { localStorage.setItem(`shiur_viewed_${shiurId}`, JSON.stringify({ ts: Date.now() })); } catch(e) {}
-            }
-
-            // Robust increment: try sendBeacon first (works for background/unload),
-            // otherwise fetch with keepalive to improve success for anonymous users.
             async function incrementViewCount() {
-                if (userAlreadyCounted()) {
-                    fetchViewCount();
-                    return;
-                }
                 const incrementUrl = `${viewWorkerURL}/api/views/${shiurId}/increment`;
-                // Try sendBeacon (fire-and-forget, good during unload/background)
+
+                // Try navigator.sendBeacon first (fire-and-forget)
                 try {
                     if (navigator && typeof navigator.sendBeacon === 'function') {
-                        // sendBeacon requires a body; send a small payload (server ignores body)
                         const ok = navigator.sendBeacon(incrementUrl, new Blob([], { type: 'text/plain' }));
-                        // If sendBeacon returned true we optimistically mark counted and fetch latest
                         if (ok) {
-                            // give the worker a moment (best-effort) then refresh badge
-                            markUserCounted();
+                            // best-effort: refresh displayed count shortly after
                             setTimeout(fetchViewCount, 300);
                             return;
                         }
@@ -217,16 +193,13 @@
                 try {
                     const res = await fetch(incrementUrl, { method: 'POST', cache: 'no-store', keepalive: true });
                     if (!res.ok) {
-                        // unable to increment, just refresh count
                         fetchViewCount();
                         return;
                     }
                     const data = await res.json().catch(()=>null);
                     if (data && typeof data.views === 'number') {
                         viewCountEl.textContent = data.views;
-                        markUserCounted();
                     } else {
-                        // refresh as fallback
                         fetchViewCount();
                     }
                 } catch (e) {
@@ -265,7 +238,7 @@
                 // Also attempt to increment on pagehide if user watched but threshold wasn't hit
                 window.addEventListener('pagehide', () => {
                     if (!incremented && (mediaPlayer.currentTime || 0) > 0) {
-                        // Best-effort: sendBeacon or keepalive fetch
+                        incremented = true;
                         incrementViewCount();
                     }
                 });
