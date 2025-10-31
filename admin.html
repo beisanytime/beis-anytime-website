@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Beis Anytime - Admin</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="admin.css">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
   <div class="site-wrapper">
-    <!-- Sidebar -->
+    <!-- Sidebar (re-use site layout) -->
     <aside class="sidebar">
       <div class="sidebar-logo">
         <a href="index.html">
@@ -24,101 +26,63 @@
           <li><a href="index.html"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
           <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
           <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-            <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+          <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
         </ul>
       </nav>
+      <div class="sidebar-contact">
+        <p>Contact us</p>
+        <a href="mailto:beisanytime@gmail.com" class="contact-email">beisanytime@gmail.com</a>
+      </div>
     </aside>
 
     <div class="main-content">
-      <!-- Header -->
       <header class="site-header">
         <div class="search-bar">
           <i class="fas fa-search"></i>
-          <input type="search" placeholder="Search TorahAnytime">
+          <input type="search" placeholder="Search BeisAnytime" id="shiurSearchInput">
         </div>
-        
         <div class="header-right">
           <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
-            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
-              <span class="thumb" id="themeThumb"></span>
-            </button>
+            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode" type="button"><span class="thumb" id="themeThumb"></span></button>
           </div>
-
           <div class="header-dropdown" id="headerDropdown">
-            <button class="dropdown-toggle" id="dropdownToggleBtn">
-              <i class="fas fa-bars"></i>
-            </button>
+            <button class="dropdown-toggle" id="dropdownToggleBtn"><i class="fas fa-bars"></i></button>
             <div class="dropdown-menu">
               <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>
-              <a href="#" class="dropdown-item" id="notificationBell">
-                <i class="fas fa-bell"></i> Notifications
-              </a>
-
-              <!-- DYNAMIC LOGIN/USER SECTION -->
+              <a href="#" class="dropdown-item" id="notificationBell"><i class="fas fa-bell"></i> Notifications</a>
               <div id="googleLoginBtn" class="google-login-btn"></div>
-              <a href="account.html" class="dropdown-item user-info" style="display:none;">
-                <img src="" alt="User" class="user-avatar">
-                <span class="user-name"></span>
-              </a>
-              <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
-                <i class="fas fa-sign-out-alt"></i> Sign Out
-              </a>
-              <!-- END DYNAMIC SECTION -->
+              <a href="account.html" class="dropdown-item user-info" style="display:none;"><img src="" alt="User" class="user-avatar"><span class="user-name"></span></a>
+              <a href="#" class="dropdown-item sign-out-btn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
             </div>
           </div>
         </div>
       </header>
 
       <main>
-        <section class="admin-area">
-          <div class="admin-header">
-            <h1>Admin — Edit Videos</h1>
-            <button id="saveAllBtn" class="save-all-btn" disabled>
-              <i class="fas fa-save"></i> Save All Changes
-              <span class="changes-count">(0)</span>
-            </button>
-          </div>
-          <p id="adminNotice">Loading...</p>
-
-          <div id="adminControls" style="display:none;">
-            <input type="search" id="adminSearch" placeholder="Filter by title or rabbi" />
-            <div id="adminList" class="admin-list">
-              <!-- Editable rows will be inserted here -->
+        <div class="page-content-area">
+          <div class="admin-header" style="display:flex;align-items:center;gap:16px;margin-bottom:18px;">
+            <h1 style="margin:0;">Admin — Manage Shiurim</h1>
+            <div id="adminNotice" style="color:#666;font-weight:600;"></div>
+            <div id="adminControls" style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+              <input id="adminSearch" placeholder="Filter by title or rabbi" style="padding:8px;border-radius:8px;border:1px solid #ddd;">
+              <button id="saveAllBtn" class="upload-button" disabled style="display:inline-flex;align-items:center;gap:8px;">
+                Save All <span class="changes-count">(0)</span>
+              </button>
             </div>
           </div>
-        </section>
+
+          <div id="adminList">
+            <p class="loading-message">Loading videos...</p>
+          </div>
+        </div>
       </main>
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="theme-toggle.js"></script>
   <script src="google-login.js"></script>
+  <script src="theme-toggle.js"></script>
   <script src="admin.js"></script>
-  
-  <script>
-    // UI Interactivity Script
-    document.addEventListener('DOMContentLoaded', () => {
-      const dropdown = document.getElementById('headerDropdown');
-      const dropdownToggle = document.getElementById('dropdownToggleBtn');
-      const dropdownMenu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
-      const donateBtn = document.getElementById('donateBtn');
-      const notificationBell = document.getElementById('notificationBell');
-      const googleLoginBtn = document.getElementById('googleLoginBtn');
-      const userInfo = document.querySelector('.user-info');
-
-      if (dropdown && dropdownToggle) {
-        dropdownToggle.addEventListener('click', (event) => {
-          event.stopPropagation();
-          dropdown.classList.toggle('is-active');
-        });
-        window.addEventListener('click', (event) => {
-          if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
-            dropdown.classList.remove('is-active');
-          }
-        });
-      }
-    });
-  </script>
+  <script src="assets/common-template.js"></script>
+  <script src="quiz.js"></script>
 </body>
 </html>
