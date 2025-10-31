@@ -1,0 +1,124 @@
+/* Upload Section Styles */
+#uploadSection {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.upload-container {
+    background: var(--background-secondary);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.upload-container h1 {
+    margin-bottom: 24px;
+    color: var(--text-primary);
+}
+
+.upload-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 24px;
+}
+
+.upload-left {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.file-drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--background-primary);
+}
+
+.file-drop-zone:hover {
+    border-color: var(--accent-color);
+}
+
+.file-drop-zone.dragover {
+    border-color: var(--accent-color);
+    background: var(--background-hover);
+}
+
+.file-drop-zone-icon {
+    font-size: 24px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.upload-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.input-group input,
+.input-group textarea {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-primary);
+}
+
+.input-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.upload-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.upload-button {
+    background: var(--accent-color);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-top: 16px;
+}
+
+.upload-button:hover {
+    background: var(--accent-color-hover);
+}
+
+.upload-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .upload-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .upload-meta {
+        grid-template-columns: 1fr;
+    }
+}

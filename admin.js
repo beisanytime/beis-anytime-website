@@ -19,7 +19,16 @@
     try {
       const res = await fetch(adminsUrl, {cache: "no-store"});
       if (!res.ok) return [];
-      return await res.json();
+      const admins = await res.json();
+      
+      // Show/hide upload nav item based on admin status
+      const uploadNavItem = document.getElementById('uploadNavItem');
+      if (uploadNavItem) {
+        const userEmail = getSignedInEmail();
+        uploadNavItem.style.display = admins.includes(userEmail) ? 'block' : 'none';
+      }
+      
+      return admins;
     } catch (e) { console.warn('Could not load admins.json', e); return []; }
   }
 
