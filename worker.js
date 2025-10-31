@@ -467,6 +467,40 @@ var index_default = {
         return jsonResponse(allShiurim, request);
       }
 
+      // Add DELETE endpoint handler
+      const deleteShiurMatch = url.pathname.match(/^\/api\/shiurim\/([a-zA-Z0-9_-]+)$/);
+      if (request.method === "DELETE" && deleteShiurMatch) {
+        const shiurId = deleteShiurMatch[1];
+        
+        // Get shiur metadata
+        const metadataString = await env.METADATA.get(shiurId);
+        if (!metadataString) {
+          return errorResponse("Shiur not found", request, 404);
+        }
+        
+        const metadata = JSON.parse(metadataString);
+        const rabbi = metadata.rabbi;
+        
+        // Delete the actual file from R2
+        if (metadata.objectKey) {
+          const r2DeleteUrl = new URL(`https://${env.ACCOUNT_ID}.r2.cloudflarestorage.com/beis-anytime-recordings/${metadata.objectKey}`);
+          await aws.fetch(r2DeleteUrl, { method: "DELETE" });
+        }
+        
+        // Update the rabbi's index
+        const indexKey = `index_${rabbi}`;
+        const shiurimIndex = await env.METADATA.get(indexKey, { type: "json" }) || [];
+        const updatedIndex = shiurimIndex.filter(s => s.id !== shiurId);
+        
+        // Delete metadata and update index
+        await Promise.all([
+          env.METADATA.delete(shiurId),
+          env.METADATA.put(indexKey, JSON.stringify(updatedIndex))
+        ]);
+        
+        return jsonResponse({ success: true, message: "Shiur deleted" }, request);
+      }
+
       return errorResponse("Not Found", request, 404);
     } catch (err) {
       console.error(err.stack);
