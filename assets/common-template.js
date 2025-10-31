@@ -3,7 +3,7 @@
     const SIDEBAR_HTML = `
         <aside class="sidebar">
             <div class="sidebar-logo">
-                <a href="index.html">
+                <a href="/index.html">
                     <img src="/images/logo.png" alt="Beis Anytime Logo" class="logo-full">
                     <img src="/images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
                 </a>
@@ -13,8 +13,8 @@
                     <li><a href="/index.html" id="homeLink"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
                     <li><a href="/recent.html" id="recentLink"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
                     <li><a href="/trending.html" id="trendingLink"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-            <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
-        </ul>
+                    <li style="margin-bottom:10px;"><a href="/speakers.html" id="speakersLink"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+                </ul>
             </nav>
             <div class="sidebar-contact">
                 <p>Contact us</p>
@@ -29,23 +29,19 @@
                 <i class="fas fa-search"></i>
                 <input type="search" placeholder="Search BeisAnytime" id="shiurSearchInput">
             </div>
-            
             <div class="header-right">
                 <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
                     <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
                         <span class="thumb" id="themeThumb"></span>
                     </button>
                 </div>
-
                 <div class="header-dropdown" id="headerDropdown">
                     <button class="dropdown-toggle" id="dropdownToggleBtn">
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
                     <div class="dropdown-menu">
                         <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>
-                        <a href="#" class="dropdown-item" id="notificationBell">
-                            <i class="fas fa-bell"></i> Notifications
-                        </a>
+                        <a href="#" class="dropdown-item" id="notificationBell"><i class="fas fa-bell"></i> Notifications</a>
                         <div id="googleLoginBtn" class="google-login-btn"></div>
                         <a href="/account.html" class="dropdown-item user-info" style="display:none;">
                             <img src="" alt="User" class="user-avatar">
@@ -61,7 +57,6 @@
     `;
 
     function initCommonTemplate() {
-        // Create site-wrapper if it doesn't exist
         let siteWrapper = document.querySelector('.site-wrapper');
         if (!siteWrapper) {
             siteWrapper = document.createElement('div');
@@ -69,16 +64,7 @@
             document.body.appendChild(siteWrapper);
         }
 
-        // Initialize theme state if theme-toggle.js hasn't done it yet
-        if (window.beisAnytime?.theme) {
-            const currentTheme = window.beisAnytime.theme.get();
-            const toggleWrap = document.getElementById('themeToggleWrap');
-            if (toggleWrap) {
-                toggleWrap.setAttribute('data-state', currentTheme);
-            }
-        }
-
-        // Add notification modal if it doesn't exist
+        // Add notification modal if missing
         if (!document.getElementById('notificationModal')) {
             const modalHtml = `
                 <div id="notificationModal" class="modal">
@@ -96,54 +82,47 @@
             siteWrapper.insertAdjacentHTML('afterbegin', modalHtml);
         }
 
-        // Add sidebar only if not present
+        // Insert sidebar if missing
         if (!siteWrapper.querySelector('.sidebar')) {
-            const sidebarEl = document.createElement('div');
-            sidebarEl.innerHTML = SIDEBAR_HTML;
-            siteWrapper.appendChild(sidebarEl.firstElementChild);
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = SIDEBAR_HTML;
+            siteWrapper.insertBefore(wrapper.firstElementChild, siteWrapper.firstChild);
         }
 
-        // Create main-content wrapper if it doesn't exist
+        // Ensure main-content exists
         let mainContent = document.querySelector('.main-content');
         if (!mainContent) {
             mainContent = document.createElement('div');
             mainContent.className = 'main-content';
-            // Move all remaining body content into main-content
-            while (siteWrapper.children.length > 2) { // Skip sidebar and notification modal
-                mainContent.appendChild(siteWrapper.children[2]);
-            }
             siteWrapper.appendChild(mainContent);
         }
 
-        // Add header only if not present
+        // Insert header if missing
         if (!mainContent.querySelector('.site-header')) {
-            const headerEl = document.createElement('div');
-            headerEl.innerHTML = HEADER_HTML;
-            mainContent.insertAdjacentElement('afterbegin', headerEl.firstElementChild);
+            const headerWrapper = document.createElement('div');
+            headerWrapper.innerHTML = HEADER_HTML;
+            mainContent.insertAdjacentElement('afterbegin', headerWrapper.firstElementChild);
         }
 
-        // Set active link in sidebar
+        // Mark active link
         const currentPath = window.location.pathname;
-        const links = {
+        const map = {
             '/index.html': 'homeLink',
             '/recent.html': 'recentLink',
             '/trending.html': 'trendingLink',
             '/speakers.html': 'speakersLink'
         };
-        
-        Object.entries(links).forEach(([path, id]) => {
-            const link = document.getElementById(id);
-            if (link) {
-                if (currentPath.endsWith(path)) {
-                    link.classList.add('active');
-                } else {
-                    link.classList.remove('active');
-                }
+        Object.entries(map).forEach(([path, id]) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (currentPath.endsWith(path) || (path === '/index.html' && (currentPath === '/' || currentPath === '/index.html'))) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
             }
         });
     }
 
-    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initCommonTemplate);
     } else {

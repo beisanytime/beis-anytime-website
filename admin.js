@@ -15,7 +15,29 @@
       if (infoEl && infoEl.dataset && infoEl.dataset.email) return infoEl.dataset.email;
     } catch (e) { }
     return null;
-  }
+    }
+  
+    // Example usage to prevent unused function errors
+    (async function initAdminPage() {
+      const email = getSignedInEmail();
+      const admins = await fetchAdmins();
+      const shiurim = await fetchShiurim();
+      if (Array.isArray(shiurim)) {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        shiurim.forEach(shiur => {
+          container.appendChild(createEditableRow(shiur));
+        });
+        // Create Save All button
+        saveAllBtn = document.createElement('button');
+        saveAllBtn.innerHTML = 'Save All <span class="changes-count">(0)</span>';
+        saveAllBtn.disabled = true;
+        saveAllBtn.addEventListener('click', handleSaveAll);
+        document.body.appendChild(saveAllBtn);
+      }
+    })();
+  
+  })();
 
   async function fetchAdmins() {
     try {
@@ -200,12 +222,57 @@
         uploader: row.querySelector('.uploader').value.trim(),
         thumbnailUrl: row.querySelector('.thumbnail').value.trim()
       };
+      const status = row.querySelector('.status');
       try {
-        const res = await fetch(`${workerURL}/api/shiur/${encodeURIComponent(shiurId)}`, {
+        // try PUT, then PATCH, then fallback POST like the single-save flow
+        let res = await fetch(`${workerURL}/api/shiur/${encodeURIComponent(shiurId)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error('Failed to save ' + shiurId);
-        const status = row.querySelector('.status');
-        if
+
+        if (!res.ok) {
+          res = await fetch(`${workerURL}/api/shiur/${encodeURIComponent(shiurId)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (!res.ok) {
+          res = await fetch(`${workerURL}/api/update-shiur`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({ id: shiurId }, payload))
+          });
+        }
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => res.statusText);
+          throw new Error('API error: ' + res.status + ' ' + text);
+        }
+
+        // success for this row
+        if (status) {
+          status.textContent = 'Saved';
+          setTimeout(() => { if (status) status.textContent = ''; }, 1500);
+        }
+        untrackChanges(shiurId);
+      } catch (err) {
+        console.error('Save failed for', shiurId, err);
+        if (status) status.textContent = 'Save failed: ' + (err.message || err);
+        errors.push(`${shiurId}: ${err.message || err}`);
+      }
+    }
+
+    // restore button state
+    saveAllBtn.classList.remove('saving');
+    saveAllBtn.disabled = false;
+    updateSaveAllButton();
+
+    if (errors.length) {
+      // show a brief summary to the user and log details
+      alert('Some saves failed:\n' + errors.join('\n'));
+      console.warn('handleSaveAll errors:', errors);
+    }
+  }
