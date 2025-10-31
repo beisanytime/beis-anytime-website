@@ -626,4 +626,37 @@
     <script src="assets/common-template.js"></script>
     <script src="page-router.js" defer></script>
     <script src="quiz.js"></script>
+    <script>
+            function showUploadSection(event) {
+                if (event) {
+                    event.preventDefault();
+                }
+                
+                // Get the upload section and main content elements
+                const uploadSection = document.getElementById('uploadSection');
+                const mainContent = document.querySelector('.home-content-area');
+
+                if (uploadSection && mainContent) {
+                    // Toggle visibility while preserving layout
+                    uploadSection.style.display = uploadSection.style.display === 'none' ? 'block' : 'none';
+                    mainContent.style.display = uploadSection.style.display === 'block' ? 'none' : 'block';
+                }
+
+                // Close the dropdown menu if it's open
+                const dropdown = document.getElementById('headerDropdown');
+                if (dropdown && dropdown.classList.contains('is-active')) {
+                    dropdown.classList.remove('is-active');
+                }
+            }
+            
+            // --- Debugging: Log section visibility changes ---
+            const originalDisplay = uploadSection.style.display;
+            const observer = new MutationObserver(() => {
+                if (uploadSection.style.display !== originalDisplay) {
+                    console.log('Upload section display changed to:', uploadSection.style.display);
+                    originalDisplay = uploadSection.style.display;
+                }
+            });
+            observer.observe(uploadSection, { attributes: true, attributeFilter: ['style'] });
+        </script>
 </body></html>
