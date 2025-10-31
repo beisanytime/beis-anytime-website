@@ -7,8 +7,9 @@
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
 };
 
 addEventListener('fetch', event => {
@@ -16,6 +17,14 @@ addEventListener('fetch', event => {
 });
 
 async function handle(request) {
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS
+    });
+  }
+
   try {
     const url = new URL(request.url);
     const parts = url.pathname.split('/').filter(Boolean);
@@ -27,11 +36,6 @@ async function handle(request) {
   const id = parts[viewsIndex + 1];
     const action = parts[viewsIndex + 2] || null; // e.g. 'increment'
   if (!id) return json({ error: 'Missing id' }, 400);
-
-    // Handle CORS preflight
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
-    }
 
     // GET current count
     if (request.method === 'GET' && !action) {
@@ -51,6 +55,7 @@ async function handle(request) {
       return json({ views: next });
     }
 
+    // Update all responses to include CORS headers
     return json({ error: 'Method not allowed' }, { status: 405 });
   } catch (err) {
     return json({ error: String(err) }, { status: 500 });
@@ -59,11 +64,14 @@ async function handle(request) {
 
 function json(obj, opts = {}) {
   const { status = 200 } = opts;
-  const headers = Object.assign({
-    'Content-Type': 'application/json;charset=UTF-8',
-    'Cache-Control': 'no-store'
-  }, CORS_HEADERS);
-  return new Response(JSON.stringify(obj), { status, headers });
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+      'Cache-Control': 'no-store',
+      ...CORS_HEADERS
+    }
+  });
 }
 
 // Deployment notes (Cloudflare dashboard)
