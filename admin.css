@@ -18,10 +18,11 @@
     font-size: 16px;
 }
 
-.admin-list {
+.admin-list, #adminList {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    width: 100%;
 }
 
 .admin-row {
@@ -29,6 +30,9 @@
     border-radius: 8px;
     overflow: hidden;
     transition: box-shadow 0.2s;
+    border: 1px solid #ddd;
+    margin-bottom: 16px;
+    width: 100%;
 }
 
 .admin-row:hover {
@@ -36,74 +40,83 @@
 }
 
 .admin-row-inner {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    width: 100%;
+    box-sizing: border-box;
     padding: 16px;
 }
 
-.admin-input {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    margin: 4px 0 12px;
-    font-size: 14px;
-    width: 100%;
+.admin-row-inner > div {
+    box-sizing: border-box;
 }
 
-.admin-input:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+.admin-row-inner > div:first-child {
+    width: 150px;
+    min-width: 150px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.save-btn, .cancel-btn {
-    width: 100%;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.save-btn {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.save-btn:hover {
-    background-color: var(--primary-color-dark);
-}
-
-.cancel-btn {
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-
-.cancel-btn:hover {
-    background-color: var(--bg-quaternary);
-}
-
-.status {
-    text-align: center;
-    padding: 4px;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-/* Thumbnail preview */
 .thumb-preview {
-    width: 100%;
-    height: 100%;
+    width: 150px;
+    height: 84px;
     object-fit: cover;
     border-radius: 4px;
+    background: #f4f4f4;
+    border: 1px solid #eee;
 }
 
-/* Form labels */
-.admin-row label {
-    display: block;
-    font-weight: 500;
-    margin-bottom: 4px;
-    color: var(--text-secondary);
+.admin-row-inner > div:nth-child(2) {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-row-inner > div:nth-child(2) label {
+    margin-bottom: 2px;
+}
+
+.admin-row-inner > div:nth-child(2) .admin-input {
+    margin-bottom: 8px;
+}
+
+.admin-row-inner > div:last-child {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    justify-content: flex-start;
+}
+
+.admin-row-inner .save-btn,
+.admin-row-inner .cancel-btn,
+.admin-row-inner .delete-btn {
+    min-width: 70px;
+    padding: 8px 16px;
+    margin: 0 2px;
     font-size: 14px;
+}
+
+.admin-row-inner .delete-btn {
+    background: #e53e3e;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+}
+
+.admin-row-inner .status {
+    font-size: 0.9em;
+    color: #444;
+    width: 100%;
+    text-align: right;
+    min-height: 18px;
 }
 
 /* Loading and error states */
@@ -177,6 +190,51 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 900px) {
+    .admin-row-inner {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    .admin-row-inner > div:first-child {
+        width: 100%;
+        min-width: 0;
+        margin-bottom: 8px;
+        justify-content: flex-start;
+    }
+    .thumb-preview {
+        width: 100%;
+        height: 180px;
+        max-width: 350px;
+    }
+    .admin-row-inner > div:last-child {
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 600px) {
+    .admin-row-inner {
+        padding: 10px;
+        gap: 8px;
+    }
+    .thumb-preview {
+        height: 120px;
+    }
+    .admin-row-inner > div:last-child {
+        width: 100%;
+        align-items: flex-start;
+    }
+    .admin-row-inner .save-btn,
+    .admin-row-inner .cancel-btn,
+    .admin-row-inner .delete-btn {
+        min-width: 60px;
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
+
 @media (max-width: 768px) {
     .admin-row-inner {
         flex-direction: column;
@@ -189,15 +247,5 @@
     
     .thumb-preview {
         height: 200px;
-    }
-}
-
-@media (max-width: 480px) {
-    .admin-area {
-        padding: 12px;
-    }
-    
-    .admin-input {
-        font-size: 16px; /* Better for mobile touch */
     }
 }
