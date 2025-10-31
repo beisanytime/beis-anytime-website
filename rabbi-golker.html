@@ -4,39 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiurim from Rabbi Golker - Beis Anytime</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Icon Library (Font Awesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link rel="stylesheet" href="/assets/rabbi-styles.css">
+    <style>
+  
+    </style>
 </head>
 <body>
 
     <div class="site-wrapper">
- <aside class="sidebar">
+<aside class="sidebar">
     <div class="sidebar-logo">
         <a href="index.html">
-            <img src="images/logo.png" alt="Beis Anytime Logo" class="logo-full">
-            <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
+            <img src="/images/logo.png" alt="Beis Anytime Logo" class="logo-full">
+            <img src="/images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
         </a>
     </div>
     <nav class="sidebar-nav">
         <ul>
-            <!-- Active link is Home -->
-            <li><a href="index.html" class="active"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
-            <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">All Shiurim</span></a></li>
-            <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+            <li><a href="/index.html" id="homeLink"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
+            <li><a href="/recent.html" id="recentLink"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
+            <li><a href="/trending.html" id="trendingLink"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
             <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
         </ul>
-            <!-- Admin nav item (hidden by default; shown when signed-in user is an admin) -->
-            <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
-        </ul>
     </nav>
-
-    <!-- Added: Contact us pinned to bottom (appears on all pages that include this sidebar) -->
     <div class="sidebar-contact">
         <p>Contact us</p>
         <a href="mailto:beisanytime@gmail.com" class="contact-email">beisanytime@gmail.com</a>
@@ -48,7 +43,7 @@
       <header class="site-header">
         <div class="search-bar">
              <i class="fas fa-search"></i>
-            <input type="search" id="shiurSearchInput" placeholder="Search BeisAnytime">
+            <input type="search" placeholder="Search TorahAnytime">
         </div>
         
         <div class="header-right">
@@ -60,7 +55,7 @@
 
             <div class="header-dropdown" id="headerDropdown">
                 <button class="dropdown-toggle" id="dropdownToggleBtn">
-                    <i class="fas fa-bars"></i>
+                    <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <div class="dropdown-menu">
                     <a href="#" class="dropdown-item" id="donateBtn"><i class="fas fa-hand-holding-heart"></i> Donate</a>

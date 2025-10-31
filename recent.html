@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beis Anytime - Recent</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -105,103 +104,6 @@
     <script src="theme-toggle.js"></script>
     <script src="google-login.js"></script>
     <script src="assets/common-template.js"></script>
-    <script>
-        // --- All Shiurim Loading Script (for recent/all page) ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
-            const allShiurimGrid = document.getElementById('allShiurimGrid');
-            const shiurSearchInput = document.getElementById('shiurSearchInput');
-            let allShiurim = [];
-
-            function createShiurCard(shiur) {
-                const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
-                const cardElement = document.createElement('div');
-                cardElement.innerHTML = `
-                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
-                        <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
-                            <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
-                        </div>
-                        <div class="shiur-card-content">
-                            <h4>${shiur.title || 'Untitled Shiur'}</h4>
-                            <p>${rabbiDisplayName}</p>
-                        </div>
-                    </a>
-                `;
-                return cardElement.firstElementChild;
-            }
-
-            const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
-
-            async function updateCardViewCount(shiurId) {
-                try {
-                    const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${shiurId}"]`);
-                    if (!el) return;
-                    const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`);
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    if (data && typeof data.views === 'number') {
-                        el.textContent = data.views + ' views';
-                    }
-                } catch (e) {
-                    // ignore errors: keep badge as placeholder
-                }
-            }
-
-            function displayShiurim(shiurim) {
-                if (!allShiurimGrid) return;
-                if (shiurim.length === 0) {
-                    allShiurimGrid.innerHTML = '<p>No shiurim found.</p>';
-                    return;
-                }
-                allShiurimGrid.innerHTML = '';
-                shiurim.forEach(shiur => {
-                    const card = createShiurCard(shiur);
-                    allShiurimGrid.appendChild(card);
-                    updateCardViewCount(shiur.id).catch(() => {});
-                });
-            }
-
-            async function fetchAndDisplayAll() {
-                if (!allShiurimGrid) return;
-                allShiurimGrid.innerHTML = '<p class="loading-message">Loading shiurim...</p>';
-                try {
-                    const response = await fetch(`${workerURL}/api/all-shiurim`);
-                    if (!response.ok) throw new Error(`API returned ${response.status}`);
-                    allShiurim = await response.json();
-
-                    if (!Array.isArray(allShiurim) || allShiurim.length === 0) {
-                        allShiurimGrid.innerHTML = '<p>No shiurim available.</p>';
-                        return;
-                    }
-
-                    allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                    // Display all shiurim on this page
-                    displayShiurim(allShiurim);
-                } catch (error) {
-                    console.error('Error loading shiurim:', error);
-                    allShiurimGrid.innerHTML = '<p class="error-message">Could not load shiurim.</p>';
-                }
-            }
-
-            fetchAndDisplayAll();
-
-            // Search integration: filter the allShiurim list
-            if (shiurSearchInput) {
-                shiurSearchInput.addEventListener('input', function() {
-                    const query = this.value.trim().toLowerCase();
-                    if (!query) {
-                        displayShiurim(allShiurim);
-                        return;
-                    }
-                    const filtered = allShiurim.filter(shiur =>
-                        (shiur.title && shiur.title.toLowerCase().includes(query)) ||
-                        (shiur.rabbi && shiur.rabbi.replace(/_/g, ' ').toLowerCase().includes(query))
-                    );
-                    displayShiurim(filtered);
-                });
-            }
-        });
-    </script>
     <script src="notification-service-worker.js"></script>
     <!-- ...existing code... -->
 </body>

@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beis Anytime - Home</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="upload.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Icon Library (Font Awesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="upload.js" defer></script>
 </head>
 <body>
 
@@ -44,12 +42,12 @@
         <ul>
             <!-- Active link is Home -->
             <li><a href="index.html" class="active"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
-            <li><a href="?page=recent.js"><i class="fas fa-clock"></i> <span class="nav-text">All Shiurim</span></a></li>
-            <li><a href="?page=trending.js"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-            <li style="margin-bottom:10px;"><a href="?page=speakers.js"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+            <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
+            <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
+            <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+        </ul>
             <!-- Admin nav item (hidden by default; shown when signed-in user is an admin) -->
-            <li id="adminNavItem" style="display:none;"><a href="?page=admin.js"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
-            <li id="uploadNavItem" style="display:none;"><a href="#" onclick="showUploadSection(event)"><i class="fas fa-upload"></i> <span class="nav-text">Upload Shiur</span></a></li>
+            <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
         </ul>
     </nav>
 
@@ -62,52 +60,6 @@
 
 <!-- ===== Main Content Wrapper (Starts here on every page) ===== -->
 <div class="main-content">
-    <!-- Upload Section (hidden by default) -->
-    <section id="uploadSection" style="display: none;">
-        <div class="upload-container">
-            <h1>Upload a Shiur</h1>
-            <div class="upload-content">
-                <!-- Left Side: File Upload -->
-                <div class="upload-left">
-                    <div class="file-drop-zone" id="dropZone">
-                        <span class="file-drop-zone-icon">▲</span>
-                        <p>Drag & drop file here</p>
-                        <span>or click to browse</span>
-                        <p id="fileName"></p>
-                    </div>
-                    <input type="file" id="fileInput" style="display: none;">
-                </div>
-
-                <!-- Right Side: Details -->
-                <div class="upload-right">
-                    <div class="input-group">
-                        <label for="title">Title</label>
-                        <input type="text" id="title" placeholder="e.g., Parashas Ki Savo" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="description">Description (Optional)</label>
-                        <textarea id="description" placeholder="A brief summary of the shiur..."></textarea>
-                    </div>
-                    <div class="input-group">
-                        <label for="notes">Notes (Optional)</label>
-                        <textarea id="notes" placeholder="Paste in any notes or sources here..."></textarea>
-                    </div>
-                    <div class="upload-meta">
-                        <div class="input-group">
-                            <label for="date">Date</label>
-                            <input type="date" id="date">
-                        </div>
-                        <div class="input-group">
-                            <label for="uploaderName">Uploaded By</label>
-                            <input type="text" id="uploaderName" placeholder="Your Name">
-                        </div>
-                    </div>
-                    <button class="upload-button" id="uploadBtn">Upload Shiur</button>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ===== Header ===== -->
     <!-- ===== Header (replace this on EVERY page) ===== -->
 <header class="site-header">
@@ -138,7 +90,7 @@
 
                 <!-- Login/User Section -->
                 <div id="googleLoginBtn" class="google-login-btn"></div>
-                <a href="?page=account.js" class="dropdown-item user-info" style="display:none;">
+                <a href="account.html" class="dropdown-item user-info" style="display:none;">
                     <img src="" alt="User" class="user-avatar">
                     <span class="user-name"></span>
                 </a>
@@ -241,7 +193,7 @@
                 const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
                 const cardElement = document.createElement('div');
                 cardElement.innerHTML = `
-                    <a href="?page=view_shiur.js&id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
+                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
                         <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
                             <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
                         </div>
@@ -623,40 +575,5 @@
     </script>
 
     <!-- ...existing code... -->
-    <script src="assets/common-template.js"></script>
-    <script src="page-router.js" defer></script>
     <script src="quiz.js"></script>
-    <script>
-            function showUploadSection(event) {
-                if (event) {
-                    event.preventDefault();
-                }
-                
-                // Get the upload section and main content elements
-                const uploadSection = document.getElementById('uploadSection');
-                const mainContent = document.querySelector('.home-content-area');
-
-                if (uploadSection && mainContent) {
-                    // Toggle visibility while preserving layout
-                    uploadSection.style.display = uploadSection.style.display === 'none' ? 'block' : 'none';
-                    mainContent.style.display = uploadSection.style.display === 'block' ? 'none' : 'block';
-                }
-
-                // Close the dropdown menu if it's open
-                const dropdown = document.getElementById('headerDropdown');
-                if (dropdown && dropdown.classList.contains('is-active')) {
-                    dropdown.classList.remove('is-active');
-                }
-            }
-            
-            // --- Debugging: Log section visibility changes ---
-            const originalDisplay = uploadSection.style.display;
-            const observer = new MutationObserver(() => {
-                if (uploadSection.style.display !== originalDisplay) {
-                    console.log('Upload section display changed to:', uploadSection.style.display);
-                    originalDisplay = uploadSection.style.display;
-                }
-            });
-            observer.observe(uploadSection, { attributes: true, attributeFilter: ['style'] });
-        </script>
 </body></html>
