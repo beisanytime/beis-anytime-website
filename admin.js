@@ -22,17 +22,16 @@ function getSignedInEmail() {
   const admins = await fetchAdmins();
   const shiurim = await fetchShiurim();
   if (Array.isArray(shiurim)) {
-    const container = document.createElement('div');
-    document.body.appendChild(container);
+    const container = document.getElementById('adminList');
+    container.innerHTML = ''; // Clear loading message
     shiurim.forEach(shiur => {
       container.appendChild(createEditableRow(shiur));
     });
-    // Create Save All button
-    saveAllBtn = document.createElement('button');
-    saveAllBtn.innerHTML = 'Save All <span class="changes-count">(0)</span>';
-    saveAllBtn.disabled = true;
-    saveAllBtn.addEventListener('click', handleSaveAll);
-    document.body.appendChild(saveAllBtn);
+    // Update to use existing Save All button
+    saveAllBtn = document.getElementById('saveAllBtn');
+    if (saveAllBtn) {
+      saveAllBtn.addEventListener('click', handleSaveAll);
+    }
   }
 })();
 
