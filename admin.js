@@ -155,14 +155,15 @@ function createEditableRow(shiur) {
     statusDiv.textContent = 'Deleting...';
     try {
       const id = shiur.id;
-      // First try the standard DELETE endpoint
-      let res = await fetch(`${workerURL}/api/shiurim/${encodeURIComponent(id)}`, { 
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
+      // Try the correct API endpoint first
+      let res = await fetch(`${workerURL}/api/shiur/delete/${encodeURIComponent(id)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
       });
       
-      // If that fails, try the legacy endpoint
-      if (!res.ok) {
+      // Fallback to alternative endpoint if needed
+      if (!res.ok && res.status === 404) {
         res = await fetch(`${workerURL}/api/delete-shiur`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -171,11 +172,16 @@ function createEditableRow(shiur) {
       }
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(`Delete failed: ${res.status} ${errorData.error || 'Unknown error'}`);
+        let errorMessage;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorData.message || res.statusText;
+        } catch (e) {
+          errorMessage = res.statusText;
+        }
+        throw new Error(`Delete failed: ${res.status} ${errorMessage}`);
       }
 
-      // Only remove from DOM on successful deletion
       container.remove();
       untrackChanges(shiur.id);
       statusDiv.textContent = 'Deleted successfully';
