@@ -139,7 +139,9 @@
                 }
             }
 
-            // --- Handle Upload Button Click (No Redirect) ---
+            // --- Handle Upload Button Click (attempt real upload to API) ---
+            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
+
             uploadBtn.addEventListener('click', (e) => {
                 e.preventDefault(); // Prevent form submission and page reload
 
@@ -149,32 +151,80 @@
                     return;
                 }
 
-                // Simulate upload process
+                // Prepare form data
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                fd.append('title', titleInput.value.trim());
+                fd.append('description', document.getElementById('description').value || '');
+                fd.append('notes', document.getElementById('notes').value || '');
+                fd.append('date', dateInput.value || '');
+                fd.append('uploader', uploaderNameInput.value || '');
+
+                // Disable UI and show progress
                 uploadBtn.disabled = true;
-                uploadBtn.textContent = 'Uploading...';
+                uploadBtn.textContent = 'Uploading 0%';
                 uploadBtn.classList.add('uploading');
 
-                setTimeout(() => {
-                    uploadBtn.textContent = 'Success!';
-                    uploadBtn.classList.remove('uploading');
-                    uploadBtn.classList.add('success');
-                    
-                    // Reset after a couple of seconds
-                    setTimeout(() => {
-                        uploadBtn.disabled = false;
-                        uploadBtn.textContent = 'Upload Shiur';
-                        uploadBtn.classList.remove('success');
-                        
+                // Use XHR so we can show upload progress
+                const xhr = new XMLHttpRequest();
+                const endpoint = `${workerURL}/api/new-shiur`;
+
+                xhr.upload.addEventListener('progress', (ev) => {
+                    if (ev.lengthComputable) {
+                        const pct = Math.round((ev.loaded / ev.total) * 100);
+                        uploadBtn.textContent = `Uploading ${pct}%`;
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        uploadBtn.textContent = 'Success!';
+                        uploadBtn.classList.remove('uploading');
+                        uploadBtn.classList.add('success');
+
                         // Clear inputs for next upload
                         titleInput.value = '';
                         document.getElementById('description').value = '';
                         document.getElementById('notes').value = '';
-                        fileInput.value = ''; // Clear file input
+                        fileInput.value = '';
                         updateFileName();
 
-                    }, 2000);
+                        // Re-enable after short pause
+                        setTimeout(() => {
+                            uploadBtn.disabled = false;
+                            uploadBtn.textContent = 'Upload Shiur';
+                            uploadBtn.classList.remove('success');
+                        }, 1800);
+                    } else {
+                        let msg = `Upload failed (${xhr.status})`;
+                        try { msg = JSON.parse(xhr.responseText).error || msg; } catch (e) {}
+                        uploadBtn.textContent = 'Upload failed';
+                        uploadBtn.classList.remove('uploading');
+                        uploadBtn.classList.add('error');
+                        alert(msg);
+                        uploadBtn.disabled = false;
+                    }
+                });
 
-                }, 1500);
+                xhr.addEventListener('error', () => {
+                    uploadBtn.textContent = 'Upload error';
+                    uploadBtn.classList.remove('uploading');
+                    uploadBtn.classList.add('error');
+                    alert('Network error while uploading. Check your connection and CORS settings on the API.');
+                    uploadBtn.disabled = false;
+                });
+
+                xhr.open('POST', endpoint);
+                // NOTE: Do not set Content-Type for FormData; browser will set multipart boundary
+                try {
+                    xhr.send(fd);
+                } catch (err) {
+                    uploadBtn.textContent = 'Upload failed';
+                    uploadBtn.classList.remove('uploading');
+                    uploadBtn.classList.add('error');
+                    alert('Could not start upload: ' + (err.message || err));
+                    uploadBtn.disabled = false;
+                }
             });
         });
     </script>
