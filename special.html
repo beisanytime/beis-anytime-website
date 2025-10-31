@@ -278,7 +278,7 @@
                             shiurimGrid.insertAdjacentHTML('beforeend', shiurCardHTML);
                             (async () => {
                                 try {
-                                    const res = await fetch(`https://beis-anytime-view-counter.beisanytime.workers.dev/api/views/${shiur.id}`);
+                                    const res = await fetch(`https://beis-anytime-view-counter.beisanytime.workers.dev/api/views/${shiur.id}`, { cache: 'no-store', method: 'GET' });
                                     if (!res.ok) return;
                                     const d = await res.json();
                                     const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${shiur.id}"]`);
@@ -318,7 +318,7 @@
                 }
             }
 
-            // --- UI Toggle Functions ---
+            // --- UI TOGGLE FUNCTIONS ---
             function showUploadForm(e) {
                 if(e) e.preventDefault();
                 shiurimSection.style.display = 'none';

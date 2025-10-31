@@ -151,96 +151,127 @@
                 }
             }
 
-                // --- View counter client logic (Cloudflare Worker endpoints) ---
-                // Use the dedicated view-counter worker domain for view count requests.
-                const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
-                const viewCountEl = document.getElementById('viewCount');
+            // --- View counter client logic (Cloudflare Worker endpoints) ---
+            // Use the dedicated view-counter worker domain for view count requests.
+            const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
+            const viewCountEl = document.getElementById('viewCount');
 
-                async function fetchViewCount() {
-                    if (!viewCountEl) return;
-                    try {
-                        const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`);
-                        if (!res.ok) {
-                            viewCountEl.textContent = '—';
+            // GET current count (always skip caches)
+            async function fetchViewCount() {
+                if (!viewCountEl) return;
+                try {
+                    const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`, { cache: 'no-store', method: 'GET' });
+                    if (!res.ok) {
+                        viewCountEl.textContent = '—';
+                        return;
+                    }
+                    const data = await res.json();
+                    viewCountEl.textContent = (typeof data.views === 'number') ? data.views : '—';
+                } catch (e) {
+                    console.warn('Error fetching view count', e);
+                    viewCountEl.textContent = '—';
+                }
+            }
+
+            function userAlreadyCounted() {
+                try {
+                    const key = `shiur_viewed_${shiurId}`;
+                    const record = localStorage.getItem(key);
+                    if (!record) return false;
+                    const { ts } = JSON.parse(record);
+                    // consider already counted within 12 hours
+                    return (Date.now() - ts) < (12 * 60 * 60 * 1000);
+                } catch (e) { return false; }
+            }
+
+            function markUserCounted() {
+                try { localStorage.setItem(`shiur_viewed_${shiurId}`, JSON.stringify({ ts: Date.now() })); } catch(e) {}
+            }
+
+            // Robust increment: try sendBeacon first (works for background/unload),
+            // otherwise fetch with keepalive to improve success for anonymous users.
+            async function incrementViewCount() {
+                if (userAlreadyCounted()) {
+                    fetchViewCount();
+                    return;
+                }
+                const incrementUrl = `${viewWorkerURL}/api/views/${shiurId}/increment`;
+                // Try sendBeacon (fire-and-forget, good during unload/background)
+                try {
+                    if (navigator && typeof navigator.sendBeacon === 'function') {
+                        // sendBeacon requires a body; send a small payload (server ignores body)
+                        const ok = navigator.sendBeacon(incrementUrl, new Blob([], { type: 'text/plain' }));
+                        // If sendBeacon returned true we optimistically mark counted and fetch latest
+                        if (ok) {
+                            // give the worker a moment (best-effort) then refresh badge
+                            markUserCounted();
+                            setTimeout(fetchViewCount, 300);
                             return;
                         }
-                        const data = await res.json();
-                        viewCountEl.textContent = (typeof data.views === 'number') ? data.views : '—';
-                    } catch (e) {
-                        console.warn('Error fetching view count', e);
-                        viewCountEl.textContent = '—';
                     }
+                } catch (e) {
+                    // fall through to fetch fallback
                 }
 
-                function userAlreadyCounted() {
-                    try {
-                        const key = `shiur_viewed_${shiurId}`;
-                        const record = localStorage.getItem(key);
-                        if (!record) return false;
-                        const { ts } = JSON.parse(record);
-                        // consider already counted within 12 hours
-                        return (Date.now() - ts) < (12 * 60 * 60 * 1000);
-                    } catch (e) { return false; }
-                }
-
-                function markUserCounted() {
-                    try { localStorage.setItem(`shiur_viewed_${shiurId}`, JSON.stringify({ ts: Date.now() })); } catch(e) {}
-                }
-
-                async function incrementViewCount() {
-                    if (userAlreadyCounted()) {
+                // Fallback: fetch with keepalive so it can complete during navigation/unload
+                try {
+                    const res = await fetch(incrementUrl, { method: 'POST', cache: 'no-store', keepalive: true });
+                    if (!res.ok) {
+                        // unable to increment, just refresh count
                         fetchViewCount();
                         return;
                     }
-                    try {
-                        const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}/increment`, { method: 'POST' });
-                        if (!res.ok) {
-                            fetchViewCount();
-                            return;
-                        }
-                        const data = await res.json();
-                        if (typeof data.views === 'number') {
-                            viewCountEl.textContent = data.views;
-                            markUserCounted();
-                        } else {
-                            fetchViewCount();
-                        }
-                    } catch (e) {
-                        console.warn('Error incrementing view count', e);
+                    const data = await res.json().catch(()=>null);
+                    if (data && typeof data.views === 'number') {
+                        viewCountEl.textContent = data.views;
+                        markUserCounted();
+                    } else {
+                        // refresh as fallback
                         fetchViewCount();
                     }
+                } catch (e) {
+                    console.warn('Error incrementing view count', e);
+                    fetchViewCount();
                 }
+            }
 
-                // increment after a user actually watches (threshold guard)
-                (function setupIncrementOnPlay() {
-                    if (!mediaPlayer) return;
-                    let incremented = false;
-                    function onTimeUpdate() {
-                        if (incremented) return;
-                        const current = mediaPlayer.currentTime || 0;
-                        const duration = mediaPlayer.duration || 0;
-                        const thresholdSeconds = 10;
-                        const thresholdPercent = 0.10;
-                        const meetsSeconds = current >= thresholdSeconds;
-                        const meetsPercent = duration > 0 && (current / duration) >= thresholdPercent;
-                        if (meetsSeconds || meetsPercent) {
+            // increment after a user actually watches (threshold guard)
+            (function setupIncrementOnPlay() {
+                if (!mediaPlayer) return;
+                let incremented = false;
+                function onTimeUpdate() {
+                    if (incremented) return;
+                    const current = mediaPlayer.currentTime || 0;
+                    const duration = mediaPlayer.duration || 0;
+                    const thresholdSeconds = 10;
+                    const thresholdPercent = 0.10;
+                    const meetsSeconds = current >= thresholdSeconds;
+                    const meetsPercent = duration > 0 && (current / duration) >= thresholdPercent;
+                    if (meetsSeconds || meetsPercent) {
+                        incremented = true;
+                        incrementViewCount();
+                        mediaPlayer.removeEventListener('timeupdate', onTimeUpdate);
+                    }
+                }
+                mediaPlayer.addEventListener('timeupdate', onTimeUpdate);
+                mediaPlayer.addEventListener('playing', () => {
+                    setTimeout(() => {
+                        if (!incremented && (mediaPlayer.currentTime || 0) >= 3) {
                             incremented = true;
                             incrementViewCount();
-                            mediaPlayer.removeEventListener('timeupdate', onTimeUpdate);
                         }
+                    }, 3000);
+                });
+                // Also attempt to increment on pagehide if user watched but threshold wasn't hit
+                window.addEventListener('pagehide', () => {
+                    if (!incremented && (mediaPlayer.currentTime || 0) > 0) {
+                        // Best-effort: sendBeacon or keepalive fetch
+                        incrementViewCount();
                     }
-                    mediaPlayer.addEventListener('timeupdate', onTimeUpdate);
-                    mediaPlayer.addEventListener('playing', () => {
-                        setTimeout(() => {
-                            if (!incremented && (mediaPlayer.currentTime || 0) >= 3) {
-                                incremented = true;
-                                incrementViewCount();
-                            }
-                        }, 3000);
-                    });
-                    // fetch initial count
-                    fetchViewCount();
-                })();
+                });
+                // fetch initial count
+                fetchViewCount();
+            })();
 
             // --- UI Interactivity Script ---
             const dropdown = document.getElementById('headerDropdown');

@@ -214,7 +214,7 @@
                 try {
                     const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${shiurId}"]`);
                     if (!el) return;
-                    const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`);
+                    const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`, { cache: 'no-store', method: 'GET' });
                     if (!res.ok) return;
                     const data = await res.json();
                     if (data && typeof data.views === 'number') {

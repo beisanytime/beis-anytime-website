@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beis Anytime - Recent</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Beis Anytime - All Shiurim</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="site-wrapper">
@@ -38,8 +38,8 @@
                     <li><a href="index.html"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
                     <li><a href="recent.html" class="active"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
                     <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-            <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
-        </ul>
+                    <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
+                </ul>
             </nav>
             <div class="sidebar-contact">
                 <p>Contact us</p>
@@ -89,22 +89,99 @@
 
             <main>
                 <div class="page-content-area">
-                    <section class="shiurim-section">
-                        <h1 class="page-title">All Recent Shiurim</h1>
-                        <div class="shiur-grid" id="allShiurimGrid">
-                            <!-- All shiurim will be loaded here by JavaScript -->
-                        </div>
-                    </section>
+                    <h1 class="page-title">All Shiurim</h1>
+                    <div class="shiur-grid" id="allShiurimGrid">
+                        <p class="loading-message">Loading shiurim...</p>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
-    
-    <script src="quiz.js"></script>
-    <script src="theme-toggle.js"></script>
+
     <script src="google-login.js"></script>
+    <script src="theme-toggle.js"></script>
     <script src="assets/common-template.js"></script>
-    <script src="notification-service-worker.js"></script>
-    <!-- ...existing code... -->
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
+        const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
+        const grid = document.getElementById('allShiurimGrid');
+        const searchInput = document.getElementById('shiurSearchInput');
+
+        function createCard(shiur) {
+            const card = document.createElement('a');
+            card.className = 'shiur-card';
+            card.href = `view_shiur.html?id=${encodeURIComponent(shiur.id)}`;
+            card.dataset.shiurId = shiur.id;
+            const thumb = shiur.thumbnailUrl || '/images/placeholder-shiur.png';
+            const rabbiDisplay = shiur.rabbi ? shiur.rabbi.replace(/_/g,' ').replace(/\brabbi\b/i,'Rabbi') : 'Unknown Rabbi';
+            card.innerHTML = `
+                <div class="shiur-card-image" style="background-image: url(${thumb});">
+                    <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
+                </div>
+                <div class="shiur-card-content">
+                    <h4>${shiur.title || 'Untitled Shiur'}</h4>
+                    <p>${rabbiDisplay} ${shiur.date ? '| ' + new Date(shiur.date).toLocaleDateString() : ''}</p>
+                </div>
+            `;
+            return card;
+        }
+
+        async function loadAllShiurim() {
+            grid.innerHTML = '<p class="loading-message">Loading shiurim...</p>';
+            try {
+                const res = await fetch(`${workerURL}/api/all-shiurim`, { cache: 'no-store' });
+                if (!res.ok) throw new Error('API returned ' + res.status);
+                let shiurim = await res.json();
+                if (!Array.isArray(shiurim)) shiurim = [];
+                // Sort by date desc (newest first). If no date, push to the end.
+                shiurim.sort((a,b) => {
+                    const ad = a.date ? new Date(a.date).getTime() : 0;
+                    const bd = b.date ? new Date(b.date).getTime() : 0;
+                    return bd - ad;
+                });
+                if (shiurim.length === 0) {
+                    grid.innerHTML = '<p>No shiurim available.</p>';
+                    return;
+                }
+                grid.innerHTML = '';
+                for (const s of shiurim) {
+                    const card = createCard(s);
+                    grid.appendChild(card);
+                    // update view count (do not block rendering)
+                    (async () => {
+                        try {
+                            const r = await fetch(`${viewWorkerURL}/api/views/${s.id}`, { cache: 'no-store', method: 'GET' });
+                            if (!r.ok) return;
+                            const d = await r.json();
+                            const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${s.id}"]`);
+                            if (el && d && typeof d.views === 'number') el.textContent = d.views + ' views';
+                        } catch (e) { /* ignore */ }
+                    })();
+                }
+            } catch (err) {
+                console.error('Failed to load shiurim', err);
+                grid.innerHTML = `<p class="error-message">Could not load shiurim. Please try again later.</p>`;
+            }
+        }
+
+        // Simple client-side search (filters rendered nodes)
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const q = (e.target.value || '').toLowerCase();
+                Array.from(grid.querySelectorAll('.shiur-card')).forEach(card => {
+                    const title = (card.querySelector('h4')?.textContent || '').toLowerCase();
+                    const meta = (card.querySelector('p')?.textContent || '').toLowerCase();
+                    card.style.display = (!q || title.includes(q) || meta.includes(q)) ? '' : 'none';
+                });
+            });
+        }
+
+        loadAllShiurim();
+    });
+    </script>
+
+    <script src="quiz.js"></script>
 </body>
 </html>
