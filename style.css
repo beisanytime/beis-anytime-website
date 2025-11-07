@@ -152,3 +152,51 @@ body { margin: 0; font-family: var(--font-family-sans); background-color: var(--
 /* --- 11. Responsive Design --- */
 @media (max-width: 1024px) { .sidebar { width: var(--sidebar-width-collapsed); } .sidebar .nav-text, .sidebar .logo-full { display: none; } .sidebar .logo-icon { display: block; } .sidebar-nav a.nav-link { justify-content: center; } .main-content { margin-left: var(--sidebar-width-collapsed); width: calc(100% - var(--sidebar-width-collapsed)); } }
 @media (max-width: 768px) { .site-header { height: auto; flex-direction: column; align-items: stretch; gap: var(--space-md); padding: var(--space-md); } .search-bar { max-width: 100%; } #app-content-wrapper { padding: var(--space-lg); } .page-title, .rabbi-header h1, .shiur-details h1 { font-size: 1.75rem; } .video-grid { grid-template-columns: 1fr; } }
+
+/* --- 12. NEW: Home Page Styles --- */
+
+.home-hero {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-xl) var(--space-lg);
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    /* Optional: Add a subtle background pattern or image */
+    background-image: 
+        radial-gradient(circle at 1px 1px, hsla(210, 15%, 50%, 0.1) 1px, transparent 0);
+    background-size: 1.5rem 1.5rem;
+}
+
+.home-hero-content h1 {
+    font-size: 2.75rem;
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--space-md);
+}
+
+.home-hero-content p {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto var(--space-lg);
+    line-height: 1.6;
+}
+
+.home-hero-content .btn-primary {
+    font-size: 1.1rem;
+    padding: 0.8rem 2rem;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+
+@media (max-width: 768px) {
+    .home-hero-content h1 {
+        font-size: 2rem;
+    }
+}

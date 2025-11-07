@@ -96,12 +96,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const pages = {
-        home: async () => {
+home: async () => {
             const allShiurim = await getAllShiurim();
-            if (!allShiurim) return;
-            const recentShiurim = allShiurim.slice(0, 10);
-            contentArea.innerHTML = `<h1 class="page-title">Most Recent Shiurim</h1><div class="video-grid"></div>`;
+            if (!allShiurim) {
+                // If the API fails, show a simple error.
+                contentArea.innerHTML = `<p class="info-message">Could not load content at this time.</p>`;
+                return;
+            }
+            
+            const recentShiurim = allShiurim.slice(0, 5); // Get the 5 most recent
+            
+            // This is the new HTML for the home page
+            contentArea.innerHTML = `
+                <div class="home-hero">
+                    <div class="home-hero-content">
+                        <h1>Welcome to Beis Anytime</h1>
+                        <p>Your source for accessible Torah learning, available whenever you are. Explore recent shiurim below or browse by speaker.</p>
+                        <a href="#all" class="btn btn-primary" id="exploreBtn">Explore All Shiurim</a>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Most Recent Shiurim</h2>
+                <div class="video-grid"></div>
+            `;
+            
+            // Render the video grid into the newly created container
             renderVideoGrid(recentShiurim, contentArea.querySelector('.video-grid'));
+
+            // Make the "Explore" button work with our SPA router
+            document.getElementById('exploreBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                loadPage('all');
+            });
         },
         all: async () => {
             const allShiurim = await getAllShiurim();
