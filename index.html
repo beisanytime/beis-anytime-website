@@ -1,578 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beis Anytime - Home</title>
+    <title>Beis Anytime</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Icon Library (Font Awesome) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
     <div class="site-wrapper">
-        <!-- Notification Settings Modal -->
-        <div id="notificationModal" class="modal">
-            <div class="modal-content">
-                <span class="close" id="closeNotificationModal">&times;</span>
-                <h2>Notification Settings</h2>
-                <label>
-                    recentShiurimGrid.innerHTML = '';
-                    shiurim.forEach(shiur => {
-                        const card = createShiurCard(shiur);
-                        recentShiurimGrid.appendChild(card);
-                        // update view count for this card (don't block rendering)
-                        updateCardViewCount(shiur.id).catch(() => {});
-                <p id="notificationStatus"></p>
-            </div>
-        </div>
-        <!-- ===== Sidebar ===== -->
-<aside class="sidebar">
-    <div class="sidebar-logo">
-        <a href="index.html">
-            <img src="images/logo.png" alt="Beis Anytime Logo" class="logo-full">
-            <img src="images/logo-icon-placeholder.png" alt="Beis Anytime" class="logo-icon">
-        </a>
-    </div>
-    <nav class="sidebar-nav">
-        <ul>
-            <!-- Active link is Home -->
-            <li><a href="index.html" class="active"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
-            <li><a href="recent.html"><i class="fas fa-clock"></i> <span class="nav-text">Recent</span></a></li>
-            <li><a href="trending.html"><i class="fas fa-fire"></i> <span class="nav-text">Trending</span></a></li>
-            <li style="margin-bottom:10px;"><a href="speakers.html"><i class="fas fa-user-friends"></i> <span class="nav-text">Speakers</span></a></li>
-            <!-- Admin nav item (hidden by default; shown when signed-in user is an admin) -->
-            <li id="adminNavItem" style="display:none;"><a href="admin.html"><i class="fas fa-shield-alt"></i> <span class="nav-text">Admin</span></a></li>
-        </ul>
-    </nav>
-
-    <!-- Added: Contact us pinned to bottom (appears on all pages that include this sidebar) -->
-    <div class="sidebar-contact">
-        <p>Contact us</p>
-        <a href="mailto:beisanytime@gmail.com" class="contact-email">beisanytime@gmail.com</a>
-    </div>
-</aside>
-
-<!-- ===== Main Content Wrapper (Starts here on every page) ===== -->
-<div class="main-content">
-    <!-- ===== Header ===== -->
-    <!-- ===== Header (replace this on EVERY page) ===== -->
-<header class="site-header">
-    <div class="search-bar">
-         <i class="fas fa-search"></i>
-        <input type="search" placeholder="Search BeisAnytime" id="shiurSearchInput">
-    </div>
-    
-    <div class="header-right">
-        <div class="theme-toggle" id="themeToggleWrap" aria-hidden="false">
-            <button id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode" type="button">
-                <span class="thumb" id="themeThumb"></span>
-            </button>
-        </div>
-        <script src="theme-toggle.js"></script>
-
-        <div class="header-dropdown" id="headerDropdown">
-            <button class="dropdown-toggle" id="dropdownToggleBtn">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="dropdown-menu">
-                <a href="#" class="dropdown-item" id="donateBtn">
-                    <i class="fas fa-hand-holding-heart"></i> Donate
-                </a>
-                <a href="#" class="dropdown-item" id="notificationBell">
-                    <i class="fas fa-bell"></i> Notifications
-                </a>
-
-                <!-- Login/User Section -->
-                <div id="googleLoginBtn" class="google-login-btn"></div>
-                <a href="account.html" class="dropdown-item user-info" style="display:none;">
-                    <img src="" alt="User" class="user-avatar">
-                    <span class="user-name"></span>
-                </a>
-                <a href="#" class="dropdown-item sign-out-btn" style="display:none;">
-                    <i class="fas fa-sign-out-alt"></i> Sign Out
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="nav-link" data-page="home">
+                    <img style="height:100px;width:100px;" src="logo.png" alt="Beis Anytime Logo" class="logo-full">
+                    <img src="https://via.placeholder.com/40x40.png?text=BA" alt="Beis Anytime Icon" class="logo-icon">
                 </a>
             </div>
-        </div>
-    </div>
-</header>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#" class="nav-link active" data-page="home"><i class="fas fa-home fa-fw"></i> <span class="nav-text">Home</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="all"><i class="fas fa-list fa-fw"></i> <span class="nav-text">All Shiurim</span></a></li>
+                    <li class="nav-section-title"><span class="nav-text">Speakers</span></li>
+                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Hartman"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Hartman</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Rosenfeld"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Rosenfeld</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Golker"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Golker</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Guest_Speakers"><i class="fas fa-users fa-fw"></i> <span class="nav-text">Guest Speakers</span></a></li>
+                    <li class="nav-section-title"><span class="nav-text">Admin</span></li>
+                    <li><a href="#" class="nav-link" data-page="upload"><i class="fas fa-upload fa-fw"></i> <span class="nav-text">Upload</span></a></li>
+                </ul>
+            </nav>
+        </aside>
 
-            <main>
-                <div class="home-content-area">
-                    <div class="shiurim-feed">
-                        <section class="shiurim-section">
-                            <h2>Recent Shiurim</h2>
-                            <div class="shiur-grid" id="recentShiurimGrid">
-                                <!-- Shiurim will be loaded here by JavaScript -->
-                            </div>
-                        </section>
-                    </div>
-
-                    <!-- Right column removed per request -->
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <header class="site-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="searchInput" placeholder="Search for shiurim...">
                 </div>
+                <div class="header-right">
+                    <button id="theme-toggle" title="Toggle dark/light mode">
+                        <i class="fas fa-moon"></i>
+                        <i class="fas fa-sun"></i>
+                    </button>
+                    
+                    <!-- Google Sign-In & User Profile Dropdown -->
+                    <div id="g_id_onload" data-client_id="248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
+                    <div class="g_id_signin" data-type="standard"></div>
+                    
+                    <div class="profile-dropdown" id="profileDropdown" style="display: none;">
+                        <button class="profile-toggle" id="profileToggle">
+                            <img id="userAvatar" src="" alt="User Avatar">
+                        </button>
+                        <div class="dropdown-menu" id="profileDropdownMenu">
+                            <div class="dropdown-user-info">
+                                <strong id="userName"></strong>
+                                <span id="userEmail"></span>
+                            </div>
+                            <a href="#" class="dropdown-item" id="adminLink" style="display: none;" data-page="admin">
+                                <i class="fas fa-shield-halved fa-fw"></i> Admin Panel
+                            </a>
+                            <a href="#" class="dropdown-item" id="signOutBtn">
+                                <i class="fas fa-sign-out-alt fa-fw"></i> Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main id="app-content-wrapper">
+                 <div id="app-content">
+                    <!-- All content is rendered here by JavaScript -->
+                 </div>
             </main>
         </div>
     </div>
     
-    <script>
-(function(){
-    // Return an email if the page already knows the signed-in user (same checks used elsewhere)
-    function getSignedInEmail() {
-        try {
-            if (window.currentGoogleUser && window.currentGoogleUser.email) return window.currentGoogleUser.email;
-            if (window.googleUser && window.googleUser.email) return window.googleUser.email;
-            const ls = localStorage.getItem('googleUserEmail'); if (ls) return ls;
-            const cred = localStorage.getItem('googleCredential'); if (cred) {
-                try { return JSON.parse(cred).email; } catch(e) { /* ignore */ }
-            }
-            const ui = document.querySelector('.user-info');
-            if (ui && ui.dataset && ui.dataset.email) return ui.dataset.email;
-        } catch(e) {}
-        return null;
-    }
+    <!-- Hidden elements for thumbnail generation -->
+    <video id="video-processor" muted preload="metadata" style="display: none;"></video>
+    <canvas id="canvas-processor" style="display: none;"></canvas>
 
-    // If no signed-in email found, do nothing (allow normal GSI flow)
-    if (!getSignedInEmail()) return;
-
-    // If signed in, wait briefly for the GSI client then suppress one-tap / auto-prompt
-    function disableGsiOneTap() {
-        if (!window.google || !google.accounts || !google.accounts.id) return false;
-
-        try {
-            // Wrap initialize to force auto_select = false (prevents auto sign-in)
-            const originalInit = google.accounts.id.initialize.bind(google.accounts.id);
-            google.accounts.id.initialize = function(opts) {
-                if (opts && opts.auto_select) opts.auto_select = false;
-                return originalInit(opts);
-            };
-        } catch (e) {
-            // ignore if unable to wrap
-        }
-
-        try {
-            // Make prompt a no-op to block one-tap, and cancel any active prompt
-            google.accounts.id.prompt = function() {};
-            if (typeof google.accounts.id.cancel === 'function') {
-                try { google.accounts.id.cancel(); } catch(e) {}
-            }
-        } catch (e) {
-            // ignore if methods not present
-        }
-
-        console.debug('[GSI] One-tap suppressed because user appears already signed-in:', getSignedInEmail());
-        return true;
-    }
-
-    // Poll briefly for the GSI client to appear (adjust timeout if needed)
-    (function waitForGsi(timeoutMs = 3000, intervalMs = 100) {
-        const start = Date.now();
-        (function poll() {
-            if (disableGsiOneTap()) return;
-            if (Date.now() - start > timeoutMs) return;
-            setTimeout(poll, intervalMs);
-        })();
-    })();
-})();
-</script>
-
-    <script src="google-login.js"></script>
-    <script>
-        // --- Shiurim Loading Script ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const workerURL = 'https://beis-anytime-api.beisanytime.workers.dev';
-            const recentShiurimGrid = document.getElementById('recentShiurimGrid');
-            const shiurSearchInput = document.getElementById('shiurSearchInput');
-            let allShiurim = [];
-
-            function createShiurCard(shiur) {
-                const rabbiDisplayName = shiur.rabbi ? shiur.rabbi.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Rabbi';
-                const cardElement = document.createElement('div');
-                cardElement.innerHTML = `
-                    <a href="view_shiur.html?id=${shiur.id}" class="shiur-card" data-shiur-id="${shiur.id}">
-                        <div class="shiur-card-image" style="background-image: url(${shiur.thumbnailUrl || '/images/placeholder-shiur.png'});">
-                            <div class="thumbnail-view-badge" data-shiur-id="${shiur.id}">— views</div>
-                        </div>
-                        <div class="shiur-card-content">
-                            <h4>${shiur.title || 'Untitled Shiur'}</h4>
-                            <p>${rabbiDisplayName}</p>
-                        </div>
-                    </a>
-                `;
-                return cardElement.firstElementChild;
-            }
-
-            // View Worker URL for counts (dedicated worker)
-            const viewWorkerURL = 'https://beis-anytime-view-counter.beisanytime.workers.dev';
-
-            // Fetch view count for a given shiur and update the badge element
-            async function updateCardViewCount(shiurId) {
-                try {
-                    const el = document.querySelector(`.thumbnail-view-badge[data-shiur-id="${shiurId}"]`);
-                    if (!el) return;
-                    const res = await fetch(`${viewWorkerURL}/api/views/${shiurId}`, { cache: 'no-store', method: 'GET' });
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    if (data && typeof data.views === 'number') {
-                        el.textContent = data.views + ' views';
-                    }
-                } catch (e) {
-                    // ignore errors: keep badge as placeholder
-                    console.warn('Could not load view count for', shiurId, e);
-                }
-            }
-
-            function displayShiurim(shiurim) {
-                if (!recentShiurimGrid) return;
-                if (shiurim.length === 0) {
-                    recentShiurimGrid.innerHTML = '<p>No shiurim found.</p>';
-                    return;
-                }
-                recentShiurimGrid.innerHTML = '';
-                shiurim.forEach(shiur => {
-                    const card = createShiurCard(shiur);
-                    recentShiurimGrid.appendChild(card);
-                    // update count for each card asynchronously
-                    updateCardViewCount(shiur.id).catch(() => {});
-                });
-            }
-
-            async function fetchAndDisplayRecent() {
-                recentShiurimGrid.innerHTML = '<p class="loading-message">Loading recent shiurim...</p>';
-                try {
-                    const response = await fetch(`${workerURL}/api/all-shiurim`);
-                    if (!response.ok) throw new Error(`API returned ${response.status}`);
-                    allShiurim = await response.json();
-
-                    if (allShiurim.length === 0) {
-                        recentShiurimGrid.innerHTML = '<p>No recent shiurim available.</p>';
-                        return;
-                    }
-                    
-                    allShiurim.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-                    
-                    displayShiurim(allShiurim.slice(0, 5));
-                } catch (error) {
-                    console.error("Error loading shiurim:", error);
-                    recentShiurimGrid.innerHTML = `<p class="error-message">Could not load recent shiurim.</p>`;
-                }
-            }
-            fetchAndDisplayRecent();
-
-            // --- Search Functionality ---
-            if (shiurSearchInput) {
-                shiurSearchInput.addEventListener('input', function() {
-                    const query = this.value.trim().toLowerCase();
-                    if (!query) {
-                        displayShiurim(allShiurim.slice(0, 5));
-                        return;
-                    }
-                    const filtered = allShiurim.filter(shiur =>
-                        (shiur.title && shiur.title.toLowerCase().includes(query)) ||
-                        (shiur.rabbi && shiur.rabbi.replace(/_/g, ' ').toLowerCase().includes(query))
-                    );
-                    displayShiurim(filtered);
-                });
-            }
-        });
-
-        // --- Push Notification Registration ---
-        //if ('serviceWorker' in navigator && 'PushManager' in window) {
-          //  navigator.serviceWorker.register('notification-service-worker.js').then(function(reg) {
-                // Service worker registered
-        //    }).catch(function(err) {
-         //       console.error('Service Worker registration failed:', err);
-         //   });
-       // }
-
-        // --- UI Interactivity Script ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const dropdown = document.getElementById('headerDropdown');
-            const dropdownToggle = document.getElementById('dropdownToggleBtn');
-            const dropdownMenu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
-            const donateBtn = document.getElementById('donateBtn');
-            const notificationBell = document.getElementById('notificationBell');
-            const notificationModal = document.getElementById('notificationModal');
-            const closeNotificationModal = document.getElementById('closeNotificationModal');
-            const enableNotifications = document.getElementById('enableNotifications');
-            const notificationStatus = document.getElementById('notificationStatus');
-            const googleLoginBtn = document.getElementById('googleLoginBtn');
-            const userInfo = document.querySelector('.user-info');
-
-            if (dropdown && dropdownToggle) {
-                dropdownToggle.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    dropdown.classList.toggle('is-active');
-                });
-                
-                window.addEventListener('click', (event) => {
-                    if (dropdown.classList.contains('is-active') && !dropdown.contains(event.target)) {
-                        dropdown.classList.remove('is-active');
-                    }
-                });
-            }
-
-            // Donate button handler (example: open external link)
-            if (donateBtn) {
-                donateBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    window.open('https://your-donation-link.com', '_blank');
-                    console.log('Donate button clicked');
-                });
-            }
-
-            // Notification modal logic
-            if (notificationBell && notificationModal && closeNotificationModal) {
-                notificationBell.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    notificationModal.style.display = 'block';
-                    console.log('Notifications button clicked');
-                });
-                closeNotificationModal.addEventListener('click', () => {
-                    notificationModal.style.display = 'none';
-                });
-                window.addEventListener('click', (event) => {
-                    if (event.target === notificationModal) {
-                        notificationModal.style.display = 'none';
-                    }
-                });
-            }
-            // Google login fallback
-            if (googleLoginBtn) {
-                setTimeout(() => {
-                    if (!googleLoginBtn.hasChildNodes()) {
-                        googleLoginBtn.innerHTML = '<span style="color:red;">Google login failed to load.</span>';
-                        if (userInfo) userInfo.style.display = 'none';
-                    }
-                }, 3000);
-            }
-
-            // Notification permission logic
-            if (enableNotifications && notificationStatus) {
-                enableNotifications.checked = localStorage.getItem('notificationsEnabled') === 'true';
-                enableNotifications.addEventListener('change', async function() {
-                    if (this.checked) {
-                        if (Notification.permission === 'granted') {
-                            localStorage.setItem('notificationsEnabled', 'true');
-                            notificationStatus.textContent = 'Notifications enabled!';
-                        } else if (Notification.permission !== 'denied') {
-                            let perm = await Notification.requestPermission();
-                            if (perm === 'granted') {
-                                localStorage.setItem('notificationsEnabled', 'true');
-                                notificationStatus.textContent = 'Notifications enabled!';
-                            } else {
-                                this.checked = false;
-                                notificationStatus.textContent = 'Notifications blocked.';
-                            }
-                        } else {
-                            this.checked = false;
-                            notificationStatus.textContent = 'Notifications blocked.';
-                        }
-                    } else {
-                        localStorage.setItem('notificationsEnabled', 'false');
-                        notificationStatus.textContent = 'Notifications disabled.';
-                    }
-                });
-            }
-        });
-    </script>
-    <!-- Added: Generic thumbnail scrubber wiring for upload / rabbis pages.
-         Usage examples on other pages:
-         1) <input type="range" class="thumbnail-scrubber" data-count="10" data-src-template="/thumbs/thumb_{index}.jpg" ...>
-         2) <input type="range" class="thumbnail-scrubber" data-thumbs="a.jpg,b.jpg,c.jpg" ...>
-         3) Provide data-preview-selector to target the preview element (img or element with background)
-    -->
-    <script>
-    (function(){
-        function initScrubbers() {
-            document.querySelectorAll('.thumbnail-scrubber').forEach(function(input){
-                var previewSelector = input.dataset.previewSelector;
-                var preview = previewSelector ? document.querySelector(previewSelector) : input.nextElementSibling;
-                var thumbsCsv = input.dataset.thumbs;
-                var srcTemplate = input.dataset.srcTemplate;
-                var count = parseInt(input.dataset.count, 10) || (thumbsCsv ? thumbsCsv.split(',').length : 10);
-
-                function setPreviewByIndex(idx) {
-                    idx = Math.max(0, Math.min(idx, count - 1));
-                    var src = '';
-                    if (thumbsCsv) {
-                        var arr = thumbsCsv.split(',');
-                        src = (arr[Math.min(idx, arr.length - 1)] || '').trim();
-                    } else if (srcTemplate) {
-                        src = srcTemplate.replace(/\{index\}/g, idx);
-                    } else if (preview && preview.dataset && (preview.dataset.thumbPrefix || preview.dataset.thumbSuffix)) {
-                        var pre = preview.dataset.thumbPrefix || '';
-                        var suf = preview.dataset.thumbSuffix || '';
-                        src = pre + idx + suf;
-                    }
-                    if (!src || !preview) return;
-                    if (preview.tagName && preview.tagName.toLowerCase() === 'img') {
-                        preview.src = src;
-                    } else {
-                        preview.style.backgroundImage = 'url(' + src + ')';
-                    }
-                }
-
-                // Make control visible (in case page CSS hides range)
-                input.style.opacity = input.style.opacity || '';
-                input.addEventListener('input', function(e){
-                    var val = Math.round(Number(e.target.value) || 0);
-                    setPreviewByIndex(val);
-                });
-                input.addEventListener('change', function(e){
-                    var val = Math.round(Number(e.target.value) || 0);
-                    setPreviewByIndex(val);
-                });
-
-                // initialize position
-                setTimeout(function(){
-                    var initial = Math.round(Number(input.value) || 0);
-                    setPreviewByIndex(initial);
-                }, 0);
-            });
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initScrubbers);
-        } else {
-            initScrubbers();
-        }
-    })();
-    </script>
-
-    <!-- ... code above this ... -->
-
-    <!-- Admin authorization: reveal Admin link when signed in as an admin user -->
-    <script>
-    (function(){
-        const adminNavItem = document.getElementById('adminNavItem');
-        const adminsUrl = '/admins.json';
-        const DEBUG = true; // Enable debug logging
-
-        function debugLog(...args) {
-            if (DEBUG) console.log('[Admin Auth]', ...args);
-        }
-
-        async function getAdmins() {
-            try {
-                const res = await fetch(adminsUrl, {cache: "no-store"});
-                if (!res.ok) {
-                    debugLog('Failed to load admins.json:', res.status);
-                    return ['bigj.devacc@gmail.com']; // Fallback to hardcoded admin
-                }
-                return await res.json();
-            } catch (e) {
-                debugLog('Error loading admins.json:', e);
-                return ['bigj.devacc@gmail.com']; // Fallback to hardcoded admin
-            }
-        }
-
-        function getSignedInEmail() {
-            // Try all possible places where the email might be stored
-            const sources = {
-                'google.accounts.id.userData': () => {
-                    if (google?.accounts?.id?.userData) return google.accounts.id.userData.email;
-                    return null;
-                },
-                'currentGoogleUser': () => window.currentGoogleUser?.email,
-                'googleUser': () => window.googleUser?.email,
-                'localStorage': () => localStorage.getItem('googleUserEmail'),
-                'credential.email': () => {
-                    const cred = localStorage.getItem('googleCredential');
-                    if (cred) {
-                        try {
-                            return JSON.parse(cred).email;
-                        } catch(e) {}
-                    }
-                    return null;
-                },
-                'DOM': () => {
-                    const infoEl = document.querySelector('.user-info');
-                    return infoEl?.dataset?.email;
-                }
-            };
-
-            for (const [source, getter] of Object.entries(sources)) {
-                try {
-                    const email = getter();
-                    if (email) {
-                        debugLog(`Found email in ${source}:`, email);
-                        return email;
-                    }
-                } catch (e) {
-                    debugLog(`Error checking ${source}:`, e);
-                }
-            }
-            
-            debugLog('No email found in any source');
-            return null;
-        }
-
-        async function checkAdminNow() {
-            const admins = await getAdmins();
-            debugLog('Loaded admins:', admins);
-            
-            const email = (getSignedInEmail() || '').toLowerCase();
-            debugLog('Current user email:', email);
-            
-            const isAdmin = email && admins.map(e => e.toLowerCase()).includes(email);
-            debugLog('Is admin?', isAdmin);
-            
-            if (adminNavItem) {
-                adminNavItem.style.display = isAdmin ? '' : 'none';
-                debugLog('Updated admin nav visibility:', isAdmin);
-            }
-        }
-
-        // Check on DOM load
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', checkAdminNow);
-        } else {
-            checkAdminNow();
-        }
-
-        // Watch for Google Sign-In events (This is now the primary trigger)
-        window.addEventListener('googleSignIn', (e) => {
-            debugLog('Received googleSignIn event:', e?.detail);
-            if (e?.detail?.email) {
-                localStorage.setItem('googleUserEmail', e.detail.email);
-            }
-            checkAdminNow();
-        });
-
-        // ==========================================================
-        // ===== DELETE THE FOLLOWING FUNCTION ======================
-        // ==========================================================
-        /*
-        window.handleCredentialResponse = function(response) {
-            debugLog('Received credential response');
-            if (response?.credential) {
-                const payload = JSON.parse(atob(response.credential.split('.')[1]));
-                debugLog('Credential payload:', payload);
-                if (payload.email) {
-                    localStorage.setItem('googleUserEmail', payload.email);
-                    checkAdminNow();
-                }
-            }
-        };
-        */
-        // ==========================================================
-        // ===== END DELETION =======================================
-        // ==========================================================
-
-        // Poll a few times for delayed initialization
-        let polls = 0;
-        const pollInterval = setInterval(() => {
-            polls++;
-            checkAdminNow();
-            if (polls > 10 || getSignedInEmail()) clearInterval(pollInterval); // Stop polling if logged in
-        }, 700);
-    })();
-    </script>
-
-    <!-- ...existing code... -->
-    <script src="quiz.js"></script>
-</body></html>
+    <script src="script.js"></script>
+</body>
+</html>
