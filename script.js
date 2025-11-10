@@ -1,6 +1,6 @@
 // =================================================================================
 // Beis Anytime - Complete Single Page Application
-// Version: FINAL (All Features and Fixes Integrated)
+// Version: FINAL (v2 - Content-Type Fix for Upload)
 // =================================================================================
 
 // The callback for Google Sign-In MUST be on the global `window` object.
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. GLOBAL CONFIGURATION & STATE ---
     const API_BASE_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
     const ADMIN_EMAIL = 'beisanytime@gmail.com';
-    const UPLOAD_PASSWORD = 'beis24/7'; // The password for the upload section
+    const UPLOAD_PASSWORD = 'beis24/7';
     let allShiurimCache = [];
     let currentUser = null;
 
@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formatRabbiName = (rabbiId) => {
         if (!rabbiId) return 'Unknown';
+        if (rabbiId.toLowerCase() === 'guests') return 'Guest Speakers';
         return rabbiId.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
     };
 
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. PAGE RENDERERS ---
     const renderLoading = () => contentArea.innerHTML = `<p class="loading">Loading...</p>`;
-
+    
     function renderVideoGrid(videos, container) {
         if (!videos || videos.length === 0) {
             container.innerHTML = `<p class="info-message">No shiurim found.</p>`;
@@ -96,38 +97,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const pages = {
-home: async () => {
+        home: async () => {
             const allShiurim = await getAllShiurim();
-            if (!allShiurim) {
-                // If the API fails, show a simple error.
-                contentArea.innerHTML = `<p class="info-message">Could not load content at this time.</p>`;
-                return;
-            }
-            
-            const recentShiurim = allShiurim.slice(0, 5); // Get the 5 most recent
-            
-            // This is the new HTML for the home page
-            contentArea.innerHTML = `
-                <div class="home-hero">
-                    <div class="home-hero-content">
-                        <h1>Welcome to Beis Anytime</h1>
-                        <p>Your source for accessible Torah learning, available whenever you are. Explore recent shiurim below or browse by speaker.</p>
-                        <a href="#all" class="btn btn-primary" id="exploreBtn">Explore All Shiurim</a>
-                    </div>
-                </div>
-
-                <h2 class="section-title">Most Recent Shiurim</h2>
-                <div class="video-grid"></div>
-            `;
-            
-            // Render the video grid into the newly created container
+            if (!allShiurim) return;
+            const recentShiurim = allShiurim.slice(0, 10);
+            contentArea.innerHTML = `<h1 class="page-title">Most Recent Shiurim</h1><div class="video-grid"></div>`;
             renderVideoGrid(recentShiurim, contentArea.querySelector('.video-grid'));
-
-            // Make the "Explore" button work with our SPA router
-            document.getElementById('exploreBtn').addEventListener('click', (e) => {
-                e.preventDefault();
-                loadPage('all');
-            });
         },
         all: async () => {
             const allShiurim = await getAllShiurim();
@@ -136,9 +111,11 @@ home: async () => {
             renderVideoGrid(allShiurim, contentArea.querySelector('.video-grid'));
         },
         speaker: async (params) => {
-            const apiRabbiId = params.rabbi.toLowerCase();
-            const filteredShiurim = await fetchApi(`/api/shiurim/${apiRabbiId}`);
-            if (!filteredShiurim) return;
+            const allShiurim = await getAllShiurim();
+            if (!allShiurim) return;
+            const filteredShiurim = allShiurim.filter(shiur => 
+                shiur.rabbi && params.rabbi && shiur.rabbi.toLowerCase() === params.rabbi.toLowerCase()
+            );
             const displayRabbiName = formatRabbiName(params.rabbi);
             contentArea.innerHTML = `
                 <div class="rabbi-header" id="rabbiHeader">
@@ -154,14 +131,15 @@ home: async () => {
             const rabbiName = formatRabbiName(shiur.rabbi);
             const videoDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'N/A';
             contentArea.innerHTML = `
+                <a href="#" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Videos</a>
                 <div class="shiur-player-container">
                     <div class="video-player-wrapper">
-                        <video controls autoplay src="${shiur.playbackUrl}" poster="${shiur.thumbnailUrl}"></video>
+                        <video controls autoplay poster="${shiur.thumbnailUrl}" src="${shiur.playbackUrl}"></video>
                     </div>
                     <div class="shiur-details">
                         <h1>${shiur.title}</h1>
                         <p class="shiur-details-meta">By ${rabbiName} on ${videoDate}</p>
-                        <p class="shiur-description">${shiur.description || 'No description available.'}</p>
+                        <p>${shiur.description || ''}</p>
                     </div>
                 </div>`;
         },
@@ -218,7 +196,202 @@ home: async () => {
         }
     }
     
-    // --- 8. UPLOAD FORM & PASSWORD LOGIC (Helper functions below) ---
+    // --- 8. UPLOAD FORM & PASSWORD LOGIC ---
+    function renderPasswordModal() {
+        contentArea.innerHTML = `
+            <h1 class="page-title">Upload Access Required</h1>
+            <form class="upload-form" id="passwordForm">
+                <div class="input-group">
+                    <label for="password">Enter Password</label>
+                    <input type="password" id="password" required>
+                    <p id="passwordError" style="color: var(--color-danger); display: none;">Incorrect password.</p>
+                </div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary">Submit</button></div>
+            </form>`;
+        document.getElementById('passwordForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const passwordInput = document.getElementById('password');
+            if (passwordInput.value === UPLOAD_PASSWORD) {
+                sessionStorage.setItem('uploadAuthorized', 'true');
+                renderUploadForm();
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+                passwordInput.value = '';
+            }
+        });
+    }
+
+    function renderUploadForm() {
+        contentArea.innerHTML = `
+            <h1 class="page-title">Upload a Shiur</h1>
+            <form class="upload-form" id="uploadForm">
+                <div class="form-grid">
+                    <div class="input-group"><label for="rabbi">Speaker</label><select id="rabbi" required><option value="" disabled selected>Select...</option><option value="Rabbi_Hartman">Rabbi Hartman</option><option value="Rabbi_Rosenfeld">Rabbi Rosenfeld</option><option value="Rabbi_Golker">Rabbi Golker</option><option value="guests">Guest Speakers</option></select></div>
+                    <div class="input-group"><label for="title">Title</label><input type="text" id="title" required></div>
+                    <div class="input-group"><label for="uploaderName">Uploader Name</label><input type="text" id="uploaderName"></div>
+                    <div class="input-group"><label for="date">Date</label><input type="date" id="date" required></div>
+                    <div class="input-group"><label for="description">Description</label><textarea id="description"></textarea></div>
+                    <div class="input-group"><label>Video/Audio File</label><div class="file-drop-zone" id="dropZone"><p>Drag & drop file here, or click to browse</p><p id="fileName"></p><img id="thumbnailPreview" src=""><div id="thumbnail-controls"><label>Adjust Thumbnail:</label><input type="range" id="thumbnailScrubber" min="0" max="100" value="0" step="0.1"></div></div><input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;"><div class="progress-bar" id="progressBar"><div class="progress-bar-inner" id="progressBarInner"></div></div></div>
+                </div>
+                <div class="form-actions"><button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button><button type="submit" class="btn btn-primary" id="uploadBtn">Upload Shiur</button></div>
+            </form>`;
+        document.getElementById('date').valueAsDate = new Date();
+        attachUploadFormListeners();
+    }
+
+    function attachUploadFormListeners() {
+        const form = document.getElementById('uploadForm');
+        if (!form) return;
+        let currentVideoFile = null;
+        let generatedThumbnailDataUrl = '';
+        const fileInput = document.getElementById('fileInput'), dropZone = document.getElementById('dropZone'), fileNameEl = document.getElementById('fileName');
+        const thumbnailPreview = document.getElementById('thumbnailPreview'), thumbnailControls = document.getElementById('thumbnail-controls'), thumbnailScrubber = document.getElementById('thumbnailScrubber');
+        const cancelBtn = document.getElementById('cancelBtn');
+        // Note: video-processor and canvas-processor must be present in the HTML page to work
+        const videoProcessor = document.getElementById('video-processor'), canvasProcessor = document.getElementById('canvas-processor'); 
+        
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFileSelect(e.dataTransfer.files[0]); }
+        });
+        fileInput.addEventListener('change', () => fileInput.files.length && handleFileSelect(fileInput.files[0]));
+        cancelBtn.addEventListener('click', () => loadPage('home'));
+
+        function handleFileSelect(file) {
+            currentVideoFile = file;
+            fileNameEl.textContent = `Selected: ${file.name}`;
+            if (file.type.startsWith('video/')) {
+                const url = URL.createObjectURL(file);
+                // Assume videoProcessor is available on the main HTML page as a hidden element
+                videoProcessor.src = url;
+                videoProcessor.addEventListener('loadeddata', () => {
+                    thumbnailControls.style.display = 'block';
+                    captureFrame(videoProcessor.duration * 0.1);
+                }, { once: true });
+            } else {
+                // Handle audio/other file types where thumbnail adjustment is not possible
+                thumbnailControls.style.display = 'none';
+                thumbnailPreview.style.display = 'none';
+                generatedThumbnailDataUrl = '';
+            }
+        }
+
+        function captureFrame(time) {
+            // Assume canvasProcessor is available on the main HTML page as a hidden element
+            if (!videoProcessor || !canvasProcessor) return; 
+
+            if (!videoProcessor.src || videoProcessor.readyState < 2) return;
+            videoProcessor.currentTime = time;
+            videoProcessor.addEventListener('seeked', () => {
+                canvasProcessor.width = videoProcessor.videoWidth;
+                canvasProcessor.height = videoProcessor.videoHeight;
+                canvasProcessor.getContext('2d').drawImage(videoProcessor, 0, 0, canvasProcessor.width, canvasProcessor.height);
+                generatedThumbnailDataUrl = canvasProcessor.toDataURL('image/jpeg', 0.8);
+                thumbnailPreview.src = generatedThumbnailDataUrl;
+                thumbnailPreview.style.display = 'block';
+            }, { once: true });
+        }
+        
+        thumbnailScrubber.addEventListener('input', () => {
+            if (!videoProcessor.duration) return;
+            const seekTime = (thumbnailScrubber.value / 100) * videoProcessor.duration;
+            captureFrame(seekTime);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (!currentVideoFile || !document.getElementById('rabbi').value || !document.getElementById('title').value) {
+                alert('Please fill in all required fields and select a file.'); return;
+            }
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Preparing...';
+            
+            const prepareData = {
+                rabbi: document.getElementById('rabbi').value,
+                fileName: currentVideoFile.name,
+                // --- THE CRITICAL FIX: Include Content-Type for signing ---
+                contentType: currentVideoFile.type, 
+                // --------------------------------------------------------
+            };
+
+            const prepareResponse = await fetchApi('/api/prepare-upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prepareData),
+            });
+
+            if (!prepareResponse) {
+                alert('Could not prepare upload. Check worker logs.');
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Shiur';
+                return;
+            }
+
+            const { signedUrl, objectKey } = prepareResponse;
+
+            const progressBar = document.getElementById('progressBar'), progressBarInner = document.getElementById('progressBarInner');
+            progressBar.style.display = 'block';
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', signedUrl, true);
+            // This header must match the one sent in prepareData!
+            xhr.setRequestHeader('Content-Type', currentVideoFile.type); 
+            
+            xhr.upload.onprogress = event => {
+                if (event.lengthComputable) {
+                    const percent = (event.loaded / event.total) * 100;
+                    progressBarInner.style.width = `${percent}%`;
+                    uploadBtn.textContent = `Uploading... ${Math.round(percent)}%`;
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    uploadBtn.textContent = 'Finalizing...';
+                    const finalMetadata = {
+                        title: document.getElementById('title').value,
+                        rabbi: document.getElementById('rabbi').value,
+                        fileName: currentVideoFile.name,
+                        objectKey: objectKey,
+                        uploaderName: document.getElementById('uploaderName').value,
+                        date: document.getElementById('date').value,
+                        description: document.getElementById('description').value,
+                        thumbnailDataUrl: generatedThumbnailDataUrl,
+                    };
+
+                    fetchApi('/api/finalize-upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(finalMetadata),
+                    }).then(() => {
+                        uploadBtn.textContent = 'Upload Complete!';
+                        allShiurimCache = [];
+                        setTimeout(() => loadPage('home'), 1500);
+                    });
+                } else {
+                    // Check if R2 error XML can be parsed for a more descriptive error
+                    let uploadError = `Upload failed with status ${xhr.status}.`;
+                    try {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(xhr.responseText, "text/xml");
+                        const message = xmlDoc.getElementsByTagName("Message")[0].childNodes[0].nodeValue;
+                        uploadError = `Upload failed: ${message}`;
+                    } catch (e) {
+                        // Ignore if XML parsing fails
+                    }
+
+                    alert(uploadError);
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload Shiur';
+                }
+            };
+            xhr.onerror = () => { alert('A network error occurred during upload.'); uploadBtn.disabled = false; uploadBtn.textContent = 'Upload Shiur'; };
+            xhr.send(currentVideoFile);
+        });
+    }
 
     // --- 9. EVENT LISTENERS & INITIALIZATION ---
     themeToggle.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
@@ -243,14 +416,13 @@ home: async () => {
     });
     
     profileToggle.addEventListener('click', () => profileDropdown.classList.toggle('is-active'));
-    document.addEventListener('click', (e) => { if (!profileDropdown.contains(e.target)) profileDropdown.classList.remove('is-active'); });
+    document.addEventListener('click', (e) => { if (profileDropdown && !profileDropdown.contains(e.target)) profileDropdown.classList.remove('is-active'); });
     
-    document.getElementById('app-content-wrapper').addEventListener('click', e => {
+    contentArea.addEventListener('click', e => {
         const videoCard = e.target.closest('.video-card');
-        if (videoCard) {
-            e.preventDefault();
-            loadPage('view_shiur', { id: videoCard.dataset.shiurId });
-        }
+        if (videoCard) { e.preventDefault(); loadPage('view_shiur', { id: videoCard.dataset.shiurId }); }
+        const backButton = e.target.closest('.btn-back');
+        if (backButton) { e.preventDefault(); history.back(); }
     });
 
     document.getElementById('adminLink').addEventListener('click', (e) => {
@@ -281,155 +453,3 @@ home: async () => {
     
     initialize();
 });
-
-
-// =================================================================================
-// ALL HELPER FUNCTIONS
-// =================================================================================
-
-function renderPasswordModal() {
-    const contentArea = document.getElementById('app-content');
-    contentArea.innerHTML = `
-        <h1 class="page-title">Upload Access Required</h1>
-        <form class="upload-form" id="passwordForm">
-            <div class="input-group">
-                <label for="password">Enter Password</label>
-                <input type="password" id="password" required>
-                <p id="passwordError" style="color: var(--color-danger); display: none;">Incorrect password.</p>
-            </div>
-            <div class="form-actions"><button type="submit" class="btn btn-primary">Submit</button></div>
-        </form>`;
-    document.getElementById('passwordForm').addEventListener('submit', e => {
-        e.preventDefault();
-        const passwordInput = document.getElementById('password');
-        if (passwordInput.value === 'beis24/7') {
-            sessionStorage.setItem('uploadAuthorized', 'true');
-            renderUploadForm();
-        } else {
-            document.getElementById('passwordError').style.display = 'block';
-            passwordInput.value = '';
-        }
-    });
-}
-
-function renderUploadForm() {
-    const contentArea = document.getElementById('app-content');
-    contentArea.innerHTML = `
-        <h1 class="page-title">Upload a Shiur</h1>
-        <form class="upload-form" id="uploadForm">
-            <div class="form-grid">
-                <div class="input-group"><label for="rabbi">Speaker</label><select id="rabbi" required><option value="" disabled selected>Select...</option><option value="Rabbi_Hartman">Rabbi Hartman</option><option value="Rabbi_Rosenfeld">Rabbi Rosenfeld</option><option value="Rabbi_Golker">Rabbi Golker</option><option value="Guest_Speakers">Guest Speakers</option></select></div>
-                <div class="input-group"><label for="title">Title</label><input type="text" id="title" required></div>
-                <div class="input-group"><label for="uploaderName">Uploader Name</label><input type="text" id="uploaderName"></div>
-                <div class="input-group"><label for="date">Date</label><input type="date" id="date" required></div>
-                <div class="input-group"><label for="description">Description</label><textarea id="description"></textarea></div>
-                <div class="input-group"><label>Video/Audio File</label><div class="file-drop-zone" id="dropZone"><p>Drag & drop file here, or click to browse</p><p id="fileName"></p><img id="thumbnailPreview" src=""><div id="thumbnail-controls"><label>Adjust Thumbnail:</label><input type="range" id="thumbnailScrubber" min="0" max="100" value="0" step="0.1"></div></div><input type="file" id="fileInput" accept="video/*,audio/*" style="display: none;"><div class="progress-bar" id="progressBar"><div class="progress-bar-inner" id="progressBarInner"></div></div></div>
-            </div>
-            <div class="form-actions"><button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button><button type="submit" class="btn btn-primary" id="uploadBtn">Upload Shiur</button></div>
-        </form>`;
-    document.getElementById('date').valueAsDate = new Date();
-    attachUploadFormListeners();
-}
-
-function attachUploadFormListeners() {
-    const form = document.getElementById('uploadForm');
-    if (!form) return;
-    const fileInput = document.getElementById('fileInput'), dropZone = document.getElementById('dropZone'), fileNameEl = document.getElementById('fileName');
-    const thumbnailPreview = document.getElementById('thumbnailPreview'), thumbnailControls = document.getElementById('thumbnail-controls'), thumbnailScrubber = document.getElementById('thumbnailScrubber');
-    const cancelBtn = document.getElementById('cancelBtn');
-    let currentVideoFile = null, generatedThumbnailDataUrl = '';
-
-    dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-        e.preventDefault(); dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFileSelect(e.dataTransfer.files[0]); }
-    });
-    fileInput.addEventListener('change', () => fileInput.files.length && handleFileSelect(fileInput.files[0]));
-    cancelBtn.addEventListener('click', () => {
-        // Use the same custom event system for navigation to keep things consistent
-        window.dispatchEvent(new CustomEvent('loadpage', { detail: { page: 'home' } }));
-    });
-
-    function handleFileSelect(file) {
-        currentVideoFile = file;
-        fileNameEl.textContent = `Selected: ${file.name}`;
-        if (file.type.startsWith('video/')) {
-            const url = URL.createObjectURL(file);
-            const videoProcessor = document.getElementById('video-processor');
-            videoProcessor.src = url;
-            videoProcessor.addEventListener('loadeddata', () => {
-                thumbnailControls.style.display = 'block';
-                captureFrame(videoProcessor.duration * 0.1);
-            }, { once: true });
-        }
-    }
-
-    function captureFrame(time) {
-        const videoProcessor = document.getElementById('video-processor');
-        const canvasProcessor = document.getElementById('canvas-processor');
-        if (!videoProcessor.src || videoProcessor.readyState < 2) return;
-        videoProcessor.currentTime = time;
-        videoProcessor.addEventListener('seeked', () => {
-            canvasProcessor.width = videoProcessor.videoWidth;
-            canvasProcessor.height = videoProcessor.videoHeight;
-            canvasProcessor.getContext('2d').drawImage(videoProcessor, 0, 0, canvasProcessor.width, canvasProcessor.height);
-            generatedThumbnailDataUrl = canvasProcessor.toDataURL('image/jpeg', 0.8);
-            thumbnailPreview.src = generatedThumbnailDataUrl;
-            thumbnailPreview.style.display = 'block';
-        }, { once: true });
-    }
-    
-    thumbnailScrubber.addEventListener('input', () => {
-        const videoProcessor = document.getElementById('video-processor');
-        if (!videoProcessor.duration) return;
-        const seekTime = (thumbnailScrubber.value / 100) * videoProcessor.duration;
-        captureFrame(seekTime);
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const uploadBtn = document.getElementById('uploadBtn');
-        if (!currentVideoFile || !document.getElementById('rabbi').value || !document.getElementById('title').value) {
-            alert('Please fill in all required fields and select a file.'); return;
-        }
-        uploadBtn.disabled = true; uploadBtn.textContent = 'Preparing...';
-        const metadata = {
-            title: document.getElementById('title').value, 
-            rabbi: document.getElementById('rabbi').value.toLowerCase(), // Standardize to lowercase
-            fileName: currentVideoFile.name, uploaderName: document.getElementById('uploaderName').value,
-            date: document.getElementById('date').value, description: document.getElementById('description').value,
-            thumbnailDataUrl: generatedThumbnailDataUrl,
-        };
-        const API_BASE_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
-        const prepareResponse = await fetch(`${API_BASE_URL}/api/prepare-upload`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metadata) });
-        if (!prepareResponse.ok) { alert('Could not prepare upload.'); uploadBtn.disabled = false; uploadBtn.textContent = 'Upload Shiur'; return; }
-        const { signedUrl } = await prepareResponse.json();
-        const progressBar = document.getElementById('progressBar'), progressBarInner = document.getElementById('progressBarInner');
-        progressBar.style.display = 'block';
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', signedUrl, true);
-        xhr.setRequestHeader('Content-Type', currentVideoFile.type);
-        xhr.upload.onprogress = event => {
-            if (event.lengthComputable) {
-                const percent = (event.loaded / event.total) * 100;
-                progressBarInner.style.width = `${percent}%`;
-                uploadBtn.textContent = `Uploading... ${Math.round(percent)}%`;
-            }
-        };
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                uploadBtn.textContent = 'Upload Complete!';
-                window.allShiurimCache = [];
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('loadpage', { detail: { page: 'home' } }));
-                }, 1500);
-            } else {
-                alert(`Upload failed.`); uploadBtn.disabled = false; uploadBtn.textContent = 'Upload Shiur';
-            }
-        };
-        xhr.onerror = () => { alert('A network error occurred.'); uploadBtn.disabled = false; uploadBtn.textContent = 'Upload Shiur'; };
-        xhr.send(currentVideoFile);
-    });
-}

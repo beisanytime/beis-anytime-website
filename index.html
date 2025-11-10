@@ -14,7 +14,6 @@
 <body>
 
     <div class="site-wrapper">
-        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <a href="#" class="nav-link" data-page="home">
@@ -30,7 +29,10 @@
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Hartman"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Hartman</span></a></li>
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Rosenfeld"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Rosenfeld</span></a></li>
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Golker"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Golker</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Guest_Speakers"><i class="fas fa-users fa-fw"></i> <span class="nav-text">Guest Speakers</span></a></li>
+                    
+                    <!-- THE FIX IS HERE -->
+                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="guests"><i class="fas fa-users fa-fw"></i> <span class="nav-text">Guest Speakers</span></a></li>
+                    
                     <li class="nav-section-title"><span class="nav-text">Admin</span></li>
                     <li><a href="#" class="nav-link" data-page="upload"><i class="fas fa-upload fa-fw"></i> <span class="nav-text">Upload</span></a></li>
                 </ul>
@@ -49,11 +51,8 @@
                         <i class="fas fa-moon"></i>
                         <i class="fas fa-sun"></i>
                     </button>
-                    
-                    <!-- Google Sign-In & User Profile Dropdown -->
                     <div id="g_id_onload" data-client_id="248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
                     <div class="g_id_signin" data-type="standard"></div>
-                    
                     <div class="profile-dropdown" id="profileDropdown" style="display: none;">
                         <button class="profile-toggle" id="profileToggle">
                             <img id="userAvatar" src="" alt="User Avatar">
@@ -75,14 +74,11 @@
             </header>
 
             <main id="app-content-wrapper">
-                 <div id="app-content">
-                    <!-- All content is rendered here by JavaScript -->
-                 </div>
+                 <div id="app-content"><!-- All content is rendered here by JavaScript --></div>
             </main>
         </div>
     </div>
     
-    <!-- Hidden elements for thumbnail generation -->
     <video id="video-processor" muted preload="metadata" style="display: none;"></video>
     <canvas id="canvas-processor" style="display: none;"></canvas>
 
