@@ -332,15 +332,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const { signedUrl, objectKey } = prepareResponse;
+            const { signedUrl, objectKey, contentType } = prepareResponse; 
 
             const progressBar = document.getElementById('progressBar'), progressBarInner = document.getElementById('progressBarInner');
             progressBar.style.display = 'block';
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', signedUrl, true);
-            // This header must match the one sent in prepareData!
-            xhr.setRequestHeader('Content-Type', currentVideoFile.type); 
             
+            // This header must match the one sent in prepareData and returned by the worker!
+            // --- CRUCIAL CHANGE HERE ---
+            xhr.setRequestHeader('Content-Type', contentType); 
+            // -----------------------------
+            
+            xhr.upload.onprogress = event => {
             xhr.upload.onprogress = event => {
                 if (event.lengthComputable) {
                     const percent = (event.loaded / event.total) * 100;
