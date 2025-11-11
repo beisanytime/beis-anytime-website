@@ -328,18 +328,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
             
+            // Clean up previous blob URL if exists
+            if (videoPreview.src && videoPreview.src.startsWith('blob:')) {
+                URL.revokeObjectURL(videoPreview.src);
+            }
+            
             // Show preview if it's a video
             if (file.type.startsWith('video/')) {
                 const videoUrl = URL.createObjectURL(file);
                 videoPreview.src = videoUrl;
                 videoPreviewContainer.style.display = 'block';
                 
+                // Remove old event listeners to prevent memory leaks
+                const newVideoPreview = videoPreview.cloneNode(true);
+                videoPreview.parentNode.replaceChild(newVideoPreview, videoPreview);
+                const videoPreview = newVideoPreview;
+                
                 videoPreview.addEventListener('loadedmetadata', () => {
                     videoScrubber.max = videoPreview.duration;
                     document.getElementById('duration').textContent = formatTime(videoPreview.duration);
-                });
+                }, { once: true });
             } else {
                 videoPreviewContainer.style.display = 'none';
+                capturedThumbnailDataUrl = null;
+                document.getElementById('thumbnailPreview').style.display = 'none';
             }
         });
 
