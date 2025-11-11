@@ -1,6 +1,6 @@
 // =================================================================================
 // Beis Anytime - Complete Single Page Application
-// Version: FINAL (v3 - Final Content-Type Fix for Upload)
+// Version: FINAL (v4 - Final Content-Type Fix: Removed explicit XHR Header)
 // =================================================================================
 
 // The callback for Google Sign-In MUST be on the global `window` object.
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const prepareData = {
                 rabbi: document.getElementById('rabbi').value,
                 fileName: currentVideoFile.name,
-                // --- THIS IS THE CORRECTED LINE ---
+                // --- This is required to send to the worker for the signature ---
                 contentType: currentVideoFile.type, 
                 // ------------------------------------
             };
@@ -331,19 +331,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // --- FIX START: Destructure 'contentType' from the response ---
-            const { signedUrl, objectKey, contentType } = prepareResponse; 
-            // --- FIX END ---
+            // Destructure signedUrl and objectKey (contentType is no longer needed here, 
+            // but the worker still sends it if using the V16 code)
+            const { signedUrl, objectKey } = prepareResponse; 
 
             const progressBar = document.getElementById('progressBar'), progressBarInner = document.getElementById('progressBarInner');
             progressBar.style.display = 'block';
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', signedUrl, true);
             
-            // This header must match the one signed by the worker!
-            // --- FIX START: Use the signed contentType to set the header ---
-            xhr.setRequestHeader('Content-Type', contentType); 
-            // --- FIX END ---
+            // --- FINAL FIX: REMOVE THE EXPLICIT Content-Type SETTING ---
+            // The browser will automatically set the correct Content-Type when 
+            // xhr.send(currentVideoFile) is called, which is the necessary 
+            // behavior for a successful SigV4 pre-signed PUT request.
+            // xhr.setRequestHeader('Content-Type', contentType); 
             
             xhr.upload.onprogress = event => {
                 if (event.lengthComputable) {
