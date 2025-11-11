@@ -1,6 +1,6 @@
 // =================================================================================
 // Beis Anytime - Complete Single Page Application
-// Version: FINAL (v2 - Content-Type Fix for Upload)
+// Version: FINAL (v3 - Final Content-Type Fix for Upload)
 // =================================================================================
 
 // The callback for Google Sign-In MUST be on the global `window` object.
@@ -313,10 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const prepareData = {
                 rabbi: document.getElementById('rabbi').value,
                 fileName: currentVideoFile.name,
-                // --- THIS LINE IS CORRECT ---
-                // It sends the file's actual content type to the worker.
-                contentType: currentVideoFile.type,
-                // ---------------------------
+                // --- THIS IS THE CORRECTED LINE ---
+                contentType: currentVideoFile.type, 
+                // ------------------------------------
             };
 
             const prepareResponse = await fetchApi('/api/prepare-upload', {
@@ -332,19 +331,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // --- FIX START: Destructure 'contentType' from the response ---
             const { signedUrl, objectKey, contentType } = prepareResponse; 
+            // --- FIX END ---
 
             const progressBar = document.getElementById('progressBar'), progressBarInner = document.getElementById('progressBarInner');
             progressBar.style.display = 'block';
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', signedUrl, true);
             
-            // This header must match the one sent in prepareData and returned by the worker!
-            // --- CRUCIAL CHANGE HERE ---
+            // This header must match the one signed by the worker!
+            // --- FIX START: Use the signed contentType to set the header ---
             xhr.setRequestHeader('Content-Type', contentType); 
-            // -----------------------------
+            // --- FIX END ---
             
-            xhr.upload.onprogress = event => {
             xhr.upload.onprogress = event => {
                 if (event.lengthComputable) {
                     const percent = (event.loaded / event.total) * 100;
