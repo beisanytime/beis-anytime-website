@@ -313,9 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const prepareData = {
                 rabbi: document.getElementById('rabbi').value,
                 fileName: currentVideoFile.name,
-                // --- THE CRITICAL FIX: Include Content-Type for signing ---
+                // --- THIS IS THE CORRECTED LINE ---
                 contentType: currentVideoFile.type, 
-                // --------------------------------------------------------
+                // ------------------------------------
             };
 
             const prepareResponse = await fetchApi('/api/prepare-upload', {
