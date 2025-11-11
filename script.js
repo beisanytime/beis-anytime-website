@@ -313,9 +313,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const prepareData = {
                 rabbi: document.getElementById('rabbi').value,
                 fileName: currentVideoFile.name,
-                // --- THIS IS THE CORRECTED LINE ---
-                contentType: currentVideoFile.type, 
-                // ------------------------------------
+                // --- THIS LINE IS CORRECT ---
+                // It sends the file's actual content type to the worker.
+                contentType: currentVideoFile.type,
+                // ---------------------------
             };
 
             const prepareResponse = await fetchApi('/api/prepare-upload', {
