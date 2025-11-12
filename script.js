@@ -194,16 +194,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 7. GOOGLE LOGIN & UI ---
     function updateLoginUI(user) {
         currentUser = user;
+        const adminLink = document.getElementById('adminLink');
+        const uploadLink = document.getElementById('uploadLink'); // Get the new link
+
         if (currentUser) {
             googleSignInBtn.style.display = 'none';
             profileDropdown.style.display = 'block';
             document.getElementById('userAvatar').src = currentUser.picture;
             document.getElementById('userName').textContent = currentUser.name;
             document.getElementById('userEmail').textContent = currentUser.email;
-            document.getElementById('adminLink').style.display = 'flex';
+
+            if (adminLink) adminLink.style.display = 'flex';
+
+            // NEW: Show upload link only for ADMIN_EMAIL
+            if (currentUser.email === ADMIN_EMAIL) {
+                if (uploadLink) uploadLink.style.display = 'flex';
+            } else {
+                if (uploadLink) uploadLink.style.display = 'none';
+            }
         } else {
             googleSignInBtn.style.display = 'block';
             profileDropdown.style.display = 'none';
+            if (adminLink) adminLink.style.display = 'none';
+            if (uploadLink) uploadLink.style.display = 'none'; // Hide when signed out
         }
     }
 
@@ -545,6 +558,16 @@ document.addEventListener('DOMContentLoaded', () => {
         profileDropdown.classList.remove('is-active');
     });
 
+    // NEW EVENT LISTENER: Add handler for the dynamically created Upload Shiur link
+    const uploadLink = document.getElementById('uploadLink');
+    if (uploadLink) {
+        uploadLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadPage('upload');
+            profileDropdown.classList.remove('is-active');
+        });
+    }
+
     window.addEventListener('google-signin-success', (event) => {
         updateLoginUI(event.detail);
     });
@@ -552,6 +575,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function initialize() {
         applyTheme(localStorage.getItem('theme') || 'light');
         const savedUser = localStorage.getItem('googleUser');
+
+        // NEW: Dynamically create and insert the Upload Shiur link
+        let uploadLink = document.getElementById('uploadLink');
+        if (!uploadLink) {
+            const newUploadLink = document.createElement('a');
+            newUploadLink.href = '#';
+            newUploadLink.className = 'dropdown-item';
+            newUploadLink.id = 'uploadLink';
+            newUploadLink.textContent = 'Upload Shiur';
+            newUploadLink.style.display = 'none'; 
+            
+            // Insert it just before the sign out button
+            if (profileDropdown && signOutBtn) {
+                profileDropdown.insertBefore(newUploadLink, signOutBtn);
+            }
+        }
+        // End NEW
+
         if (savedUser) {
             updateLoginUI(JSON.parse(savedUser));
         }
