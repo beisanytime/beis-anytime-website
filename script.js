@@ -1,6 +1,6 @@
 // =================================================================================
 // Beis Anytime - Complete Single Page Application
-// Version: WITH VIDEO SCRUBBER & WORKER UPLOAD (CORRECTED)
+// Version: FIXED TO WORK WITH WORKER API
 // =================================================================================
 
 // The callback for Google Sign-In MUST be on the global `window` object.
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const UPLOAD_PASSWORD = 'beis24/7';
     let allShiurimCache = [];
     let currentUser = null;
-    let capturedThumbnailDataUrl = null; // Store captured thumbnail
+    let capturedThumbnailDataUrl = null;
 
     // --- 2. DOM ELEMENT SELECTORS ---
     const contentArea = document.getElementById('app-content');
@@ -55,17 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 4. API & DATA FETCHING ---
     const fetchApi = async (endpoint, options = {}) => {
         try {
-            if (endpoint.startsWith('/api/admin')) {
-                const secret = sessionStorage.getItem('adminSecret');
-                if (secret) {
-                    options.headers = { ...options.headers, 'Authorization': `Bearer ${secret}` };
-                }
-            }
-
             const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
             if (!response.ok) {
-                 const errorBody = await response.json().catch(() => ({error: 'An unknown API error occurred.'}));
-                 throw new Error(errorBody.error || `API Error ${response.status}`);
+                const errorBody = await response.json().catch(() => ({error: 'An unknown API error occurred.'}));
+                throw new Error(errorBody.error || `API Error ${response.status}`);
             }
             if (response.status === 204 || response.headers.get('content-length') === '0') return null;
             return await response.json();
@@ -102,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rabbiName = formatRabbiName(video.rabbi);
             const videoDate = video.date ? new Date(video.date).toLocaleDateString() : 'N/A';
             card.innerHTML = `
-                <img src="${video.thumbnailDataUrl || 'https://via.placeholder.com/300x169.png?text=Thumbnail'}" alt="${video.title}" class="video-thumbnail">
+                <img src="${video.thumbnailDataUrl || video.thumbnailUrl || 'https://via.placeholder.com/300x169.png?text=Thumbnail'}" alt="${video.title}" class="video-thumbnail">
                 <div class="video-info">
                     <h3 class="video-title">${video.title}</h3>
                     <p class="video-meta">${rabbiName} &bull; ${videoDate}</p>
@@ -149,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <a href="#" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Videos</a>
                 <div class="shiur-player-container">
                     <div class="video-player-wrapper">
-                        <video controls autoplay poster="${shiur.thumbnailDataUrl}" src="${shiur.playbackUrl}"></video>
+                        <video controls autoplay poster="${shiur.thumbnailDataUrl || shiur.thumbnailUrl || ''}" src="${shiur.playbackUrl}"></video>
                     </div>
                     <div class="shiur-details">
                         <h1>${shiur.title}</h1>
@@ -230,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const passwordInput = document.getElementById('password');
             if (passwordInput.value === UPLOAD_PASSWORD) {
-                sessionStorage.setItem('adminSecret', passwordInput.value);
                 sessionStorage.setItem('uploadAuthorized', 'true');
                 loadPage(targetPage);
             } else {
@@ -317,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('uploadForm');
         const fileInput = document.getElementById('fileInput');
         const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-        let videoPreview = document.getElementById('videoPreview'); // FIX 1: Changed to 'let'
+        let videoPreview = document.getElementById('videoPreview');
         const videoScrubber = document.getElementById('videoScrubber');
         const captureThumbnailBtn = document.getElementById('captureThumbnailBtn');
         
@@ -340,9 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Remove old event listeners by replacing the element
                 const newVideoPreview = videoPreview.cloneNode(true);
-                newVideoPreview.src = videoUrl; // Set source on the new element
+                newVideoPreview.src = videoUrl;
                 videoPreview.parentNode.replaceChild(newVideoPreview, videoPreview);
-                videoPreview = newVideoPreview; // FIX 2: Simple assignment (no 'const' or 'let')
+                videoPreview = newVideoPreview;
                 
                 // Attach listeners to the new element
                 videoPreview.addEventListener('loadedmetadata', () => {
@@ -350,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('duration').textContent = formatTime(videoPreview.duration);
                 }, { once: true });
 
-                videoPreview.addEventListener('timeupdate', () => { // FIX 3: Re-attach timeupdate to the new element
+                videoPreview.addEventListener('timeupdate', () => {
                     document.getElementById('currentTime').textContent = formatTime(videoPreview.currentTime);
                     videoScrubber.value = videoPreview.currentTime;
                 });
@@ -362,13 +354,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Video scrubber control (References the current videoPreview element)
+        // Video scrubber control
         videoScrubber.addEventListener('input', (e) => {
             videoPreview.currentTime = e.target.value;
         });
-
-        // The original videoPreview.addEventListener('timeupdate', ...) is removed from here
-        // as it is now correctly inside the fileInput 'change' handler.
 
         // Capture thumbnail from video
         captureThumbnailBtn.addEventListener('click', () => {
@@ -386,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('thumbnailRequired').style.display = 'none';
         });
 
-        // Form submission
+        // Form submission - FIXED TO USE WORKER API
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const uploadBtn = document.getElementById('uploadBtn');
@@ -405,25 +394,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             uploadBtn.disabled = true;
-            uploadBtn.textContent = 'Uploading...';
+            uploadBtn.textContent = 'Preparing...';
 
             try {
-                // Create FormData with all fields
-                const formData = new FormData();
-                formData.append('file', mediaFile);
-                formData.append('title', document.getElementById('title').value);
-                formData.append('rabbi', document.getElementById('rabbi').value);
-                formData.append('date', document.getElementById('date').value);
-                formData.append('description', document.getElementById('description').value);
-                
-                if (capturedThumbnailDataUrl) {
-                    formData.append('thumbnailDataUrl', capturedThumbnailDataUrl);
+                // Step 1: Prepare upload with metadata
+                const prepareResponse = await fetch(`${API_BASE_URL}/api/admin/prepare-upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: document.getElementById('title').value,
+                        rabbi: document.getElementById('rabbi').value,
+                        date: document.getElementById('date').value,
+                        description: document.getElementById('description').value,
+                        thumbnailDataUrl: capturedThumbnailDataUrl || '',
+                        fileName: mediaFile.name
+                    })
+                });
+
+                if (!prepareResponse.ok) {
+                    const error = await prepareResponse.json();
+                    throw new Error(error.error || 'Failed to prepare upload');
                 }
 
-                // Upload with progress tracking
+                const { signedUrl, shiurId } = await prepareResponse.json();
+
+                // Step 2: Upload file directly to R2 with progress tracking
                 const progressBar = document.getElementById('progressBar');
                 const progressBarInner = document.getElementById('progressBarInner');
                 progressBar.style.display = 'block';
+                uploadBtn.textContent = 'Uploading...';
 
                 await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
@@ -438,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     xhr.addEventListener('load', () => {
                         if (xhr.status >= 200 && xhr.status < 300) {
-                            resolve(JSON.parse(xhr.responseText));
+                            resolve();
                         } else {
                             reject(new Error(`Upload failed with status ${xhr.status}`));
                         }
@@ -446,8 +445,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
                     
-                    xhr.open('POST', `${API_BASE_URL}/api/admin/upload`);
-                    xhr.send(formData);
+                    xhr.open('PUT', signedUrl);
+                    xhr.setRequestHeader('Content-Type', mediaFile.type);
+                    xhr.send(mediaFile);
                 });
 
                 uploadBtn.textContent = 'Upload Complete!';
@@ -463,6 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => loadPage('home'), 1500);
 
             } catch (error) {
+                console.error('Upload error:', error);
                 alert(`Upload failed: ${error.message}`);
                 uploadBtn.disabled = false;
                 uploadBtn.textContent = 'Upload Shiur';
@@ -494,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUser = null;
         localStorage.removeItem('googleUser');
         sessionStorage.removeItem('uploadAuthorized');
-        sessionStorage.removeItem('adminSecret');
         if (window.google && google.accounts && google.accounts.id) {
             google.accounts.id.disableAutoSelect();
         }
