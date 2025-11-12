@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beis Anytime</title>
+    
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Optimized Font Loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    
+    <!-- Defer Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"></noscript>
+    
+    <!-- Preconnect to Google Sign-In -->
+    <link rel="preconnect" href="https://accounts.google.com">
 </head>
 <body>
 
@@ -18,7 +27,7 @@
             <div class="sidebar-header">
                 <a href="#" class="nav-link" data-page="home">
                     <img style="height:100px;width:100px;" src="logo.png" alt="Beis Anytime Logo" class="logo-full">
-                    <img src="https://via.placeholder.com/40x40.png?text=BA" alt="Beis Anytime Icon" class="logo-icon">
+                    <span class="logo-icon">BA</span>
                 </a>
             </div>
             <nav class="sidebar-nav">
@@ -29,17 +38,13 @@
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Hartman"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Hartman</span></a></li>
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Rosenfeld"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Rosenfeld</span></a></li>
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Golker"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Golker</span></a></li>
-                    
-                    <!-- THE FIX IS HERE -->
                     <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="guests"><i class="fas fa-users fa-fw"></i> <span class="nav-text">Guest Speakers</span></a></li>
-                    
                     <li class="nav-section-title"><span class="nav-text">Admin</span></li>
                     <li><a href="#" class="nav-link" data-page="upload"><i class="fas fa-upload fa-fw"></i> <span class="nav-text">Upload</span></a></li>
                 </ul>
             </nav>
         </aside>
 
-        <!-- Main Content Area -->
         <div class="main-content">
             <header class="site-header">
                 <div class="search-bar">
@@ -55,13 +60,14 @@
                     <div class="g_id_signin" data-type="standard"></div>
                     <div class="profile-dropdown" id="profileDropdown" style="display: none;">
                         <button class="profile-toggle" id="profileToggle">
-                            <img id="userAvatar" src="" alt="User Avatar">
+                            <img id="userAvatar" src="" alt="User Avatar" loading="lazy">
                         </button>
                         <div class="dropdown-menu" id="profileDropdownMenu">
                             <div class="dropdown-user-info">
                                 <strong id="userName"></strong>
                                 <span id="userEmail"></span>
                             </div>
+                            <a href="#" class="nav-link" data-page="upload"><i class="fas fa-upload fa-fw"></i> <span class="nav-text">Upload</span></a>
                             <a href="#" class="dropdown-item" id="adminLink" style="display: none;" data-page="admin">
                                 <i class="fas fa-shield-halved fa-fw"></i> Admin Panel
                             </a>
@@ -74,14 +80,19 @@
             </header>
 
             <main id="app-content-wrapper">
-                 <div id="app-content"><!-- All content is rendered here by JavaScript --></div>
+                 <div id="app-content">
+                     <div class="loading-skeleton">
+                         <h1 class="page-title">Loading...</h1>
+                     </div>
+                 </div>
             </main>
         </div>
     </div>
     
-    <video id="video-processor" muted preload="metadata" style="display: none;"></video>
+    <video id="video-processor" muted preload="none" style="display: none;"></video>
     <canvas id="canvas-processor" style="display: none;"></canvas>
 
-    <script src="script.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="script.js" defer></script>
 </body>
 </html>

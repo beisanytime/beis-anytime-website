@@ -1,13 +1,32 @@
 // =================================================================================
-// Beis Anytime - Complete Single Page Application
-// Version: FIXED TO WORK WITH WORKER API
+// Beis Anytime - Complete Single Page Application (Optimized)
 // =================================================================================
 
-// The callback for Google Sign-In MUST be on the global `window` object.
+// Lazy loading images with Intersection Observer
+const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                observer.unobserve(img);
+            }
+        }
+    });
+}, {
+    rootMargin: '50px'
+});
+
+// Google Sign-In callback MUST be on window object
 window.handleCredentialResponse = (response) => {
     try {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        const currentUser = { name: payload.name, email: payload.email, picture: payload.picture };
+        const currentUser = { 
+            name: payload.name, 
+            email: payload.email, 
+            picture: payload.picture 
+        };
         localStorage.setItem('googleUser', JSON.stringify(currentUser));
         window.dispatchEvent(new CustomEvent('google-signin-success', { detail: currentUser }));
     } catch (e) {
@@ -80,27 +99,46 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- 5. PAGE RENDERERS ---
-    const renderLoading = () => contentArea.innerHTML = `<p class="loading">Loading...</p>`;
+    const renderLoading = () => {
+        contentArea.innerHTML = `<div class="loading-skeleton"><p class="loading">Loading...</p></div>`;
+    };
 
     function renderVideoGrid(videos, container) {
         if (!videos || videos.length === 0) {
             container.innerHTML = `<p class="info-message">No shiurim found.</p>`;
             return;
         }
-        container.innerHTML = '';
+        
+        const fragment = document.createDocumentFragment();
+        
         videos.forEach(video => {
             const card = document.createElement('div');
             card.className = 'video-card';
             card.dataset.shiurId = video.id;
             const rabbiName = formatRabbiName(video.rabbi);
             const videoDate = video.date ? new Date(video.date).toLocaleDateString() : 'N/A';
+            
+            const thumbnailUrl = video.thumbnailDataUrl || video.thumbnailUrl || '';
+            
             card.innerHTML = `
-                <img src="${video.thumbnailDataUrl || video.thumbnailUrl || 'https://via.placeholder.com/300x169.png?text=Thumbnail'}" alt="${video.title}" class="video-thumbnail">
+                <img data-src="${thumbnailUrl}" 
+                     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='169'%3E%3Crect width='300' height='169' fill='%23e5e7eb'/%3E%3C/svg%3E" 
+                     alt="${video.title}" 
+                     class="video-thumbnail" 
+                     loading="lazy">
                 <div class="video-info">
                     <h3 class="video-title">${video.title}</h3>
                     <p class="video-meta">${rabbiName} &bull; ${videoDate}</p>
                 </div>`;
-            container.appendChild(card);
+            
+            fragment.appendChild(card);
+        });
+        
+        container.innerHTML = '';
+        container.appendChild(fragment);
+        
+        container.querySelectorAll('img[data-src]').forEach(img => {
+            imageObserver.observe(img);
         });
     }
 
@@ -156,13 +194,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 return renderPasswordModal('admin');
             }
             const allShiurim = await fetchApi('/api/admin/shiurim');
-            contentArea.innerHTML = `<h1 class="page-title">Admin Panel - All Shiurim</h1><div class="admin-table-container"><table class="admin-table"><thead><tr><th>Thumbnail</th><th>Title</th><th>Speaker</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
+            contentArea.innerHTML = `
+                <h1 class="page-title">Admin Panel - All Shiurim</h1>
+                <div class="admin-table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Thumbnail</th>
+                                <th>Title</th>
+                                <th>Speaker</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>`;
             const tbody = contentArea.querySelector('tbody');
             if (allShiurim) {
                 allShiurim.forEach(shiur => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><img src="${shiur.thumbnailDataUrl || ''}" style="width: 60px; border-radius: 4px;"></td>
+                        <td><img src="${shiur.thumbnailDataUrl || ''}" style="width: 60px; border-radius: 4px;" loading="lazy"></td>
                         <td>${shiur.title}</td>
                         <td>${formatRabbiName(shiur.rabbi)}</td>
                         <td>${new Date(shiur.date || Date.now()).toLocaleDateString()}</td>
@@ -195,10 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateLoginUI(user) {
         currentUser = user;
         const adminLink = document.getElementById('adminLink');
-        const uploadLink = document.getElementById('uploadLink'); // Get the new link
+        const uploadLink = document.getElementById('uploadLink');
 
         if (currentUser) {
-            googleSignInBtn.style.display = 'none';
+            if (googleSignInBtn) googleSignInBtn.style.display = 'none';
             profileDropdown.style.display = 'block';
             document.getElementById('userAvatar').src = currentUser.picture;
             document.getElementById('userName').textContent = currentUser.name;
@@ -206,17 +259,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (adminLink) adminLink.style.display = 'flex';
 
-            // NEW: Show upload link only for ADMIN_EMAIL
             if (currentUser.email === ADMIN_EMAIL) {
                 if (uploadLink) uploadLink.style.display = 'flex';
             } else {
                 if (uploadLink) uploadLink.style.display = 'none';
             }
         } else {
-            googleSignInBtn.style.display = 'block';
+            if (googleSignInBtn) googleSignInBtn.style.display = 'block';
             profileDropdown.style.display = 'none';
             if (adminLink) adminLink.style.display = 'none';
-            if (uploadLink) uploadLink.style.display = 'none'; // Hide when signed out
+            if (uploadLink) uploadLink.style.display = 'none';
         }
     }
 
@@ -273,17 +325,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <textarea id="description"></textarea>
                     </div>
                     
-                    <!-- Video File Upload -->
                     <div class="input-group" style="grid-column: 1 / -1;">
                         <label>Video/Audio File (Required)</label>
                         <input type="file" id="fileInput" accept="video/*,audio/*" required>
                         
-                        <!-- Video Preview & Scrubber -->
                         <div id="videoPreviewContainer" style="display: none; margin-top: 15px;">
                             <video id="videoPreview" controls style="width: 100%; max-height: 300px; background: #000; border-radius: 4px;"></video>
-                            <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e0e0e0;">
+                            <div style="margin-top: 15px; padding: 15px; background: var(--color-background); border-radius: 4px; border: 1px solid var(--color-border);">
                                 <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Thumbnail Frame</label>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px;">
                                     <span id="currentTime">0:00</span>
                                     <span id="duration">0:00</span>
                                 </div>
@@ -293,14 +343,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     
-                    <!-- Thumbnail Preview -->
                     <div class="input-group" style="grid-column: 1 / -1;">
                         <label>Thumbnail Preview</label>
                         <div id="thumbnailPreview" style="display: none; margin-top: 10px;">
-                            <img id="thumbnailImg" src="" alt="Thumbnail" style="max-width: 300px; border-radius: 4px; border: 1px solid #e0e0e0;">
-                            <p style="font-size: 12px; color: #059669; margin-top: 5px;">✓ Thumbnail captured</p>
+                            <img id="thumbnailImg" src="" alt="Thumbnail" style="max-width: 300px; border-radius: 4px; border: 1px solid var(--color-border);">
+                            <p style="font-size: 12px; color: var(--color-success); margin-top: 5px;">✓ Thumbnail captured</p>
                         </div>
-                        <p style="font-size: 12px; color: #dc2626; margin-top: 5px; display: none;" id="thumbnailRequired">⚠ Please capture a thumbnail before uploading</p>
+                        <p style="font-size: 12px; color: var(--color-danger); margin-top: 5px; display: none;" id="thumbnailRequired">⚠ Please capture a thumbnail before uploading</p>
                     </div>
                 </div>
                 
@@ -328,28 +377,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!form) return;
 
-        // Handle video file selection
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             
-            // Clean up previous blob URL if exists
             if (videoPreview.src && videoPreview.src.startsWith('blob:')) {
                 URL.revokeObjectURL(videoPreview.src);
             }
             
-            // Show preview if it's a video
             if (file.type.startsWith('video/')) {
                 const videoUrl = URL.createObjectURL(file);
                 videoPreviewContainer.style.display = 'block';
                 
-                // Remove old event listeners by replacing the element
                 const newVideoPreview = videoPreview.cloneNode(true);
                 newVideoPreview.src = videoUrl;
                 videoPreview.parentNode.replaceChild(newVideoPreview, videoPreview);
                 videoPreview = newVideoPreview;
                 
-                // Attach listeners to the new element
                 videoPreview.addEventListener('loadedmetadata', () => {
                     videoScrubber.max = videoPreview.duration;
                     document.getElementById('duration').textContent = formatTime(videoPreview.duration);
@@ -367,12 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Video scrubber control
         videoScrubber.addEventListener('input', (e) => {
             videoPreview.currentTime = e.target.value;
         });
 
-        // Capture thumbnail from video
         captureThumbnailBtn.addEventListener('click', () => {
             const canvas = document.createElement('canvas');
             canvas.width = videoPreview.videoWidth;
@@ -388,7 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('thumbnailRequired').style.display = 'none';
         });
 
-        // Form submission - FIXED TO USE WORKER API
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const uploadBtn = document.getElementById('uploadBtn');
@@ -399,7 +440,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Require thumbnail for videos
             if (mediaFile.type.startsWith('video/') && !capturedThumbnailDataUrl) {
                 document.getElementById('thumbnailRequired').style.display = 'block';
                 alert('Please capture a thumbnail from the video before uploading.');
@@ -410,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadBtn.textContent = 'Preparing...';
 
             try {
-                // Step 1: Prepare upload with metadata
                 const prepareResponse = await fetch(`${API_BASE_URL}/api/admin/prepare-upload`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -431,7 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const { signedUrl, shiurId } = await prepareResponse.json();
 
-                // Step 2: Upload file directly to R2 with progress tracking
                 const progressBar = document.getElementById('progressBar');
                 const progressBarInner = document.getElementById('progressBarInner');
                 progressBar.style.display = 'block';
@@ -466,7 +504,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadBtn.textContent = 'Upload Complete!';
                 alert('Shiur uploaded successfully!');
                 
-                // Clean up
                 if (videoPreview.src) {
                     URL.revokeObjectURL(videoPreview.src);
                 }
@@ -494,7 +531,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 9. EVENT LISTENERS & INITIALIZATION ---
-    themeToggle.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+    themeToggle.addEventListener('click', () => {
+        applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
@@ -516,9 +555,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loadPage('home');
     });
 
-    profileToggle.addEventListener('click', () => profileDropdown.classList.toggle('is-active'));
+    profileToggle.addEventListener('click', () => {
+        profileDropdown.classList.toggle('is-active');
+    });
+    
     document.addEventListener('click', (e) => { 
-        if (profileDropdown && !profileDropdown.contains(e.target)) profileDropdown.classList.remove('is-active'); 
+        if (profileDropdown && !profileDropdown.contains(e.target)) {
+            profileDropdown.classList.remove('is-active');
+        }
     });
 
     contentArea.addEventListener('click', async (e) => {
@@ -558,44 +602,11 @@ document.addEventListener('DOMContentLoaded', () => {
         profileDropdown.classList.remove('is-active');
     });
 
-    // NEW EVENT LISTENER: Add handler for the dynamically created Upload Shiur link
-    const uploadLink = document.getElementById('uploadLink');
-    if (uploadLink) {
-        uploadLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loadPage('upload');
-            profileDropdown.classList.remove('is-active');
-        });
-    }
-
     window.addEventListener('google-signin-success', (event) => {
         updateLoginUI(event.detail);
     });
 
-    function initialize() {
-        applyTheme(localStorage.getItem('theme') || 'light');
-        const savedUser = localStorage.getItem('googleUser');
-
-        // NEW: Dynamically create and insert the Upload Shiur link
-        let uploadLink = document.getElementById('uploadLink');
-        if (!uploadLink) {
-            const newUploadLink = document.createElement('a');
-            newUploadLink.href = '#';
-            newUploadLink.className = 'dropdown-item';
-            newUploadLink.id = 'uploadLink';
-            newUploadLink.textContent = 'Upload Shiur';
-            newUploadLink.style.display = 'none'; 
-            
-            // Insert it just before the sign out button
-            if (profileDropdown && signOutBtn) {
-                profileDropdown.insertBefore(newUploadLink, signOutBtn);
-            }
-        }
-        // End NEW
-
-        if (savedUser) {
-            updateLoginUI(JSON.parse(savedUser));
-        }
+    function initializeRouting() {
         const hash = window.location.hash.slice(1);
         const [page, param] = hash.split('/');
         if (page && pages[page]) {
@@ -603,6 +614,40 @@ document.addEventListener('DOMContentLoaded', () => {
             loadPage(page, params);
         } else {
             loadPage('home');
+        }
+    }
+
+    function initialize() {
+        applyTheme(localStorage.getItem('theme') || 'light');
+        const savedUser = localStorage.getItem('googleUser');
+
+        // Create upload link dynamically
+        const dropdownMenu = document.getElementById('profileDropdownMenu');
+        if (dropdownMenu && !document.getElementById('uploadLink')) {
+            const uploadLink = document.createElement('a');
+            uploadLink.href = '#';
+            uploadLink.className = 'dropdown-item';
+            uploadLink.id = 'uploadLink';
+            uploadLink.innerHTML = '<i class="fas fa-upload fa-fw"></i> Upload Shiur';
+            uploadLink.style.display = 'none';
+            
+            dropdownMenu.insertBefore(uploadLink, signOutBtn);
+            
+            uploadLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loadPage('upload');
+                profileDropdown.classList.remove('is-active');
+            });
+        }
+
+        if (savedUser) {
+            updateLoginUI(JSON.parse(savedUser));
+        }
+        
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => initializeRouting());
+        } else {
+            setTimeout(initializeRouting, 1);
         }
     }
 
