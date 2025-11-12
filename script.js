@@ -1,6 +1,6 @@
 // =================================================================================
 // Beis Anytime - Complete Single Page Application
-// Version: WITH VIDEO SCRUBBER & WORKER UPLOAD
+// Version: WITH VIDEO SCRUBBER & WORKER UPLOAD (CORRECTED)
 // =================================================================================
 
 // The callback for Google Sign-In MUST be on the global `window` object.
@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('uploadForm');
         const fileInput = document.getElementById('fileInput');
         const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-        const videoPreview = document.getElementById('videoPreview');
+        let videoPreview = document.getElementById('videoPreview'); // FIX 1: Changed to 'let'
         const videoScrubber = document.getElementById('videoScrubber');
         const captureThumbnailBtn = document.getElementById('captureThumbnailBtn');
         
@@ -336,18 +336,25 @@ document.addEventListener('DOMContentLoaded', () => {
             // Show preview if it's a video
             if (file.type.startsWith('video/')) {
                 const videoUrl = URL.createObjectURL(file);
-                videoPreview.src = videoUrl;
                 videoPreviewContainer.style.display = 'block';
                 
-                // Remove old event listeners to prevent memory leaks
+                // Remove old event listeners by replacing the element
                 const newVideoPreview = videoPreview.cloneNode(true);
+                newVideoPreview.src = videoUrl; // Set source on the new element
                 videoPreview.parentNode.replaceChild(newVideoPreview, videoPreview);
-                const videoPreview = newVideoPreview;
+                videoPreview = newVideoPreview; // FIX 2: Simple assignment (no 'const' or 'let')
                 
+                // Attach listeners to the new element
                 videoPreview.addEventListener('loadedmetadata', () => {
                     videoScrubber.max = videoPreview.duration;
                     document.getElementById('duration').textContent = formatTime(videoPreview.duration);
                 }, { once: true });
+
+                videoPreview.addEventListener('timeupdate', () => { // FIX 3: Re-attach timeupdate to the new element
+                    document.getElementById('currentTime').textContent = formatTime(videoPreview.currentTime);
+                    videoScrubber.value = videoPreview.currentTime;
+                });
+
             } else {
                 videoPreviewContainer.style.display = 'none';
                 capturedThumbnailDataUrl = null;
@@ -355,15 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Video scrubber control
+        // Video scrubber control (References the current videoPreview element)
         videoScrubber.addEventListener('input', (e) => {
             videoPreview.currentTime = e.target.value;
         });
 
-        videoPreview.addEventListener('timeupdate', () => {
-            document.getElementById('currentTime').textContent = formatTime(videoPreview.currentTime);
-            videoScrubber.value = videoPreview.currentTime;
-        });
+        // The original videoPreview.addEventListener('timeupdate', ...) is removed from here
+        // as it is now correctly inside the fileInput 'change' handler.
 
         // Capture thumbnail from video
         captureThumbnailBtn.addEventListener('click', () => {
