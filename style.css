@@ -1090,6 +1090,163 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--color-text-secondary);
 }
 
+/* Title row: title left, actions (like) right */
+.shiur-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.shiur-title-row h1 {
+    margin: 0;
+    font-size: var(--text-2xl);
+}
+
+.shiur-title-actions { display: flex; align-items: center; gap: 8px; }
+
+/* smaller inline like button variant next to title */
+.like-inline {
+    padding: 6px 10px;
+    font-size: 0.95rem;
+    border-radius: 999px;
+    border: var(--border-width) solid var(--color-border);
+}
+
+.like-inline.liked {
+    background-color: var(--color-accent);
+    color: var(--color-surface);
+    border-color: var(--color-accent-dark);
+}
+
+@media (max-width: 480px) {
+    .shiur-title-row { flex-direction: column; align-items: flex-start; gap: var(--space-xs); }
+    .shiur-title-actions { align-self: stretch; display: flex; justify-content: flex-end; width: 100%; }
+}
+
+/* --- 18. Interactions: Likes, Views, Comments --- */
+.shiur-interactions {
+    margin-top: var(--space-md);
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.interactions-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#views-count {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+}
+
+.btn-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: var(--border-width) solid var(--color-border);
+    background: transparent;
+    cursor: pointer;
+    color: var(--color-text-primary);
+    transition: all var(--transition-speed) var(--transition-easing);
+}
+
+.btn-like:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-like .fa, .btn-like span { pointer-events: none; }
+
+.btn-like.liked {
+    background-color: var(--color-accent);
+    color: var(--color-surface);
+    border-color: var(--color-accent-dark);
+}
+
+#likes-count { font-weight: var(--font-weight-bold); }
+
+#display-name-area input#displayNameInput {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: var(--border-width) solid var(--color-border);
+    background: var(--color-background);
+    color: var(--color-text-primary);
+}
+
+#display-name-area #saveDisplayNameBtn {
+    height: 36px;
+}
+
+#comment-form-area textarea#commentText {
+    width: 100%;
+    padding: var(--space-sm);
+    border-radius: 6px;
+    border: var(--border-width) solid var(--color-border);
+    resize: vertical;
+    min-height: 72px;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+    background: var(--color-background);
+}
+
+#comments-section { margin-top: var(--space-md); }
+
+#comments-list { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-sm); }
+
+.comment-item {
+    padding: var(--space-sm);
+    background: var(--color-background);
+    border-radius: 6px;
+    border: var(--border-width) solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+}
+
+.comment-time { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+
+.comment-text { color: var(--color-text-secondary); font-size: var(--text-base); white-space: pre-wrap; }
+
+.btn-sm { padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; }
+
+.comment-item .btn { align-self: flex-end; margin-top: 6px; }
+
+/* Focus styles for form inputs */
+#display-name-area input:focus, #comment-form-area textarea:focus {
+    outline: none;
+    border-color: var(--color-border-strong);
+    box-shadow: 0 0 0 2px var(--color-border-strong);
+}
+
+@media (max-width: 768px) {
+    .shiur-interactions { padding: var(--space-md); }
+    .interactions-stats { gap: 8px; }
+    .btn-like { padding: 6px 10px; }
+}
+
 /* --- 13. Rabbi Page Header --- */
 .rabbi-header {
     background-color: var(--color-surface); 

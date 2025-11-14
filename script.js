@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. GLOBAL CONFIGURATION & STATE ---
     const API_BASE_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
+    // If your views/likes/comments worker is deployed to a different origin, set it here.
+    // Example: 'https://beisanytime-features.workers.dev'
+    const WORKER_BASE_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
     const ADMIN_EMAIL = 'beisanytime@gmail.com';
     const UPLOAD_PASSWORD = 'beis24/7';
     let allShiurimCache = [];
@@ -86,6 +89,100 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Error: ${error.message}`);
             return null;
         }
+    };
+
+    // --- Worker-driven features: views, likes, comments, users ---
+    // These use a separate worker base URL in case your features worker is deployed
+    // to a different origin than the main API. Set WORKER_BASE_URL above.
+
+    const workerFetch = async (endpoint, options = {}) => {
+        try {
+            const url = `${WORKER_BASE_URL}${endpoint}`;
+            const res = await fetch(url, options);
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({ error: 'Worker error' }));
+                throw new Error(errBody.error || `Worker Error ${res.status}`);
+            }
+            if (res.status === 204 || res.headers.get('content-length') === '0') return null;
+            return await res.json();
+        } catch (e) {
+            console.error('Worker fetch failed', e);
+            return null;
+        }
+    };
+
+    const getViews = async (shiurId) => {
+        return await workerFetch(`/api/views/${encodeURIComponent(shiurId)}`);
+    };
+
+    const incrementView = async (shiurId) => {
+        return await workerFetch('/api/views/increment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: shiurId })
+        });
+    };
+
+    const getLikes = async (shiurId) => {
+        return await workerFetch(`/api/likes/${encodeURIComponent(shiurId)}`);
+    };
+
+    const toggleLike = async (shiurId) => {
+        if (!currentUser || !currentUser.email) {
+            alert('Please sign in to like a shiur.');
+            return null;
+        }
+        return await workerFetch(`/api/likes/${encodeURIComponent(shiurId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
+            body: JSON.stringify({})
+        });
+    };
+
+    const getComments = async (shiurId) => {
+        return await workerFetch(`/api/comments/${encodeURIComponent(shiurId)}`);
+    };
+
+    const postComment = async (shiurId, text) => {
+        if (!currentUser || !currentUser.email) {
+            alert('Please sign in to comment.');
+            return null;
+        }
+        return await workerFetch(`/api/comments/${encodeURIComponent(shiurId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
+            body: JSON.stringify({ text })
+        });
+    };
+
+    const deleteComment = async (shiurId, commentId) => {
+        // Admin-only action (worker should enforce admin permissions)
+        return await workerFetch(`/api/comments/${encodeURIComponent(shiurId)}/${encodeURIComponent(commentId)}`, {
+            method: 'DELETE',
+            headers: { 'X-User-Email': currentUser ? currentUser.email : '' }
+        });
+    };
+
+    const setDisplayName = async (displayName) => {
+        if (!currentUser || !currentUser.email) return null;
+        return await workerFetch(`/api/users/${encodeURIComponent(currentUser.email)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
+            body: JSON.stringify({ displayName })
+        });
+    };
+
+    const getDisplayName = async (email) => {
+        return await workerFetch(`/api/users/${encodeURIComponent(email)}`);
+    };
+
+    const banUser = async (email) => {
+        // Admin-only worker action - worker should enforce admin permissions
+        return await fetchApi('/api/ban', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser ? currentUser.email : '' },
+            body: JSON.stringify({ email })
+        });
     };
 
     const getAllShiurim = async (forceRefresh = false) => {
@@ -249,14 +346,194 @@ document.addEventListener('DOMContentLoaded', () => {
                 <a href="#" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Videos</a>
                 <div class="shiur-player-container">
                     <div class="video-player-wrapper">
-                        <video controls autoplay poster="${shiur.thumbnailDataUrl || shiur.thumbnailUrl || ''}" src="${shiur.playbackUrl}"></video>
+                        <video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || shiur.thumbnailUrl || ''}" src="${shiur.playbackUrl}"></video>
                     </div>
                     <div class="shiur-details" data-rabbi="${shiur.rabbi}">
-                        <h1>${shiur.title}</h1>
+                        <div class="shiur-title-row">
+                            <h1>${shiur.title}</h1>
+                            <div class="shiur-title-actions">
+                                <button id="likeBtn" class="btn-like like-inline" title="Like">👍 <span id="likes-count">0</span></button>
+                            </div>
+                        </div>
                         <p class="shiur-details-meta">By ${rabbiName} on ${videoDate}</p>
                         <p class="shiur-description">${shiur.description || ''}</p>
                     </div>
+                </div>
+
+                <div class="shiur-interactions">
+                    <div class="interactions-stats">
+                        <span id="views-count" style="display: none; margin-right: 12px;">Views: —</span>
+                    </div>
+
+                    <div id="display-name-area" style="margin-top:12px;">
+                        <!-- Display-name controls injected here when signed in -->
+                    </div>
+
+                    <div id="comments-section" style="margin-top:18px;">
+                        <h3>Comments</h3>
+                        <div id="comments-list"></div>
+                        <div id="comment-form-area" style="margin-top:10px;">
+                            <!-- comment form inserted here for signed-in users -->
+                        </div>
+                    </div>
                 </div>`;
+
+            // --- interactions wiring ---
+            const videoEl = document.getElementById('player-video');
+            let viewIncremented = false;
+
+            const refreshViews = async () => {
+                try {
+                    const res = await getViews(params.id);
+                    const el = document.getElementById('views-count');
+                    if (!res || typeof res.count === 'undefined') {
+                        el.style.display = 'none';
+                        return;
+                    }
+                    // show views only to admin user
+                    if (currentUser && currentUser.email === ADMIN_EMAIL) {
+                        el.textContent = `Views: ${res.count}`;
+                        el.style.display = 'inline-block';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error('Failed to refresh views', e);
+                }
+            };
+
+            const refreshLikes = async () => {
+                try {
+                    const res = await getLikes(params.id);
+                    const likesCountEl = document.getElementById('likes-count');
+                    const likeBtn = document.getElementById('likeBtn');
+                    if (!res) return;
+                    likesCountEl.textContent = res.count || 0;
+                    if (res.userLiked) {
+                        likeBtn.classList.add('liked');
+                    } else {
+                        likeBtn.classList.remove('liked');
+                    }
+                } catch (e) { console.error(e); }
+            };
+
+            const refreshComments = async () => {
+                try {
+                    const res = await getComments(params.id);
+                    const list = document.getElementById('comments-list');
+                    list.innerHTML = '';
+                    if (!res || !Array.isArray(res.comments)) return;
+                    res.comments.forEach(c => {
+                        const item = document.createElement('div');
+                        item.className = 'comment-item';
+                        const time = new Date(c.createdAt).toLocaleString();
+                        item.innerHTML = `<div class="comment-meta"><strong>${c.displayName || c.email}</strong> <span class="comment-time">${time}</span></div><div class="comment-text">${escapeHtml(c.text)}</div>`;
+                        if (currentUser && currentUser.email === ADMIN_EMAIL) {
+                            const btnDel = document.createElement('button');
+                            btnDel.className = 'btn btn-danger btn-sm';
+                            btnDel.textContent = 'Delete';
+                            btnDel.style.marginLeft = '8px';
+                            btnDel.addEventListener('click', async () => {
+                                if (confirm('Delete this comment?')) {
+                                    await deleteComment(params.id, c.id);
+                                    refreshComments();
+                                }
+                            });
+                            const btnBan = document.createElement('button');
+                            btnBan.className = 'btn btn-secondary btn-sm';
+                            btnBan.textContent = 'Ban User';
+                            btnBan.style.marginLeft = '6px';
+                            btnBan.addEventListener('click', async () => {
+                                if (confirm(`Ban ${c.email} from commenting?`)) {
+                                    await banUser(c.email);
+                                    refreshComments();
+                                }
+                            });
+                            item.appendChild(btnDel);
+                            item.appendChild(btnBan);
+                        }
+                        list.appendChild(item);
+                    });
+                } catch (e) { console.error(e); }
+            };
+
+            // Escaped text helper
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            videoEl.addEventListener('play', async () => {
+                if (!viewIncremented) {
+                    viewIncremented = true;
+                    try {
+                        await incrementView(params.id);
+                    } catch (e) { console.error('increment view failed', e); }
+                    refreshViews();
+                }
+            }, { once: true });
+
+            document.getElementById('likeBtn').addEventListener('click', async () => {
+                await toggleLike(params.id);
+                await refreshLikes();
+            });
+
+            // comment form and display-name area
+            const displayNameArea = document.getElementById('display-name-area');
+            const commentFormArea = document.getElementById('comment-form-area');
+
+            const renderSignedInControls = async () => {
+                displayNameArea.innerHTML = '';
+                commentFormArea.innerHTML = '';
+                if (currentUser && currentUser.email) {
+                    // fetch display name
+                    const dn = await getDisplayName(currentUser.email).catch(() => null);
+                    const currentDisplay = dn && dn.displayName ? dn.displayName : currentUser.name || '';
+                    displayNameArea.innerHTML = `
+                        <label style="font-size:12px;">Display name</label>
+                        <div style="display:flex; gap:8px; margin-top:6px;">
+                            <input id="displayNameInput" value="${escapeHtml(currentDisplay)}" placeholder="Display name" />
+                            <button id="saveDisplayNameBtn" class="btn btn-primary btn-sm">Save</button>
+                        </div>`;
+
+                    document.getElementById('saveDisplayNameBtn').addEventListener('click', async () => {
+                        const v = document.getElementById('displayNameInput').value.trim();
+                        if (v.length === 0) return alert('Display name may not be empty');
+                        await setDisplayName(v);
+                        alert('Display name saved');
+                        refreshComments();
+                    });
+
+                    commentFormArea.innerHTML = `
+                        <form id="commentForm">
+                            <textarea id="commentText" rows="3" placeholder="Write a respectful comment..."></textarea>
+                            <div style="margin-top:6px;"><button class="btn btn-primary" type="submit">Post Comment</button></div>
+                        </form>`;
+
+                    document.getElementById('commentForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const text = document.getElementById('commentText').value.trim();
+                        if (!text) return alert('Comment cannot be empty');
+                        await postComment(params.id, text);
+                        document.getElementById('commentText').value = '';
+                        await refreshComments();
+                    });
+                } else {
+                    displayNameArea.innerHTML = '<div style="font-size:13px; color:var(--color-text-secondary)">Sign in to set a display name and post comments.</div>';
+                    commentFormArea.innerHTML = '';
+                }
+            };
+
+            // initial load
+            await refreshViews();
+            await refreshLikes();
+            await renderSignedInControls();
+            await refreshComments();
         },
         admin: async () => {
             if (sessionStorage.getItem('uploadAuthorized') !== 'true') {
