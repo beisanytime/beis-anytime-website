@@ -22,10 +22,10 @@ const imageObserver = new IntersectionObserver((entries, observer) => {
 window.handleCredentialResponse = (response) => {
     try {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        const currentUser = { 
-            name: payload.name, 
-            email: payload.email, 
-            picture: payload.picture 
+        const currentUser = {
+            name: payload.name,
+            email: payload.email,
+            picture: payload.picture
         };
         localStorage.setItem('googleUser', JSON.stringify(currentUser));
         window.dispatchEvent(new CustomEvent('google-signin-success', { detail: currentUser }));
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
             if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({error: 'An unknown API error occurred.'}));
+                const errorBody = await response.json().catch(() => ({ error: 'An unknown API error occurred.' }));
                 throw new Error(errorBody.error || `API Error ${response.status}`);
             }
             if (response.status === 204 || response.headers.get('content-length') === '0') return null;
@@ -108,35 +108,39 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = `<p class="info-message">No shiurim found.</p>`;
             return;
         }
-        
+
         const fragment = document.createDocumentFragment();
-        
+
         videos.forEach(video => {
             const card = document.createElement('div');
             card.className = 'video-card';
             card.dataset.shiurId = video.id;
+
+            if (video.rabbi) {
+                card.setAttribute('data-rabbi', video.rabbi);
+            }
+
             const rabbiName = formatRabbiName(video.rabbi);
             const videoDate = video.date ? new Date(video.date).toLocaleDateString() : 'N/A';
-            
             const thumbnailUrl = video.thumbnailDataUrl || video.thumbnailUrl || '';
-            
+
             card.innerHTML = `
-                <img data-src="${thumbnailUrl}" 
-                     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='169'%3E%3Crect width='300' height='169' fill='%23e5e7eb'/%3E%3C/svg%3E" 
-                     alt="${video.title}" 
-                     class="video-thumbnail" 
-                     loading="lazy">
-                <div class="video-info">
-                    <h3 class="video-title">${video.title}</h3>
-                    <p class="video-meta">${rabbiName} &bull; ${videoDate}</p>
-                </div>`;
-            
+            <img data-src="${thumbnailUrl}" 
+                 src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='169'%3E%3Crect width='300' height='169' fill='%23e5e7eb'/%3E%3C/svg%3E" 
+                 alt="${video.title}" 
+                 class="video-thumbnail" 
+                 loading="lazy">
+            <div class="video-info">
+                <h3 class="video-title">${video.title}</h3>
+                <p class="video-meta">${rabbiName} • ${videoDate}</p>
+            </div>`;
+
             fragment.appendChild(card);
         });
-        
+
         container.innerHTML = '';
         container.appendChild(fragment);
-        
+
         container.querySelectorAll('img[data-src]').forEach(img => {
             imageObserver.observe(img);
         });
@@ -147,7 +151,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const allShiurim = await getAllShiurim();
             if (!allShiurim) return;
             const recentShiurim = allShiurim.slice(0, 10);
-            contentArea.innerHTML = `<h1 class="page-title">Most Recent Shiurim</h1><div class="video-grid"></div>`;
+
+            contentArea.innerHTML = `
+                <section class="hero">
+                    <div class="hero-inner">
+                        <h1 class="hero-title">Welcome to Beis Anytime</h1>
+                        <p class="hero-sub">Watch shiurim from our rabbis anytime — new talks added regularly. Browse recent shiurim below or explore all shiurim.</p>
+                        <div class="hero-actions">
+                            <button id="browseAllBtn" class="btn-ghost">Browse All Shiurim</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="recent-videos">
+                    <h2 class="page-title">Most Recent Shiurim</h2>
+                    <div class="video-grid"></div>
+                </section>
+            `;
+
+            // Wire hero CTA
+            const browseAllBtn = document.getElementById('browseAllBtn');
+            if (browseAllBtn) browseAllBtn.addEventListener('click', (e) => { e.preventDefault(); loadPage('all'); });
+
             renderVideoGrid(recentShiurim, contentArea.querySelector('.video-grid'));
         },
         all: async () => {
@@ -155,6 +180,50 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!allShiurim) return;
             contentArea.innerHTML = `<h1 class="page-title">All Shiurim</h1><div class="video-grid"></div>`;
             renderVideoGrid(allShiurim, contentArea.querySelector('.video-grid'));
+        },
+        speakers: async () => {
+            const speakers = [
+                { id: 'Rabbi_Hartman', name: 'Rabbi Hartman', icon: 'fa-user-tie' },
+                { id: 'Rabbi_Rosenfeld', name: 'Rabbi Rosenfeld', icon: 'fa-user-tie' },
+                { id: 'Rabbi_Golker', name: 'Rabbi Golker', icon: 'fa-user-tie' },
+                { id: 'guests', name: 'Guest Speakers', icon: 'fa-users' }
+            ];
+
+            contentArea.innerHTML = `
+                <h1 class="page-title">Our Speakers</h1>
+                <div class="speakers-grid"></div>`;
+            
+            const speakersGrid = contentArea.querySelector('.speakers-grid');
+            const fragment = document.createDocumentFragment();
+
+            speakers.forEach(speaker => {
+                const card = document.createElement('a');
+                card.href = '#';
+                card.className = 'speaker-card';
+                card.dataset.page = 'speaker';
+                card.dataset.rabbi = speaker.id;
+
+                card.innerHTML = `
+                    <div class="speaker-card-icon">
+                        <i class="fas ${speaker.icon}"></i>
+                    </div>
+                    <div class="speaker-card-content">
+                        <span class="speaker-name">${speaker.name}</span>
+                    </div>`;
+
+                fragment.appendChild(card);
+            });
+
+            speakersGrid.appendChild(fragment);
+
+            // Add click event listeners to speaker cards
+            speakersGrid.querySelectorAll('.speaker-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const rabbi = card.dataset.rabbi;
+                    loadPage('speaker', { rabbi: rabbi });
+                });
+            });
         },
         speaker: async (params) => {
             const allShiurim = await getAllShiurim();
@@ -164,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
             const displayRabbiName = formatRabbiName(params.rabbi);
             contentArea.innerHTML = `
-                <div class="rabbi-header" id="rabbiHeader">
+                <div class="rabbi-header" data-rabbi="${params.rabbi}">
                     <h1>Shiurim from ${displayRabbiName}</h1>
                     <p>${filteredShiurim.length} shiurim available</p>
                 </div>
@@ -182,10 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="video-player-wrapper">
                         <video controls autoplay poster="${shiur.thumbnailDataUrl || shiur.thumbnailUrl || ''}" src="${shiur.playbackUrl}"></video>
                     </div>
-                    <div class="shiur-details">
+                    <div class="shiur-details" data-rabbi="${shiur.rabbi}">
                         <h1>${shiur.title}</h1>
                         <p class="shiur-details-meta">By ${rabbiName} on ${videoDate}</p>
-                        <p>${shiur.description || ''}</p>
+                        <p class="shiur-description">${shiur.description || ''}</p>
                     </div>
                 </div>`;
         },
@@ -362,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="submit" class="btn btn-primary" id="uploadBtn">Upload Shiur</button>
                 </div>
             </form>`;
-        
+
         document.getElementById('date').valueAsDate = new Date();
         attachUploadFormListeners();
     }
@@ -374,26 +443,26 @@ document.addEventListener('DOMContentLoaded', () => {
         let videoPreview = document.getElementById('videoPreview');
         const videoScrubber = document.getElementById('videoScrubber');
         const captureThumbnailBtn = document.getElementById('captureThumbnailBtn');
-        
+
         if (!form) return;
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
+
             if (videoPreview.src && videoPreview.src.startsWith('blob:')) {
                 URL.revokeObjectURL(videoPreview.src);
             }
-            
+
             if (file.type.startsWith('video/')) {
                 const videoUrl = URL.createObjectURL(file);
                 videoPreviewContainer.style.display = 'block';
-                
+
                 const newVideoPreview = videoPreview.cloneNode(true);
                 newVideoPreview.src = videoUrl;
                 videoPreview.parentNode.replaceChild(newVideoPreview, videoPreview);
                 videoPreview = newVideoPreview;
-                
+
                 videoPreview.addEventListener('loadedmetadata', () => {
                     videoScrubber.max = videoPreview.duration;
                     document.getElementById('duration').textContent = formatTime(videoPreview.duration);
@@ -419,12 +488,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.createElement('canvas');
             canvas.width = videoPreview.videoWidth;
             canvas.height = videoPreview.videoHeight;
-            
+
             const ctx = canvas.getContext('2d');
             ctx.drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
-            
+
             capturedThumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            
+
             document.getElementById('thumbnailImg').src = capturedThumbnailDataUrl;
             document.getElementById('thumbnailPreview').style.display = 'block';
             document.getElementById('thumbnailRequired').style.display = 'none';
@@ -477,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
-                    
+
                     xhr.upload.addEventListener('progress', (event) => {
                         if (event.lengthComputable) {
                             const percent = (event.loaded / event.total) * 100;
@@ -485,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             uploadBtn.textContent = `Uploading... ${Math.round(percent)}%`;
                         }
                     });
-                    
+
                     xhr.addEventListener('load', () => {
                         if (xhr.status >= 200 && xhr.status < 300) {
                             resolve();
@@ -493,9 +562,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             reject(new Error(`Upload failed with status ${xhr.status}`));
                         }
                     });
-                    
+
                     xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-                    
+
                     xhr.open('PUT', signedUrl);
                     xhr.setRequestHeader('Content-Type', mediaFile.type);
                     xhr.send(mediaFile);
@@ -503,13 +572,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 uploadBtn.textContent = 'Upload Complete!';
                 alert('Shiur uploaded successfully!');
-                
+
                 if (videoPreview.src) {
                     URL.revokeObjectURL(videoPreview.src);
                 }
                 capturedThumbnailDataUrl = null;
                 allShiurimCache = [];
-                
+
                 setTimeout(() => loadPage('home'), 1500);
 
             } catch (error) {
@@ -558,8 +627,8 @@ document.addEventListener('DOMContentLoaded', () => {
     profileToggle.addEventListener('click', () => {
         profileDropdown.classList.toggle('is-active');
     });
-    
-    document.addEventListener('click', (e) => { 
+
+    document.addEventListener('click', (e) => {
         if (profileDropdown && !profileDropdown.contains(e.target)) {
             profileDropdown.classList.remove('is-active');
         }
@@ -567,15 +636,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     contentArea.addEventListener('click', async (e) => {
         const videoCard = e.target.closest('.video-card');
-        if (videoCard) { 
-            e.preventDefault(); 
-            loadPage('view_shiur', { id: videoCard.dataset.shiurId }); 
+        if (videoCard) {
+            e.preventDefault();
+            loadPage('view_shiur', { id: videoCard.dataset.shiurId });
         }
 
         const backButton = e.target.closest('.btn-back');
-        if (backButton) { 
-            e.preventDefault(); 
-            window.history.back(); 
+        if (backButton) {
+            e.preventDefault();
+            window.history.back();
         }
 
         const deleteButton = e.target.closest('[data-delete-id]');
@@ -630,9 +699,9 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadLink.id = 'uploadLink';
             uploadLink.innerHTML = '<i class="fas fa-upload fa-fw"></i> Upload Shiur';
             uploadLink.style.display = 'none';
-            
+
             dropdownMenu.insertBefore(uploadLink, signOutBtn);
-            
+
             uploadLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 loadPage('upload');
@@ -643,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedUser) {
             updateLoginUI(JSON.parse(savedUser));
         }
-        
+
         if ('requestIdleCallback' in window) {
             requestIdleCallback(() => initializeRouting());
         } else {

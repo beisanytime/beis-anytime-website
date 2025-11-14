@@ -7,13 +7,7 @@
     
     <link rel="stylesheet" href="style.css">
     
-    <!-- Optimized Font Loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
-    
-    <!-- Defer Font Awesome -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"></noscript>
     
@@ -25,61 +19,75 @@
     <div class="site-wrapper">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="#" class="nav-link" data-page="home">
-                    <img style="height:100px;width:100px;" src="logo.png" alt="Beis Anytime Logo" class="logo-full">
-                    <span class="logo-icon">BA</span>
+                <a href="#" class="nav-link logo-link" data-page="home">
+                    <div class="logo-container">
+                        <span class="logo-full">BEIS<br>ANYTIME</span>
+                        <span class="logo-icon">BA</span>
+                    </div>
                 </a>
             </div>
+
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="#" class="nav-link active" data-page="home"><i class="fas fa-home fa-fw"></i> <span class="nav-text">Home</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="all"><i class="fas fa-list fa-fw"></i> <span class="nav-text">All Shiurim</span></a></li>
-                    <li class="nav-section-title"><span class="nav-text">Speakers</span></li>
-                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Hartman"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Hartman</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Rosenfeld"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Rosenfeld</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="Rabbi_Golker"><i class="fas fa-user-tie fa-fw"></i> <span class="nav-text">Rabbi Golker</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="speaker" data-rabbi="guests"><i class="fas fa-users fa-fw"></i> <span class="nav-text">Guest Speakers</span></a></li>
+                    <li><a href="#" class="nav-link active" data-page="home">
+                        <i class="fas fa-home fa-fw"></i> 
+                        <span class="nav-text">Home</span>
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-page="all">
+                        <i class="fas fa-list fa-fw"></i> 
+                        <span class="nav-text">All Shiurim</span>
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-page="speakers">
+                        <i class="fas fa-users fa-fw"></i> 
+                        <span class="nav-text">Speakers</span>
+                    </a></li>
                 </ul>
             </nav>
+
+            <div class="sidebar-search">
+                <label for="searchInput" class="search-label">Search</label>
+                <div class="search-bar">
+                    <input type="search" id="searchInput" placeholder="Search shiurim...">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button id="theme-toggle" title="Toggle dark/light mode" aria-label="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </button>
+                
+                <div id="g_id_onload" data-client_id="248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
+                <div class="g_id_signin" data-type="standard"></div>
+                
+                <div class="profile-dropdown" id="profileDropdown" style="display: none;">
+                    <button class="profile-toggle" id="profileToggle" aria-label="User menu">
+                        <img id="userAvatar" src="" alt="User Avatar" loading="lazy">
+                    </button>
+                    <div class="dropdown-menu" id="profileDropdownMenu">
+                        <div class="dropdown-user-info">
+                            <strong id="userName"></strong>
+                            <span id="userEmail"></span>
+                        </div>
+                        <a href="#" class="dropdown-item" id="adminLink" style="display: none;" data-page="admin">
+                            <i class="fas fa-shield-halved fa-fw"></i> 
+                            <span>Admin Panel</span>
+                        </a>
+                        <a href="#" class="dropdown-item" id="signOutBtn">
+                            <i class="fas fa-sign-out-alt fa-fw"></i> 
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </aside>
 
         <div class="main-content">
-            <header class="site-header">
-                <div class="search-bar">
-                    <i class="fas fa-search"></i>
-                    <input type="search" id="searchInput" placeholder="Search for shiurim...">
-                </div>
-                <div class="header-right">
-                    <button id="theme-toggle" title="Toggle dark/light mode">
-                        <i class="fas fa-moon"></i>
-                        <i class="fas fa-sun"></i>
-                    </button>
-                    <div id="g_id_onload" data-client_id="248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
-                    <div class="g_id_signin" data-type="standard"></div>
-                    <div class="profile-dropdown" id="profileDropdown" style="display: none;">
-                        <button class="profile-toggle" id="profileToggle">
-                            <img id="userAvatar" src="" alt="User Avatar" loading="lazy">
-                        </button>
-                        <div class="dropdown-menu" id="profileDropdownMenu">
-                            <div class="dropdown-user-info">
-                                <strong id="userName"></strong>
-                                <span id="userEmail"></span>
-                            </div>
-                            <a href="#" class="dropdown-item" id="adminLink" style="display: none;" data-page="admin">
-                                <i class="fas fa-shield-halved fa-fw"></i> Admin Panel
-                            </a>
-                            <a href="#" class="dropdown-item" id="signOutBtn">
-                                <i class="fas fa-sign-out-alt fa-fw"></i> Sign Out
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
             <main id="app-content-wrapper">
                  <div id="app-content">
                      <div class="loading-skeleton">
-                         <h1 class="page-title">Loading...</h1>
+                         <p class="loading">Loading...</p>
                      </div>
                  </div>
             </main>
