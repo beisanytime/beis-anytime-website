@@ -192,9 +192,11 @@ h1, h2, h3, h4, h5, h6 {
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    padding: var(--space-xl) var(--space-md) var(--space-lg); 
+    /* slightly more vertical padding so the logo has breathing room */
+    padding: calc(var(--space-md) * 1.2) var(--space-sm); 
     flex-shrink: 0; 
     border-bottom: var(--border-width) solid var(--color-border);
+    height: 120px; /* increased header height to accommodate larger logo */
 }
 
 .logo-link {
@@ -208,39 +210,43 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .logo-container {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 0; /* center the logo inside the header */
 }
 
 .logo-full { 
-    display: block;
+    display: inline-block;
     font-weight: var(--font-weight-bold);
     font-size: var(--text-xl);
-    line-height: var(--leading-none);
-    letter-spacing: var(--tracking-widest);
+    line-height: 1;
+    letter-spacing: var(--tracking-tight);
     color: var(--color-text-primary);
     transition: color var(--transition-speed) var(--transition-easing);
+    /* ensure the site name stays on one line next to the icon */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(var(--sidebar-width) - 92px);
 }
 
 .logo-full:hover {
     color: var(--color-accent);
 }
 
-.logo-icon { 
-    display: none;
-    width: 56px;
-    height: 56px;
-    background-color: var(--color-text-primary);
-    color: var(--color-surface);
-    font-weight: var(--font-weight-bold);
-    font-size: var(--text-lg);
-    line-height: 56px;
-    text-align: center;
-    letter-spacing: var(--tracking-tight);
-    transition: all var(--transition-speed) var(--transition-easing);
+.logo-icon {
+    display: block;
+    width: 96px; /* slightly larger width */
+    height: auto;
+    max-height: 112px; /* slightly larger max height */
+    object-fit: contain;
+    transition: transform var(--transition-speed) var(--transition-easing);
 }
 
 .logo-icon:hover {
-    background-color: var(--color-accent);
+    transform: translateY(-2px) scale(1.02);
 }
 
 /* --- 5. Sidebar Navigation --- */
