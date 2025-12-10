@@ -18,8 +18,8 @@
 
 <style>
 /* =================================================================================
-   Beis Anytime - Premium Streaming Design v9.2
-   Updates: Restored Upload Link in Dropdown
+   Beis Anytime - Premium Streaming Design v11.1
+   Updates: Uniform Grid Layout (All cards same size)
 ================================================================================= */
 
 :root {
@@ -188,7 +188,7 @@ body::before {
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- Global Menu (Dropdown/Bottom Sheet) --- */
+/* --- Global Menu --- */
 .popup-menu {
     position: fixed; 
     background: var(--bg-surface-solid);
@@ -198,25 +198,51 @@ body::before {
     padding: 8px;
     z-index: 2000;
     display: none;
-    
-    /* Desktop Positioning */
     bottom: 80px; 
     left: 20px; 
     width: 240px;
 }
 
 .popup-menu.active { display: block; animation: slideUp 0.2s cubic-bezier(0.2, 0, 0, 1); }
-
-.menu-header {
-    padding: 12px; 
-    border-bottom: 1px solid var(--border-light); 
-    margin-bottom: 8px;
-}
+.menu-header { padding: 12px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px; }
 
 @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* --- Mobile Nav --- */
 .bottom-nav { display: none; }
+
+/* --- Feed & Comments Styles --- */
+.feed-container { max-width: 700px; margin: 0 auto; }
+
+.post-composer, .comment-composer {
+    background: var(--bg-surface-solid);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-sm);
+}
+
+.post-card, .comment-item {
+    background: var(--bg-surface-solid);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeIn 0.4s ease;
+}
+.post-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.post-header, .comment-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.post-avatar, .comment-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+.post-meta, .comment-meta { display: flex; flex-direction: column; }
+.post-author, .comment-author { font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+.post-time, .comment-time { font-size: 0.8rem; color: var(--text-muted); }
+
+.post-content, .comment-text { color: var(--text-main); line-height: 1.6; font-size: 1rem; white-space: pre-wrap; }
+.post-actions { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 12px; }
 
 /* --- Components --- */
 .hero-card {
@@ -238,19 +264,17 @@ body::before {
 
 .hero-actions { margin-top: 24px; display: flex; gap: 12px; }
 
-/* --- Grid --- */
+/* --- Grid (Uniform Size) --- */
 .grid-videos {
     display: grid;
+    /* Ensure a consistent minimum width for all cards */
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 24px;
-    grid-auto-flow: dense;
 }
 
 @media (min-width: 1200px) {
+    /* Enforce 3 columns on large screens, but NO special spanning logic */
     .grid-videos { grid-template-columns: repeat(3, 1fr); }
-    .video-card:first-child { grid-column: span 2; grid-row: span 2; }
-    .video-card:first-child .thumb-wrapper { aspect-ratio: 16/9; height: 100%; }
-    .video-card:first-child .card-title { font-size: 1.5rem; }
 }
 
 .video-card {
@@ -263,7 +287,6 @@ body::before {
     display: flex; flex-direction: column; position: relative;
     view-transition-name: card-generic; 
 }
-
 .video-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); z-index: 2; }
 
 .thumb-wrapper { position: relative; aspect-ratio: 16 / 9; background: var(--bg-surface-hover); overflow: hidden; }
@@ -304,7 +327,7 @@ input, select, textarea {
     border-radius: var(--radius-sm); color: var(--text-main); font-family: inherit; font-size: 0.95rem;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
-input:focus { outline: none; border-color: var(--color-accent); box-shadow: var(--focus-ring); }
+input:focus, textarea:focus { outline: none; border-color: var(--color-accent); box-shadow: var(--focus-ring); }
 
 /* --- Mobile Responsiveness --- */
 @media (max-width: 1024px) {
@@ -331,15 +354,10 @@ input:focus { outline: none; border-color: var(--color-accent); box-shadow: var(
     .bottom-nav-item.active i { transform: translateY(-2px); }
 
     .grid-videos { grid-template-columns: 1fr; }
-    .video-card:first-child { grid-column: auto; grid-row: auto; }
+    /* Mobile resets are automatic due to removing :first-child specific css */
 
-    /* Mobile Bottom Sheet Menu overrides */
     .popup-menu {
-        left: 16px;
-        right: 16px;
-        bottom: 80px; /* Above nav bar */
-        width: auto; /* Full width minus margins */
-        transform: translateY(20px);
+        left: 16px; right: 16px; bottom: 80px; width: auto; transform: translateY(20px);
     }
 }
 
@@ -348,7 +366,7 @@ body[data-page-context="view_shiur"] .main-viewport { background-image: none; ba
 body[data-page-context="view_shiur"] .video-card { display: none; }
 body[data-page-context="view_shiur"] h1,
 body[data-page-context="view_shiur"] h2,
-body[data-page-context="view_shiur"] p:not(.comment-body),
+body[data-page-context="view_shiur"] p:not(.comment-text),
 body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
 
 .video-container {
@@ -357,10 +375,18 @@ body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
     aspect-ratio: 16/9; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.1);
 }
 
-.video-details {
+.video-details, .video-comments-area {
     background: var(--bg-surface-solid); border: 1px solid var(--border-light);
-    border-radius: var(--radius-md); padding: 24px;
+    border-radius: var(--radius-md); padding: 24px; margin-bottom: 20px;
 }
+.video-comments-area {
+    /* Revert color for comments area to normal theme even in cinema mode */
+    background: var(--bg-surface-solid);
+    color: var(--text-main);
+}
+body[data-page-context="view_shiur"] .video-comments-area h2,
+body[data-page-context="view_shiur"] .video-comments-area p { color: var(--text-main); }
+body[data-page-context="view_shiur"] .video-comments-area .comment-time { color: var(--text-muted); }
 
 /* --- Profile --- */
 .profile-wrapper { position: relative; }
@@ -403,6 +429,9 @@ body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
                 </a>
                 <a href="#" class="nav-item" data-page="all">
                     <i class="fas fa-compass"></i> Browse
+                </a>
+                <a href="#" class="nav-item" data-page="community">
+                    <i class="fas fa-users"></i> Community
                 </a>
                 <a href="#" class="nav-item" data-page="speakers">
                     <i class="fas fa-microphone-lines"></i> Speakers
@@ -456,8 +485,8 @@ body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
             <a href="#" class="bottom-nav-item" data-page="all">
                 <i class="fas fa-compass"></i> Browse
             </a>
-            <a href="#" class="bottom-nav-item" data-page="speakers">
-                <i class="fas fa-microphone"></i> Speakers
+            <a href="#" class="bottom-nav-item" data-page="community">
+                <i class="fas fa-users"></i> Feed
             </a>
             <a href="#" class="bottom-nav-item" id="mobileProfileBtn">
                 <i class="fas fa-user"></i> Profile
@@ -466,7 +495,7 @@ body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
 
     </div>
 
-    <!-- GLOBAL DROPDOWN MENU (Shared by Desktop & Mobile) -->
+    <!-- GLOBAL DROPDOWN MENU -->
     <div class="popup-menu" id="globalMenu">
         
         <!-- Logged In State -->
@@ -480,7 +509,7 @@ body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
                 <i class="fas fa-shield-alt"></i> Admin Panel
             </a>
 
-            <!-- UPLOAD LINK ADDED HERE -->
+            <!-- UPLOAD LINK -->
             <a href="#" class="nav-item" id="uploadLink" style="display: none;" onclick="loadPage('upload'); return false;">
                 <i class="fas fa-upload"></i> Upload Shiur
             </a>
@@ -490,16 +519,15 @@ body[data-page-context="view_shiur"] .btn-ghost { color: #e5e5e5; }
             </a>
         </div>
 
-        <!-- Logged Out State (Visible on Mobile mostly) -->
+        <!-- Logged Out State -->
         <div id="menuLoggedOut" style="text-align:center; padding: 12px;">
-            <p style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-muted);">Sign in to like, comment, and save progress.</p>
+            <p style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-muted);">Sign in to access features.</p>
             <button class="btn btn-primary" style="width:100%" onclick="google.accounts.id.prompt()">
                 Sign In with Google
             </button>
         </div>
     </div>
 
-    <!-- Hidden Video Processor -->
     <video id="video-processor" muted preload="none" style="display: none;"></video>
     <canvas id="canvas-processor" style="display: none;"></canvas>
 
@@ -535,9 +563,15 @@ window.handleCredentialResponse = (response) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Config ---
-    const API_BASE_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
-    const WORKER_BASE_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
+    // --- Configuration ---
+    const MAIN_API_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
+    
+    // 1. API for Community Feed (The new D1 Worker)
+    const COMMUNITY_API_URL = 'https://beis-social-api.yourname.workers.dev'; // UPDATE THIS!
+    
+    // 2. API for Video Likes/Comments (The original KV Worker)
+    const VIDEO_API_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
+    
     const ADMIN_EMAIL = 'beisanytime@gmail.com';
     const UPLOAD_PASSWORD = 'beis24/7';
     
@@ -565,18 +599,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     };
 
-    const fetchApi = async (endpoint, options = {}) => {
+    const fetchMain = async (endpoint, options = {}) => {
         try {
-            const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            const res = await fetch(`${MAIN_API_URL}${endpoint}`, options);
             if (!res.ok) throw new Error('API Error');
             if (res.status === 204) return null;
             return await res.json();
         } catch (e) { console.error(e); return null; }
     };
     
-    const workerFetch = async (endpoint, options = {}) => {
+    // Generic Fetcher for the two worker APIs
+    const workerFetch = async (baseUrl, endpoint, options = {}) => {
         try {
-            const res = await fetch(`${WORKER_BASE_URL}${endpoint}`, options);
+            const res = await fetch(`${baseUrl}${endpoint}`, options);
             if (!res.ok) throw new Error('Worker Error');
             if (res.status === 204) return null;
             return await res.json();
@@ -585,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getAllShiurim = async (force = false) => {
         if (allShiurimCache.length > 0 && !force) return allShiurimCache;
-        const data = await fetchApi('/api/all-shiurim');
+        const data = await fetchMain('/api/all-shiurim');
         if (data) {
             data.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
             allShiurimCache = data;
@@ -597,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderEmptyState = (msg) => `
         <div class="empty-state">
             <div class="empty-icon"><i class="fas fa-search"></i></div>
-            <h3>No Shiurim Found</h3>
+            <h3>No Items Found</h3>
             <p style="color:var(--text-muted);">${msg}</p>
         </div>
     `;
@@ -664,6 +699,93 @@ document.addEventListener('DOMContentLoaded', () => {
             contentArea.innerHTML = `<h1 style="margin-bottom:30px;">All Shiurim</h1><div class="grid-videos"></div>`;
             renderVideoGrid(data, contentArea.querySelector('.grid-videos'));
         },
+
+        community: async () => {
+            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+            
+            contentArea.innerHTML = `
+                <div class="feed-container">
+                    <div style="margin-bottom:30px; display:flex; justify-content:space-between; align-items:center;">
+                        <h1>Community Feed</h1>
+                        <button class="btn btn-secondary" onclick="loadPage('community')"><i class="fas fa-sync"></i> Refresh</button>
+                    </div>
+                    
+                    ${isAdmin ? `
+                    <div class="post-composer">
+                        <h3 style="margin-top:0; margin-bottom:12px; font-size:1rem;">Post Announcement</h3>
+                        <div style="display:flex; gap:12px; margin-bottom:12px;">
+                            <img src="${currentUser.picture}" style="width:40px; height:40px; border-radius:50%;">
+                            <textarea id="postInput" placeholder="Write an official announcement..." style="flex:1; border:none; background:transparent; resize:none; font-size:1rem; outline:none;" rows="3"></textarea>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end;">
+                            <button id="postSubmitBtn" class="btn btn-primary">Post</button>
+                        </div>
+                    </div>
+                    ` : `
+                    <div style="margin-bottom:20px; padding:15px; background:var(--bg-surface-hover); border-radius:8px; border:1px solid var(--border-light); text-align:center; color:var(--text-muted); font-size:0.9rem;">
+                        <i class="fas fa-bullhorn"></i> Official Announcements and Updates
+                    </div>
+                    `}
+                    
+                    <div id="postsList">
+                        <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
+                        <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
+                    </div>
+                </div>
+            `;
+
+            if (isAdmin) {
+                document.getElementById('postSubmitBtn').onclick = async () => {
+                    const txt = document.getElementById('postInput').value.trim();
+                    if(!txt) return;
+                    
+                    const btn = document.getElementById('postSubmitBtn');
+                    btn.disabled = true;
+                    btn.textContent = "Posting...";
+
+                    await workerFetch(COMMUNITY_API_URL, '/api/posts', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ content: txt, user: currentUser })
+                    });
+                    
+                    loadPage('community'); 
+                };
+            }
+
+            const posts = await workerFetch(COMMUNITY_API_URL, '/api/posts');
+            const list = document.getElementById('postsList');
+            
+            if(!posts || !posts.length) {
+                list.innerHTML = renderEmptyState("No announcements yet.");
+                return;
+            }
+
+            list.innerHTML = posts.map(p => `
+                <div class="post-card">
+                    <div class="post-header">
+                        <img src="${p.avatar_url}" class="post-avatar">
+                        <div class="post-meta">
+                            <span class="post-author">${p.display_name} <i class="fas fa-check-circle" style="color:var(--color-accent); font-size:0.8rem; margin-left:4px;" title="Verified Admin"></i></span>
+                            <span class="post-time">${new Date(p.created_at * 1000).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="post-content">${p.content}</div>
+                    ${(isAdmin) ? `
+                        <div class="post-actions">
+                             <button class="btn btn-secondary" style="color:red; font-size:0.8rem; padding:6px 12px;" onclick="deletePost(${p.id})">Delete</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            window.deletePost = async (id) => {
+                if(confirm('Delete post?')) {
+                    await workerFetch(COMMUNITY_API_URL, `/api/posts/${id}`, { method: 'DELETE', headers: {'X-User-Email': currentUser.email} });
+                    loadPage('community');
+                }
+            };
+        },
         
         speakers: async () => {
             const speakers = [
@@ -679,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
             speakers.forEach(s => {
                 const el = document.createElement('a');
                 el.href = '#';
-                el.className = 'video-card'; // Reuse card style
+                el.className = 'video-card';
                 el.style.alignItems = 'center';
                 el.style.padding = '40px';
                 el.style.textAlign = 'center';
@@ -709,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         
         view_shiur: async (params) => {
-            const shiur = await fetchApi(`/api/shiurim/id/${params.id}`);
+            const shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
             if (!shiur) { contentArea.innerHTML = renderEmptyState("Shiur unavailable."); return; }
             
             contentArea.innerHTML = `
@@ -731,6 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <span class="rabbi-dot"></span>${formatRabbiName(shiur.rabbi)}
                                     </span>
                                     <span style="color:var(--text-muted); font-size:0.9rem;">${new Date(shiur.date).toLocaleDateString()}</span>
+                                    <span id="views-count" style="color:var(--text-muted); font-size:0.9rem; margin-left:8px; display:none;"><i class="fas fa-eye"></i> <span id="views-num">0</span></span>
                                 </div>
                             </div>
                             <button id="likeBtn" class="btn btn-secondary">
@@ -739,41 +862,146 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <p style="color:var(--text-muted); line-height:1.6;">${shiur.description || 'No description provided.'}</p>
                     </div>
+
+                    <div class="video-comments-area">
+                        <h2 style="font-size:1.2rem; margin-bottom:20px;">Comments</h2>
+                        
+                        ${currentUser ? `
+                        <div class="comment-composer">
+                            <div style="display:flex; gap:12px;">
+                                <img src="${currentUser.picture}" class="comment-avatar">
+                                <div style="flex:1;">
+                                    <textarea id="commentInput" placeholder="Add a comment..." style="width:100%; border:1px solid var(--border-light); background:var(--bg-body); resize:none; font-size:0.9rem; outline:none; border-radius:8px; padding:10px;" rows="2"></textarea>
+                                    <div style="text-align:right; margin-top:8px;">
+                                        <button id="commentSubmitBtn" class="btn btn-primary" style="font-size:0.8rem; padding:6px 16px;">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ` : `
+                        <div style="padding:20px; text-align:center; color:var(--text-muted); border:1px dashed var(--border-light); border-radius:8px; margin-bottom:20px;">
+                            Sign in to join the conversation.
+                        </div>
+                        `}
+
+                        <div id="commentsList">
+                            <div class="skeleton" style="height:60px; margin-bottom:12px;"></div>
+                        </div>
+                    </div>
                 </div>
             `;
             
-            const getLikes = async () => workerFetch(`/api/likes/${encodeURIComponent(params.id)}`);
-            const toggleLike = async () => {
-                if(!currentUser) return alert('Please sign in');
-                workerFetch(`/api/likes/${encodeURIComponent(params.id)}`, {method:'POST', headers:{'X-User-Email':currentUser.email}});
-            };
-            
-            const likeData = await getLikes();
-            if(likeData) {
-                const btn = document.getElementById('likeBtn');
-                document.getElementById('likes-count').textContent = likeData.count;
-                if(likeData.userLiked) { btn.style.color = 'var(--color-accent)'; btn.querySelector('i').className = 'fas fa-thumbs-up'; }
+            // --- Logic for Video Interactions ---
+
+            // 1. Views
+            const getViews = async () => workerFetch(VIDEO_API_URL, `/api/views/${encodeURIComponent(params.id)}`);
+            const viewRes = await getViews();
+            if(viewRes && viewRes.count !== undefined) {
+                 // Only show view count to admin as per previous logic, or everyone? User said "add back", previous was admin only in v8.
+                 // Let's show to everyone for social feel.
+                 document.getElementById('views-count').style.display = 'inline-block';
+                 document.getElementById('views-num').textContent = viewRes.count;
             }
-            
-            document.getElementById('likeBtn').onclick = async function() {
-                await toggleLike();
-                const newData = await getLikes();
-                if(newData) {
-                    this.querySelector('span').textContent = newData.count;
-                    if(newData.userLiked) { this.style.color = 'var(--color-accent)'; this.querySelector('i').className = 'fas fa-thumbs-up'; }
-                    else { this.style.color = 'inherit'; this.querySelector('i').className = 'far fa-thumbs-up'; }
-                }
-            };
 
             const vid = document.getElementById('player-video');
             vid.addEventListener('play', () => {
-                workerFetch('/api/views/increment', {method:'POST', body:JSON.stringify({id:params.id}), headers:{'Content-Type':'application/json'}});
+                workerFetch(VIDEO_API_URL, '/api/views/increment', {
+                    method:'POST', 
+                    body:JSON.stringify({id:params.id}), 
+                    headers:{'Content-Type':'application/json'}
+                });
             }, {once:true});
+
+            // 2. Likes
+            const getLikes = async () => workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`);
+            const toggleLike = async () => {
+                if(!currentUser) return alert('Please sign in');
+                await workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`, {
+                    method:'POST', 
+                    headers:{'X-User-Email':currentUser.email}
+                });
+            };
+            
+            const refreshLikes = async () => {
+                const likeData = await getLikes();
+                if(likeData) {
+                    const btn = document.getElementById('likeBtn');
+                    document.getElementById('likes-count').textContent = likeData.count;
+                    if(likeData.userLiked) { 
+                        btn.style.color = 'var(--color-accent)'; 
+                        btn.querySelector('i').className = 'fas fa-thumbs-up'; 
+                    } else {
+                        btn.style.color = 'inherit'; 
+                        btn.querySelector('i').className = 'far fa-thumbs-up';
+                    }
+                }
+            };
+            refreshLikes();
+            
+            document.getElementById('likeBtn').onclick = async function() {
+                await toggleLike();
+                refreshLikes();
+            };
+
+            // 3. Comments
+            const getComments = async () => workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`);
+            
+            const refreshComments = async () => {
+                const res = await getComments();
+                const list = document.getElementById('commentsList');
+                list.innerHTML = '';
+                
+                if(!res || !res.comments || res.comments.length === 0) {
+                    list.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No comments yet.</p>`;
+                    return;
+                }
+
+                list.innerHTML = res.comments.map(c => `
+                    <div class="comment-item" style="padding:16px;">
+                        <div class="comment-header" style="margin-bottom:8px;">
+                            <div style="font-weight:700; font-size:0.9rem; color:var(--text-main);">${c.displayName || c.email}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div class="comment-text" style="font-size:0.95rem;">${c.text}</div>
+                        ${(currentUser && currentUser.email === ADMIN_EMAIL) ? `
+                            <button onclick="deleteComment('${c.id}')" style="background:none; border:none; color:red; font-size:0.75rem; cursor:pointer; margin-top:8px;">Delete</button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            };
+
+            if(currentUser) {
+                document.getElementById('commentSubmitBtn').onclick = async () => {
+                    const txt = document.getElementById('commentInput').value.trim();
+                    if(!txt) return;
+                    
+                    await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-User-Email': currentUser.email},
+                        body: JSON.stringify({text: txt})
+                    });
+                    
+                    document.getElementById('commentInput').value = '';
+                    refreshComments();
+                };
+            }
+
+            window.deleteComment = async (cid) => {
+                if(confirm('Delete comment?')) {
+                    await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}/${cid}`, {
+                        method: 'DELETE',
+                        headers: {'X-User-Email': currentUser.email}
+                    });
+                    refreshComments();
+                }
+            };
+
+            refreshComments();
         },
 
         admin: async () => {
             if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('admin');
-            const data = await fetchApi('/api/admin/shiurim');
+            const data = await fetchMain('/api/admin/shiurim');
             contentArea.innerHTML = `
                 <div class="flex-between" style="margin-bottom:24px;">
                     <h1>Admin Dashboard</h1>
@@ -797,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contentArea.querySelectorAll('[data-del]').forEach(b => {
                 b.onclick = async () => {
                     if(confirm('Delete?')) {
-                        await fetchApi(`/api/admin/shiurim/${b.dataset.del}`, {method:'DELETE'});
+                        await fetchMain(`/api/admin/shiurim/${b.dataset.del}`, {method:'DELETE'});
                         loadPage('admin');
                     }
                 }
@@ -847,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
                      const file = fInput.files[0];
                      if(!capturedThumbnailDataUrl) throw new Error('Capture thumbnail first');
                      
-                     const prep = await fetch(`${API_BASE_URL}/api/admin/prepare-upload`, {
+                     const prep = await fetch(`${MAIN_API_URL}/api/admin/prepare-upload`, {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
                         body: JSON.stringify({
@@ -942,7 +1170,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(pToggle) pToggle.onclick = toggleMenu;
     if(mProfile) mProfile.onclick = toggleMenu;
     
-    // Close menu when clicking elsewhere
     document.addEventListener('click', (e) => {
         if(!globalMenu.contains(e.target) && !mProfile.contains(e.target) && !pToggle.contains(e.target)) {
             globalMenu.classList.remove('active');
@@ -958,21 +1185,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('google-signin-success', (e) => {
         currentUser = e.detail;
         
-        // Hide Google Button in Sidebar (Desktop)
         document.getElementById('desktop-auth-container').style.display = 'none';
-        
-        // Show Profile Button in Sidebar (Desktop)
         document.getElementById('profileDropdown').style.display = 'block';
         document.getElementById('userAvatar').src = currentUser.picture;
 
-        // Update Global Menu Content
         document.getElementById('menuLoggedOut').style.display = 'none';
         document.getElementById('menuLoggedIn').style.display = 'block';
         document.getElementById('menuUserName').textContent = currentUser.name;
         
         if(currentUser.email === ADMIN_EMAIL) {
             document.getElementById('adminLink').style.display = 'flex';
-            document.getElementById('uploadLink').style.display = 'flex'; // Unhide Upload Link
+            document.getElementById('uploadLink').style.display = 'flex'; 
         }
     });
 
