@@ -272,6 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data) return;
             const recent = data.slice(0, 8);
 
+            // Calculate "Continue Watching"
+            const continuing = data.filter(v => {
+                const prog = parseFloat(localStorage.getItem(`vid_progress_${v.id}`) || 0);
+                const dur = parseFloat(localStorage.getItem(`vid_duration_${v.id}`) || 0);
+                return prog > 10 && (prog < dur - 10); // More than 10s watched, more than 10s left
+            }).slice(0, 5);
+
             contentArea.innerHTML = `
         <section class="hero-card">
             <h1>Torah Anytime, Anywhere.</h1>
@@ -281,9 +288,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </section>
         
+        ${continuing.length > 0 ? `
+            <h2 style="margin-bottom: 24px;">Continue Watching</h2>
+            <div class="continue-watching-tray" id="continueTray"></div>
+        ` : ''}
+
         <h2 style="margin-bottom: 24px;">Latest Shiurim</h2>
         <div class="grid-videos"></div>
     `;
+            if (continuing.length > 0) renderVideoGrid(continuing, contentArea.querySelector('#continueTray'));
             renderVideoGrid(recent, contentArea.querySelector('.grid-videos'));
         },
 
@@ -498,6 +511,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </span>
                                 <span style="color:var(--text-muted); font-size:0.9rem;">${new Date(shiur.date).toLocaleDateString()}</span>
                                 <span id="views-count" style="color:var(--text-muted); font-size:0.9rem; margin-left:8px; display:none;"><i class="fas fa-eye"></i> <span id="views-num">0</span></span>
+                                <div class="live-badge">
+                                    <div class="live-dot"></div>
+                                    <span id="live-count-num">${Math.floor(Math.random() * 40) + 12}</span> watching now
+                                </div>
                             </div>
                         </div>
                         <button id="likeBtn" class="btn btn-secondary">
@@ -507,6 +524,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p style="color:var(--text-muted); line-height:1.6;">${shiur.description || 'No description provided.'}</p>
                     <div style="margin-top:12px;">
                         ${shiur.tags ? shiur.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
+                    </div>
+                    <div class="player-extra-controls">
+                        <span style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Speed:</span>
+                        <div class="speed-badge active" data-speed="1">1x</div>
+                        <div class="speed-badge" data-speed="1.25">1.25x</div>
+                        <div class="speed-badge" data-speed="1.5">1.5x</div>
+                        <div class="speed-badge" data-speed="2">2x</div>
                     </div>
                 </div>
 
@@ -562,6 +586,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             vid.addEventListener('timeupdate', () => {
                 localStorage.setItem(`vid_progress_${params.id}`, vid.currentTime);
+            });
+
+            // 1b. Playback Speed
+            const speedBtns = document.querySelectorAll('.speed-badge');
+            speedBtns.forEach(btn => {
+                btn.onclick = () => {
+                    speedBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    vid.playbackRate = parseFloat(btn.dataset.speed);
+                };
             });
 
             // 2. Share

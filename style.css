@@ -870,6 +870,92 @@ textarea:focus {
     margin-bottom: 20px;
 }
 
+/* --- Continue Watching Tray --- */
+.continue-watching-tray {
+    display: flex;
+    overflow-x: auto;
+    gap: 16px;
+    padding: 10px 0 24px 0;
+    scrollbar-width: none;
+}
+
+.continue-watching-tray::-webkit-scrollbar {
+    display: none;
+}
+
+.continue-card {
+    min-width: 260px;
+    max-width: 260px;
+}
+
+/* --- Player Controls Enhancements --- */
+.player-extra-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.speed-badge {
+    padding: 4px 10px;
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-light);
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.speed-badge:hover {
+    border-color: var(--color-accent);
+}
+
+.speed-badge.active {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+}
+
+/* --- Live Badge --- */
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-danger);
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-left: 12px;
+}
+
+.live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--color-danger);
+    border-radius: 50%;
+    animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
 .video-comments-area {
     /* Revert color for comments area to normal theme even in cinema mode */
     background: var(--bg-surface-solid);
