@@ -1,8 +1,8 @@
 // =================================================================================
-// Beis Anytime - Complete Single Page Application (Optimized)
+// Beis Anytime - Application Logic
 // =================================================================================
 
-// Lazy loading images with Intersection Observer
+// --- Lazy Loading ---
 const imageObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -14,180 +14,192 @@ const imageObserver = new IntersectionObserver((entries, observer) => {
             }
         }
     });
-}, {
-    rootMargin: '50px'
-});
+}, { rootMargin: '200px' });
 
-// Google Sign-In callback MUST be on window object
+// --- Google Auth ---
 window.handleCredentialResponse = (response) => {
     try {
         const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        const currentUser = {
-            name: payload.name,
-            email: payload.email,
-            picture: payload.picture
-        };
+        const currentUser = { name: payload.name, email: payload.email, picture: payload.picture };
         localStorage.setItem('googleUser', JSON.stringify(currentUser));
         window.dispatchEvent(new CustomEvent('google-signin-success', { detail: currentUser }));
-    } catch (e) {
-        console.error("Error decoding Google credential:", e);
-    }
+    } catch (e) { console.error(e); }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Configuration ---
+    const MAIN_API_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
 
-    // --- 1. GLOBAL CONFIGURATION & STATE ---
-    const API_BASE_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
-    // If your views/likes/comments worker is deployed to a different origin, set it here.
-    // Example: 'https://beisanytime-features.workers.dev'
-    const WORKER_BASE_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
+    // 1. API for Community Feed (The new D1 Worker)
+    const COMMUNITY_API_URL = 'https://beis-social-worker.beisanytime.workers.dev'; // UPDATE THIS!
+
+    // 2. API for Video Likes/Comments (The original KV Worker)
+    const VIDEO_API_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
+
     const ADMIN_EMAIL = 'beisanytime@gmail.com';
     const UPLOAD_PASSWORD = 'beis24/7';
+
+    // --- State ---
     let allShiurimCache = [];
     let currentUser = null;
     let capturedThumbnailDataUrl = null;
 
-    // --- 2. DOM ELEMENT SELECTORS ---
+    // --- DOM ---
     const contentArea = document.getElementById('app-content');
-    const navLinks = document.querySelectorAll('.nav-link');
+    const navItems = document.querySelectorAll('.nav-item, .bottom-nav-item');
     const themeToggle = document.getElementById('theme-toggle');
-    const googleSignInBtn = document.querySelector('.g_id_signin');
-    const profileDropdown = document.getElementById('profileDropdown');
-    const profileToggle = document.getElementById('profileToggle');
-    const signOutBtn = document.getElementById('signOutBtn');
 
-    // --- 3. HELPER FUNCTIONS ---
+    // --- Helpers ---
     const applyTheme = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
+        const icon = themeToggle.querySelector('i');
+        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     };
 
-    const formatRabbiName = (rabbiId) => {
-        if (!rabbiId) return 'Unknown';
-        if (rabbiId.toLowerCase() === 'guests') return 'Guest Speakers';
-        return rabbiId.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+    const formatRabbiName = (id) => {
+        if (!id) return 'Unknown';
+        if (id.toLowerCase() === 'guests') return 'Guest Speakers';
+        return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     };
 
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return mins + ':' + (secs < 10 ? '0' : '') + secs;
-    };
-
-    // --- 4. API & DATA FETCHING ---
-    const fetchApi = async (endpoint, options = {}) => {
+    const fetchMain = async (endpoint, options = {}) => {
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({ error: 'An unknown API error occurred.' }));
-                throw new Error(errorBody.error || `API Error ${response.status}`);
-            }
-            if (response.status === 204 || response.headers.get('content-length') === '0') return null;
-            return await response.json();
-        } catch (error) {
-            console.error(`Failed to fetch from ${endpoint}:`, error);
-            alert(`Error: ${error.message}`);
-            return null;
-        }
-    };
-
-    // --- Worker-driven features: views, likes, comments, users ---
-    // These use a separate worker base URL in case your features worker is deployed
-    // to a different origin than the main API. Set WORKER_BASE_URL above.
-
-    const workerFetch = async (endpoint, options = {}) => {
-        try {
-            const url = `${WORKER_BASE_URL}${endpoint}`;
-            const res = await fetch(url, options);
-            if (!res.ok) {
-                const errBody = await res.json().catch(() => ({ error: 'Worker error' }));
-                throw new Error(errBody.error || `Worker Error ${res.status}`);
-            }
-            if (res.status === 204 || res.headers.get('content-length') === '0') return null;
+            const res = await fetch(`${MAIN_API_URL}${endpoint}`, options);
+            if (!res.ok) throw new Error('API Error');
+            if (res.status === 204) return null;
             return await res.json();
-        } catch (e) {
-            console.error('Worker fetch failed', e);
-            return null;
+        } catch (e) { console.error(e); return null; }
+    };
+
+    // Generic Fetcher for the two worker APIs
+    const workerFetch = async (baseUrl, endpoint, options = {}) => {
+        try {
+            const res = await fetch(`${baseUrl}${endpoint}`, options);
+            if (!res.ok) throw new Error('Worker Error');
+            if (res.status === 204) return null;
+            return await res.json();
+        } catch (e) { return null; }
+    };
+
+    // --- Toast Helper ---
+    const showToast = (message, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">${message}</div>
+        `;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    // --- Bookmark Logic ---
+    const getBookmarks = () => JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    const isBookmarked = (id) => getBookmarks().includes(id);
+    const toggleBookmark = (id, e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        let marks = getBookmarks();
+        if (marks.includes(id)) {
+            marks = marks.filter(m => m !== id);
+            showToast('Removed from Watch Later', 'success');
+        } else {
+            marks.push(id);
+            showToast('Added to Watch Later', 'success');
+        }
+        localStorage.setItem('bookmarks', JSON.stringify(marks));
+        // Refresh UI if on bookmarks page
+        if (document.body.getAttribute('data-page-context') === 'bookmarks') loadPage('bookmarks');
+        else if (e) {
+            const btn = e.target.closest('.bookmark-btn');
+            if (btn) btn.classList.toggle('active');
         }
     };
 
-    const getViews = async (shiurId) => {
-        return await workerFetch(`/api/views/${encodeURIComponent(shiurId)}`);
+    const checkLatestPost = async () => {
+        try {
+            const posts = await workerFetch(COMMUNITY_API_URL, '/api/posts');
+            if (posts && posts.length > 0) {
+                const latest = posts[0];
+                const lastId = localStorage.getItem('lastSeenPostId');
+                if (lastId != latest.id.toString()) {
+                    document.getElementById('community-badge').style.display = 'block';
+                    document.getElementById('community-badge-mobile').style.display = 'block';
+                    showPostNotification(latest);
+                }
+            }
+        } catch (e) { console.error("Notif error:", e); }
     };
 
-    const incrementView = async (shiurId) => {
-        return await workerFetch('/api/views/increment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: shiurId })
+    // --- Search Logic ---
+    const filterAllPage = (query) => {
+        const grid = document.querySelector('.grid-videos');
+        if (!grid) return;
+
+        const filtered = allShiurimCache.filter(s => {
+            const q = query.toLowerCase();
+            return (s.title && s.title.toLowerCase().includes(q)) ||
+                (s.rabbi && s.rabbi.toLowerCase().replace('_', ' ').includes(q)) ||
+                (s.description && s.description.toLowerCase().includes(q));
         });
-    };
 
-    const getLikes = async (shiurId) => {
-        return await workerFetch(`/api/likes/${encodeURIComponent(shiurId)}`);
-    };
-
-    const toggleLike = async (shiurId) => {
-        if (!currentUser || !currentUser.email) {
-            alert('Please sign in to like a shiur.');
-            return null;
+        if (filtered.length === 0) {
+            grid.innerHTML = renderEmptyState(`No results for "${query}"`);
+        } else {
+            renderVideoGrid(filtered, grid);
         }
-        return await workerFetch(`/api/likes/${encodeURIComponent(shiurId)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
-            body: JSON.stringify({})
+    };
+
+    // --- Global Search Listener ---
+    const searchInput = document.getElementById('globalSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            // If user types, ensure we are on 'all' page or specific search view
+            if (query.length > 0 && document.body.getAttribute('data-page-context') !== 'all') {
+                loadPage('all');
+            }
+            // If on 'all' page, filter immediately
+            if (document.body.getAttribute('data-page-context') === 'all') {
+                // If query is empty, show all. If has text, filter.
+                if (query.length === 0) {
+                    renderVideoGrid(allShiurimCache, document.querySelector('.grid-videos'));
+                } else {
+                    filterAllPage(query);
+                }
+            }
         });
+    }
+
+    const showPostNotification = (post) => {
+        const toast = document.createElement('div');
+        toast.className = 'post-notification';
+        toast.innerHTML = `
+            <div class="notification-header">
+                <img src="${post.avatar_url}" class="notif-avatar">
+                <div class="notif-info">
+                    <strong>Latest Announcement</strong>
+                    <span>${post.display_name}</span>
+                </div>
+                <button class="notif-close">&times;</button>
+            </div>
+            <div class="notif-body">${post.content.length > 100 ? post.content.substring(0, 97) + '...' : post.content}</div>
+            <button class="btn-notif" onclick="loadPage('community'); this.parentElement.classList.add('hide'); setTimeout(()=>this.parentElement.remove(), 300);">Read Full Post</button>
+        `;
+        document.body.appendChild(toast);
+        toast.querySelector('.notif-close').onclick = () => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        };
+        setTimeout(() => { if (toast.parentElement) { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); } }, 10000);
     };
 
-    const getComments = async (shiurId) => {
-        return await workerFetch(`/api/comments/${encodeURIComponent(shiurId)}`);
-    };
-
-    const postComment = async (shiurId, text) => {
-        if (!currentUser || !currentUser.email) {
-            alert('Please sign in to comment.');
-            return null;
-        }
-        return await workerFetch(`/api/comments/${encodeURIComponent(shiurId)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
-            body: JSON.stringify({ text })
-        });
-    };
-
-    const deleteComment = async (shiurId, commentId) => {
-        // Admin-only action (worker should enforce admin permissions)
-        return await workerFetch(`/api/comments/${encodeURIComponent(shiurId)}/${encodeURIComponent(commentId)}`, {
-            method: 'DELETE',
-            headers: { 'X-User-Email': currentUser ? currentUser.email : '' }
-        });
-    };
-
-    const setDisplayName = async (displayName) => {
-        if (!currentUser || !currentUser.email) return null;
-        return await workerFetch(`/api/users/${encodeURIComponent(currentUser.email)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
-            body: JSON.stringify({ displayName })
-        });
-    };
-
-    const getDisplayName = async (email) => {
-        return await workerFetch(`/api/users/${encodeURIComponent(email)}`);
-    };
-
-    const banUser = async (email) => {
-        // Admin-only worker action - worker should enforce admin permissions
-        return await fetchApi('/api/ban', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser ? currentUser.email : '' },
-            body: JSON.stringify({ email })
-        });
-    };
-
-    const getAllShiurim = async (forceRefresh = false) => {
-        if (allShiurimCache.length > 0 && !forceRefresh) return allShiurimCache;
-        const data = await fetchApi('/api/all-shiurim');
+    const getAllShiurim = async (force = false) => {
+        if (allShiurimCache.length > 0 && !force) return allShiurimCache;
+        const data = await fetchMain('/api/all-shiurim');
         if (data) {
             data.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
             allShiurimCache = data;
@@ -195,89 +207,219 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     };
 
-    // --- 5. PAGE RENDERERS ---
-    const renderLoading = () => {
-        contentArea.innerHTML = `<div class="loading-skeleton"><p class="loading">Loading...</p></div>`;
-    };
+    // --- Components Renderers ---
+    const renderEmptyState = (msg) => `
+<div class="empty-state">
+    <div class="empty-icon"><i class="fas fa-search"></i></div>
+    <h3>No Items Found</h3>
+    <p style="color:var(--text-muted);">${msg}</p>
+</div>
+`;
 
-    function renderVideoGrid(videos, container) {
+    const renderVideoGrid = (videos, container) => {
         if (!videos || videos.length === 0) {
-            container.innerHTML = `<p class="info-message">No shiurim found.</p>`;
+            container.innerHTML = renderEmptyState("Try checking back later.");
             return;
         }
-
-        const fragment = document.createDocumentFragment();
-
-        videos.forEach(video => {
-            const card = document.createElement('div');
+        const frag = document.createDocumentFragment();
+        videos.forEach(v => {
+            const card = document.createElement('a');
+            card.href = '#';
             card.className = 'video-card';
-            card.dataset.shiurId = video.id;
+            card.dataset.shiurId = v.id;
+            if (v.rabbi) card.setAttribute('data-rabbi', v.rabbi);
 
-            if (video.rabbi) {
-                card.setAttribute('data-rabbi', video.rabbi);
-            }
-
-            const rabbiName = formatRabbiName(video.rabbi);
-            const videoDate = video.date ? new Date(video.date).toLocaleDateString() : 'N/A';
-            const thumbnailUrl = video.thumbnailDataUrl || video.thumbnailUrl || '';
+            const thumb = v.thumbnailDataUrl || v.thumbnailUrl || '';
+            const progress = parseFloat(localStorage.getItem(`vid_progress_${v.id}`) || 0);
+            const duration = parseFloat(localStorage.getItem(`vid_duration_${v.id}`) || 0);
+            const percent = (progress && duration) ? (progress / duration) * 100 : 0;
+            const bookmarked = isBookmarked(v.id);
 
             card.innerHTML = `
-            <img data-src="${thumbnailUrl}" 
-                 src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='169'%3E%3Crect width='300' height='169' fill='%23e5e7eb'/%3E%3C/svg%3E" 
-                 alt="${video.title}" 
-                 class="video-thumbnail" 
-                 loading="lazy">
-            <div class="video-info">
-                <h3 class="video-title">${video.title}</h3>
-                <p class="video-meta">${rabbiName} • ${videoDate}</p>
-            </div>`;
-
-            fragment.appendChild(card);
+        <div class="thumb-wrapper">
+            <img data-src="${thumb}" class="thumb-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E" alt="Thumbnail" loading="lazy">
+            <div class="rabbi-badge">
+                <span class="rabbi-dot"></span>
+                ${formatRabbiName(v.rabbi)}
+            </div>
+            ${percent > 0 ? `
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${percent}%"></div>
+                </div>
+            ` : ''}
+            <button class="bookmark-btn ${bookmarked ? 'active' : ''}" title="Watch Later">
+                <i class="${bookmarked ? 'fas' : 'far'} fa-bookmark"></i>
+            </button>
+        </div>
+        <div class="card-content">
+            <h3 class="card-title">${v.title}</h3>
+            ${v.tags ? v.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
+            <span class="card-date">${v.date ? new Date(v.date).toLocaleDateString() : ''}</span>
+        </div>
+    `;
+            card.querySelector('.bookmark-btn').onclick = (e) => toggleBookmark(v.id, e);
+            frag.appendChild(card);
         });
-
         container.innerHTML = '';
-        container.appendChild(fragment);
+        container.appendChild(frag);
+        container.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img));
+    };
 
-        container.querySelectorAll('img[data-src]').forEach(img => {
-            imageObserver.observe(img);
-        });
-    }
-
+    // --- Page Logic ---
     const pages = {
         home: async () => {
-            const allShiurim = await getAllShiurim();
-            if (!allShiurim) return;
-            const recentShiurim = allShiurim.slice(0, 10);
+            const data = await getAllShiurim();
+            if (!data) return;
+            const recent = data.slice(0, 8);
 
             contentArea.innerHTML = `
-                <section class="hero">
-                    <div class="hero-inner">
-                        <h1 class="hero-title">Welcome to Beis Anytime</h1>
-                        <p class="hero-sub">Watch shiurim from our rabbis anytime — new talks added regularly. Browse recent shiurim below or explore all shiurim.</p>
-                        <div class="hero-actions">
-                            <button id="browseAllBtn" class="btn-ghost">Browse All Shiurim</button>
-                        </div>
-                    </div>
-                </section>
+        <section class="hero-card">
+            <h1>Torah Anytime, Anywhere.</h1>
+            <p style="max-width: 600px; font-size: 1.1rem; opacity: 0.8;">Explore a vast library of Shiurim from our esteemed Rabbis. Watch, listen, and grow.</p>
+            <div class="hero-actions">
+                <button class="btn btn-primary" onclick="loadPage('all')">Browse Library</button>
+            </div>
+        </section>
+        
+        <h2 style="margin-bottom: 24px;">Latest Shiurim</h2>
+        <div class="grid-videos"></div>
+    `;
+            renderVideoGrid(recent, contentArea.querySelector('.grid-videos'));
+        },
 
-                <section class="recent-videos">
-                    <h2 class="page-title">Most Recent Shiurim</h2>
-                    <div class="video-grid"></div>
-                </section>
+        all: async () => {
+            const data = await getAllShiurim();
+            contentArea.innerHTML = `
+                <div class="mobile-search-container">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="mobileSearch" class="search-input" placeholder="Search shiurim..." value="${document.getElementById('globalSearch')?.value || ''}">
+                    </div>
+                </div>
+                <h1 style="margin-bottom:30px;">All Shiurim</h1>
+                <div class="grid-videos"></div>
             `;
 
-            // Wire hero CTA
-            const browseAllBtn = document.getElementById('browseAllBtn');
-            if (browseAllBtn) browseAllBtn.addEventListener('click', (e) => { e.preventDefault(); loadPage('all'); });
+            // Link mobile search to global search
+            const mSearch = document.getElementById('mobileSearch');
+            if (mSearch) {
+                mSearch.oninput = (e) => {
+                    const val = e.target.value;
+                    const gSearch = document.getElementById('globalSearch');
+                    if (gSearch) gSearch.value = val;
+                    filterAllPage(val);
+                };
+            }
 
-            renderVideoGrid(recentShiurim, contentArea.querySelector('.video-grid'));
+            const searchVal = document.getElementById('globalSearch')?.value.trim();
+            if (searchVal) {
+                filterAllPage(searchVal);
+            } else {
+                renderVideoGrid(data, contentArea.querySelector('.grid-videos'));
+            }
         },
-        all: async () => {
-            const allShiurim = await getAllShiurim();
-            if (!allShiurim) return;
-            contentArea.innerHTML = `<h1 class="page-title">All Shiurim</h1><div class="video-grid"></div>`;
-            renderVideoGrid(allShiurim, contentArea.querySelector('.video-grid'));
+
+        bookmarks: async () => {
+            const marks = getBookmarks();
+            const data = await getAllShiurim();
+            const filtered = data.filter(s => marks.includes(s.id));
+            contentArea.innerHTML = `<h1 style="margin-bottom:30px;">Watch Later</h1><div class="grid-videos"></div>`;
+            renderVideoGrid(filtered, contentArea.querySelector('.grid-videos'));
         },
+
+        community: async () => {
+            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+
+            contentArea.innerHTML = `
+        <div class="feed-container">
+            <div style="margin-bottom:30px; display:flex; justify-content:space-between; align-items:center;">
+                <h1>Community Feed</h1>
+                <button class="btn btn-secondary" onclick="loadPage('community')"><i class="fas fa-sync"></i> Refresh</button>
+            </div>
+            
+            ${isAdmin ? `
+            <div class="post-composer">
+                <h3 style="margin-top:0; margin-bottom:12px; font-size:1rem;">Post Announcement</h3>
+                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                    <img src="${currentUser.picture}" style="width:40px; height:40px; border-radius:50%;">
+                    <textarea id="postInput" placeholder="Write an official announcement..." style="flex:1; border:none; background:transparent; resize:none; font-size:1rem; outline:none;" rows="3"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end;">
+                    <button id="postSubmitBtn" class="btn btn-primary">Post</button>
+                </div>
+            </div>
+            ` : `
+            <div style="margin-bottom:20px; padding:15px; background:var(--bg-surface-hover); border-radius:8px; border:1px solid var(--border-light); text-align:center; color:var(--text-muted); font-size:0.9rem;">
+                <i class="fas fa-bullhorn"></i> Official Announcements and Updates
+            </div>
+            `}
+            
+            <div id="postsList">
+                <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
+                <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
+            </div>
+        </div>
+    `;
+
+            if (isAdmin) {
+                document.getElementById('postSubmitBtn').onclick = async () => {
+                    const txt = document.getElementById('postInput').value.trim();
+                    if (!txt) return;
+
+                    const btn = document.getElementById('postSubmitBtn');
+                    btn.disabled = true;
+                    btn.textContent = "Posting...";
+
+                    await workerFetch(COMMUNITY_API_URL, '/api/posts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: txt, user: currentUser })
+                    });
+
+                    loadPage('community');
+                };
+            }
+
+            const posts = await workerFetch(COMMUNITY_API_URL, '/api/posts');
+            const list = document.getElementById('postsList');
+
+            if (posts && posts.length > 0) {
+                localStorage.setItem('lastSeenPostId', posts[0].id.toString());
+                document.getElementById('community-badge').style.display = 'none';
+                document.getElementById('community-badge-mobile').style.display = 'none';
+            }
+
+            if (!posts || !posts.length) {
+                list.innerHTML = renderEmptyState("No announcements yet.");
+                return;
+            }
+
+            list.innerHTML = posts.map(p => `
+        <div class="post-card">
+            <div class="post-header">
+                <img src="${p.avatar_url}" class="post-avatar">
+                <div class="post-meta">
+                    <span class="post-author">${p.display_name} <i class="fas fa-check-circle" style="color:var(--color-accent); font-size:0.8rem; margin-left:4px;" title="Verified Admin"></i></span>
+                    <span class="post-time">${new Date(p.created_at * 1000).toLocaleString()}</span>
+                </div>
+            </div>
+            <div class="post-content">${p.content}</div>
+            ${(isAdmin) ? `
+                <div class="post-actions">
+                     <button class="btn btn-secondary" style="color:red; font-size:0.8rem; padding:6px 12px;" onclick="deletePost(${p.id})">Delete</button>
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+
+            window.deletePost = async (id) => {
+                if (confirm('Delete post?')) {
+                    await workerFetch(COMMUNITY_API_URL, `/api/posts/${id}`, { method: 'DELETE', headers: { 'X-User-Email': currentUser.email } });
+                    loadPage('community');
+                }
+            };
+        },
+
         speakers: async () => {
             const speakers = [
                 { id: 'Rabbi_Hartman', name: 'Rabbi Hartman', icon: 'fa-user-tie' },
@@ -286,716 +428,538 @@ document.addEventListener('DOMContentLoaded', () => {
                 { id: 'guests', name: 'Guest Speakers', icon: 'fa-users' }
             ];
 
-            contentArea.innerHTML = `
-                <h1 class="page-title">Our Speakers</h1>
-                <div class="speakers-grid"></div>`;
-            
-            const speakersGrid = contentArea.querySelector('.speakers-grid');
-            const fragment = document.createDocumentFragment();
+            contentArea.innerHTML = `<h1 style="margin-bottom:30px;">Speakers</h1><div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:24px;" id="speakerGrid"></div>`;
 
-            speakers.forEach(speaker => {
-                const card = document.createElement('a');
-                card.href = '#';
-                card.className = 'speaker-card';
-                card.dataset.page = 'speaker';
-                card.dataset.rabbi = speaker.id;
-
-                card.innerHTML = `
-                    <div class="speaker-card-icon">
-                        <i class="fas ${speaker.icon}"></i>
-                    </div>
-                    <div class="speaker-card-content">
-                        <span class="speaker-name">${speaker.name}</span>
-                    </div>`;
-
-                fragment.appendChild(card);
-            });
-
-            speakersGrid.appendChild(fragment);
-
-            // Add click event listeners to speaker cards
-            speakersGrid.querySelectorAll('.speaker-card').forEach(card => {
-                card.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const rabbi = card.dataset.rabbi;
-                    loadPage('speaker', { rabbi: rabbi });
-                });
+            const grid = document.getElementById('speakerGrid');
+            speakers.forEach(s => {
+                const el = document.createElement('a');
+                el.href = '#';
+                el.className = 'video-card';
+                el.style.alignItems = 'center';
+                el.style.padding = '40px';
+                el.style.textAlign = 'center';
+                el.setAttribute('data-rabbi', s.id);
+                el.innerHTML = `
+            <div style="width:80px; height:80px; background:var(--bg-surface-hover); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:16px; font-size:2rem; color:var(--text-muted);">
+                <i class="fas ${s.icon}"></i>
+            </div>
+            <h3 style="margin:0;">${s.name}</h3>
+        `;
+                el.onclick = (e) => { e.preventDefault(); loadPage('speaker', { rabbi: s.id }); };
+                grid.appendChild(el);
             });
         },
+
         speaker: async (params) => {
-            const allShiurim = await getAllShiurim();
-            if (!allShiurim) return;
-            const filteredShiurim = allShiurim.filter(shiur =>
-                shiur.rabbi && params.rabbi && shiur.rabbi.toLowerCase() === params.rabbi.toLowerCase()
-            );
-            const displayRabbiName = formatRabbiName(params.rabbi);
+            const data = await getAllShiurim();
+            const filtered = data.filter(s => s.rabbi && s.rabbi.toLowerCase() === params.rabbi.toLowerCase());
             contentArea.innerHTML = `
-                <div class="rabbi-header" data-rabbi="${params.rabbi}">
-                    <h1>Shiurim from ${displayRabbiName}</h1>
-                    <p>${filteredShiurim.length} shiurim available</p>
-                </div>
-                <div class="video-grid"></div>`;
-            renderVideoGrid(filteredShiurim, contentArea.querySelector('.video-grid'));
+        <div style="margin-bottom: 30px;">
+            <h1>${formatRabbiName(params.rabbi)}</h1>
+            <p>${filtered.length} Shiurim available</p>
+        </div>
+        <div class="grid-videos"></div>
+    `;
+            renderVideoGrid(filtered, contentArea.querySelector('.grid-videos'));
         },
+
         view_shiur: async (params) => {
-            const shiur = await fetchApi(`/api/shiurim/id/${params.id}`);
-            if (!shiur) return;
-            const rabbiName = formatRabbiName(shiur.rabbi);
-            const videoDate = shiur.date ? new Date(shiur.date).toLocaleDateString() : 'N/A';
+            const shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
+            if (!shiur) { contentArea.innerHTML = renderEmptyState("Shiur unavailable."); return; }
+
             contentArea.innerHTML = `
-                <a href="#" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Videos</a>
-                <div class="shiur-player-container">
-                    <div class="video-player-wrapper">
-                        <video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || shiur.thumbnailUrl || ''}" src="${shiur.playbackUrl}"></video>
+        <div style="max-width:1300px; margin:0 auto; display:grid; grid-template-columns: 1fr 350px; gap:40px;">
+            <div class="main-video-column">
+                <div class="flex-between" style="margin-bottom:20px;">
+                    <button class="btn btn-secondary" onclick="window.history.back()">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <div style="display:flex; gap:12px;">
+                        <button class="btn btn-secondary" id="shareBtn" title="Share">
+                            <i class="fas fa-share"></i> Share
+                        </button>
+                        <button class="btn btn-secondary" id="cinemaToggle" title="Cinema Mode">
+                            <i class="fas fa-expand"></i>
+                        </button>
                     </div>
-                    <div class="shiur-details" data-rabbi="${shiur.rabbi}">
-                        <div class="shiur-title-row">
-                            <h1>${shiur.title}</h1>
-                            <div class="shiur-title-actions">
-                                <button id="likeBtn" class="btn-like like-inline" title="Like">👍 <span id="likes-count">0</span></button>
+                </div>
+                
+                <div class="video-container">
+                    <video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || ''}" src="${shiur.playbackUrl}" style="width:100%; height:100%;"></video>
+                </div>
+                
+                <div class="video-details" id="vDetails">
+                    <div class="flex-between" style="flex-wrap:wrap; gap:16px; margin-bottom:16px;">
+                        <div>
+                            <h1 style="font-size:1.5rem; margin-bottom:8px; color:var(--text-main);">${shiur.title}</h1>
+                            <div style="display:flex; gap:12px; align-items:center;">
+                                <span class="rabbi-badge" style="position:static; margin:0;">
+                                    <span class="rabbi-dot"></span>${formatRabbiName(shiur.rabbi)}
+                                </span>
+                                <span style="color:var(--text-muted); font-size:0.9rem;">${new Date(shiur.date).toLocaleDateString()}</span>
+                                <span id="views-count" style="color:var(--text-muted); font-size:0.9rem; margin-left:8px; display:none;"><i class="fas fa-eye"></i> <span id="views-num">0</span></span>
                             </div>
                         </div>
-                        <p class="shiur-details-meta">By ${rabbiName} on ${videoDate}</p>
-                        <p class="shiur-description">${shiur.description || ''}</p>
+                        <button id="likeBtn" class="btn btn-secondary">
+                            <i class="far fa-thumbs-up"></i> <span id="likes-count" style="margin-left:6px;">0</span>
+                        </button>
+                    </div>
+                    <p style="color:var(--text-muted); line-height:1.6;">${shiur.description || 'No description provided.'}</p>
+                    <div style="margin-top:12px;">
+                        ${shiur.tags ? shiur.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
                     </div>
                 </div>
 
-                <div class="shiur-interactions">
-                    <div class="interactions-stats">
-                        <span id="views-count" style="display: none; margin-right: 12px;">Views: —</span>
-                    </div>
-
-                    <div id="display-name-area" style="margin-top:12px;">
-                        <!-- Display-name controls injected here when signed in -->
-                    </div>
-
-                    <div id="comments-section" style="margin-top:18px;">
-                        <h3>Comments</h3>
-                        <div id="comments-list"></div>
-                        <div id="comment-form-area" style="margin-top:10px;">
-                            <!-- comment form inserted here for signed-in users -->
+                <div class="video-comments-area" id="vComments">
+                    <h2 style="font-size:1.2rem; margin-bottom:20px;">Comments</h2>
+                    
+                    ${currentUser ? `
+                    <div class="comment-composer">
+                        <div style="display:flex; gap:12px;">
+                            <img src="${currentUser.picture}" class="comment-avatar">
+                            <div style="flex:1;">
+                                <textarea id="commentInput" placeholder="Add a comment..." style="width:100%; border:1px solid var(--border-light); background:var(--bg-body); resize:none; font-size:0.9rem; outline:none; border-radius:8px; padding:10px;" rows="2"></textarea>
+                                <div style="text-align:right; margin-top:8px;">
+                                    <button id="commentSubmitBtn" class="btn btn-primary" style="font-size:0.8rem; padding:6px 16px;">Post</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>`;
+                    ` : `
+                    <div style="padding:20px; text-align:center; color:var(--text-muted); border:1px dashed var(--border-light); border-radius:8px; margin-bottom:20px;">
+                        Sign in to join the conversation.
+                    </div>
+                    `}
 
-            // --- interactions wiring ---
-            const videoEl = document.getElementById('player-video');
-            let viewIncremented = false;
+                    <div id="commentsList">
+                        <div class="skeleton" style="height:60px; margin-bottom:12px;"></div>
+                    </div>
+                </div>
+            </div>
 
-            const refreshViews = async () => {
-                try {
-                    const res = await getViews(params.id);
-                    const el = document.getElementById('views-count');
-                    if (!res || typeof res.count === 'undefined') {
-                        el.style.display = 'none';
-                        return;
+            <aside class="related-column">
+                <h3 style="margin-top:0; margin-bottom:20px; font-size:1.1rem;">Up Next</h3>
+                <div id="relatedList" class="related-shiurim-container">
+                    <div class="skeleton" style="height:80px;"></div>
+                    <div class="skeleton" style="height:80px;"></div>
+                </div>
+            </aside>
+        </div>
+    `;
+
+            // --- Enhanced Video Player Logic ---
+            const vid = document.getElementById('player-video');
+
+            vid.onloadedmetadata = () => {
+                localStorage.setItem(`vid_duration_${params.id}`, vid.duration);
+            };
+
+            // 1. Resume Playback
+            const savedTime = localStorage.getItem(`vid_progress_${params.id}`);
+            if (savedTime) {
+                vid.currentTime = parseFloat(savedTime);
+            }
+
+            vid.addEventListener('timeupdate', () => {
+                localStorage.setItem(`vid_progress_${params.id}`, vid.currentTime);
+            });
+
+            // 2. Share
+            document.getElementById('shareBtn').onclick = () => {
+                const url = window.location.href;
+                const shareModal = document.createElement('div');
+                shareModal.className = 'share-modal-overlay';
+                shareModal.innerHTML = `
+                    <div class="share-modal">
+                        <h3 style="margin-top:0;">Share Shiur</h3>
+                        <p style="font-size:0.9rem; color:var(--text-muted);">Copy link to share this Torah.</p>
+                        <input type="text" value="${url}" readonly style="margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+                            <input type="checkbox" id="shareAtTime" style="width:auto;">
+                            <label for="shareAtTime" style="font-size:0.85rem;">Start at ${Math.floor(vid.currentTime)}s</label>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:12px;">
+                            <button class="btn btn-secondary" onclick="this.closest('.share-modal-overlay').remove()">Cancel</button>
+                            <button class="btn btn-primary" id="copyShareLink">Copy Link</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(shareModal);
+
+                document.getElementById('copyShareLink').onclick = () => {
+                    let finalUrl = url;
+                    if (document.getElementById('shareAtTime').checked) {
+                        const connector = finalUrl.includes('?') ? '&' : '?';
+                        finalUrl += `${connector}t=${Math.floor(vid.currentTime)}`;
                     }
-                    // show views only to admin user
-                    if (currentUser && currentUser.email === ADMIN_EMAIL) {
-                        el.textContent = `Views: ${res.count}`;
-                        el.style.display = 'inline-block';
-                    } else {
-                        el.style.display = 'none';
-                    }
-                } catch (e) {
-                    console.error('Failed to refresh views', e);
+                    navigator.clipboard.writeText(finalUrl);
+                    showToast('Link copied to clipboard');
+                    shareModal.remove();
+                };
+            };
+
+            // Check for timestamp in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const startTime = urlParams.get('t');
+            if (startTime) vid.currentTime = parseFloat(startTime);
+
+            // 3. Cinema Mode
+            const cinemaBtn = document.getElementById('cinemaToggle');
+            if (cinemaBtn) {
+                cinemaBtn.onclick = () => {
+                    document.body.classList.toggle('cinema-mode');
+                    const isCinema = document.body.classList.contains('cinema-mode');
+                    cinemaBtn.innerHTML = isCinema ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
+                };
+            }
+
+            // 4. Related & Up Next
+            const allData = await getAllShiurim();
+            const related = allData
+                .filter(s => s.id !== params.id)
+                .sort((a, b) => (a.rabbi === shiur.rabbi ? -1 : 1) - (b.rabbi === shiur.rabbi ? -1 : 1))
+                .slice(0, 10);
+
+            const rList = document.getElementById('relatedList');
+            if (rList) {
+                rList.innerHTML = related.map(r => `
+                <a href="#" class="related-card" onclick="loadPage('view_shiur', {id:'${r.id}'}); return false;">
+                    <img data-src="${r.thumbnailDataUrl || r.thumbnailUrl}" class="related-thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E">
+                    <div class="related-info">
+                        <h4>${r.title}</h4>
+                        <span>${formatRabbiName(r.rabbi)}</span>
+                    </div>
+                </a>
+            `).join('');
+                rList.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img));
+            }
+
+            // 5. Shortcuts
+            const handleShortcuts = (e) => {
+                if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+                switch (e.key.toLowerCase()) {
+                    case ' ': case 'k': e.preventDefault(); vid.paused ? vid.play() : vid.pause(); break;
+                    case 'arrowright': case 'l': vid.currentTime += 5; break;
+                    case 'arrowleft': case 'j': vid.currentTime -= 5; break;
+                    case 'f': if (document.fullscreenElement) document.exitFullscreen(); else vid.requestFullscreen(); break;
                 }
+            };
+            document.addEventListener('keydown', handleShortcuts);
+
+            // 6. Views
+            const getViews = async () => workerFetch(VIDEO_API_URL, `/api/views/${encodeURIComponent(params.id)}`);
+            const viewRes = await getViews();
+            if (viewRes && viewRes.count !== undefined) {
+                document.getElementById('views-count').style.display = 'inline-block';
+                document.getElementById('views-num').textContent = viewRes.count;
+            }
+
+            vid.addEventListener('play', () => {
+                workerFetch(VIDEO_API_URL, '/api/views/increment', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: params.id }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }, { once: true });
+
+            // 2. Likes
+            const getLikes = async () => workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`);
+            const toggleLike = async () => {
+                if (!currentUser) return showToast('Please sign in', 'error');
+                await workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`, {
+                    method: 'POST',
+                    headers: { 'X-User-Email': currentUser.email }
+                });
             };
 
             const refreshLikes = async () => {
-                try {
-                    const res = await getLikes(params.id);
-                    const likesCountEl = document.getElementById('likes-count');
-                    const likeBtn = document.getElementById('likeBtn');
-                    if (!res) return;
-                    likesCountEl.textContent = res.count || 0;
-                    if (res.userLiked) {
-                        likeBtn.classList.add('liked');
+                const likeData = await getLikes();
+                if (likeData) {
+                    const btn = document.getElementById('likeBtn');
+                    document.getElementById('likes-count').textContent = likeData.count;
+                    if (likeData.userLiked) {
+                        btn.style.color = 'var(--color-accent)';
+                        btn.querySelector('i').className = 'fas fa-thumbs-up';
                     } else {
-                        likeBtn.classList.remove('liked');
+                        btn.style.color = 'inherit';
+                        btn.querySelector('i').className = 'far fa-thumbs-up';
                     }
-                } catch (e) { console.error(e); }
+                }
             };
+            refreshLikes();
+
+            document.getElementById('likeBtn').onclick = async function () {
+                await toggleLike();
+                refreshLikes();
+            };
+
+            // 3. Comments
+            const getComments = async () => workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`);
 
             const refreshComments = async () => {
-                try {
-                    const res = await getComments(params.id);
-                    const list = document.getElementById('comments-list');
-                    list.innerHTML = '';
-                    if (!res || !Array.isArray(res.comments)) return;
-                    res.comments.forEach(c => {
-                        const item = document.createElement('div');
-                        item.className = 'comment-item';
-                        const time = new Date(c.createdAt).toLocaleString();
-                        item.innerHTML = `<div class="comment-meta"><strong>${c.displayName || c.email}</strong> <span class="comment-time">${time}</span></div><div class="comment-text">${escapeHtml(c.text)}</div>`;
-                        if (currentUser && currentUser.email === ADMIN_EMAIL) {
-                            const btnDel = document.createElement('button');
-                            btnDel.className = 'btn btn-danger btn-sm';
-                            btnDel.textContent = 'Delete';
-                            btnDel.style.marginLeft = '8px';
-                            btnDel.addEventListener('click', async () => {
-                                if (confirm('Delete this comment?')) {
-                                    await deleteComment(params.id, c.id);
-                                    refreshComments();
-                                }
-                            });
-                            const btnBan = document.createElement('button');
-                            btnBan.className = 'btn btn-secondary btn-sm';
-                            btnBan.textContent = 'Ban User';
-                            btnBan.style.marginLeft = '6px';
-                            btnBan.addEventListener('click', async () => {
-                                if (confirm(`Ban ${c.email} from commenting?`)) {
-                                    await banUser(c.email);
-                                    refreshComments();
-                                }
-                            });
-                            item.appendChild(btnDel);
-                            item.appendChild(btnBan);
-                        }
-                        list.appendChild(item);
-                    });
-                } catch (e) { console.error(e); }
+                const res = await getComments();
+                const list = document.getElementById('commentsList');
+                list.innerHTML = '';
+
+                if (!res || !res.comments || res.comments.length === 0) {
+                    list.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No comments yet.</p>`;
+                    return;
+                }
+
+                list.innerHTML = res.comments.map(c => `
+            <div class="comment-item" style="padding:16px;">
+                <div class="comment-header" style="margin-bottom:8px;">
+                    <div style="font-weight:700; font-size:0.9rem; color:var(--text-main);">${c.displayName || c.email}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div class="comment-text" style="font-size:0.95rem;">${c.text}</div>
+                ${(currentUser && currentUser.email === ADMIN_EMAIL) ? `
+                    <button onclick="deleteComment('${c.id}')" style="background:none; border:none; color:red; font-size:0.75rem; cursor:pointer; margin-top:8px;">Delete</button>
+                ` : ''}
+            </div>
+        `).join('');
             };
 
-            // Escaped text helper
-            function escapeHtml(str) {
-                if (!str) return '';
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
+            if (currentUser) {
+                document.getElementById('commentSubmitBtn').onclick = async () => {
+                    const txt = document.getElementById('commentInput').value.trim();
+                    if (!txt) return;
+
+                    await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
+                        body: JSON.stringify({ text: txt })
+                    });
+
+                    document.getElementById('commentInput').value = '';
+                    refreshComments();
+                };
             }
 
-            videoEl.addEventListener('play', async () => {
-                if (!viewIncremented) {
-                    viewIncremented = true;
-                    try {
-                        await incrementView(params.id);
-                    } catch (e) { console.error('increment view failed', e); }
-                    refreshViews();
-                }
-            }, { once: true });
-
-            document.getElementById('likeBtn').addEventListener('click', async () => {
-                await toggleLike(params.id);
-                await refreshLikes();
-            });
-
-            // comment form and display-name area
-            const displayNameArea = document.getElementById('display-name-area');
-            const commentFormArea = document.getElementById('comment-form-area');
-
-            const renderSignedInControls = async () => {
-                displayNameArea.innerHTML = '';
-                commentFormArea.innerHTML = '';
-                if (currentUser && currentUser.email) {
-                    // fetch display name
-                    const dn = await getDisplayName(currentUser.email).catch(() => null);
-                    const currentDisplay = dn && dn.displayName ? dn.displayName : currentUser.name || '';
-                    displayNameArea.innerHTML = `
-                        <label style="font-size:12px;">Display name</label>
-                        <div style="display:flex; gap:8px; margin-top:6px;">
-                            <input id="displayNameInput" value="${escapeHtml(currentDisplay)}" placeholder="Display name" />
-                            <button id="saveDisplayNameBtn" class="btn btn-primary btn-sm">Save</button>
-                        </div>`;
-
-                    document.getElementById('saveDisplayNameBtn').addEventListener('click', async () => {
-                        const v = document.getElementById('displayNameInput').value.trim();
-                        if (v.length === 0) return alert('Display name may not be empty');
-                        await setDisplayName(v);
-                        alert('Display name saved');
-                        refreshComments();
+            window.deleteComment = async (cid) => {
+                if (confirm('Delete comment?')) {
+                    await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}/${cid}`, {
+                        method: 'DELETE',
+                        headers: { 'X-User-Email': currentUser.email }
                     });
-
-                    commentFormArea.innerHTML = `
-                        <form id="commentForm">
-                            <textarea id="commentText" rows="3" placeholder="Write a respectful comment..."></textarea>
-                            <div style="margin-top:6px;"><button class="btn btn-primary" type="submit">Post Comment</button></div>
-                        </form>`;
-
-                    document.getElementById('commentForm').addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        const text = document.getElementById('commentText').value.trim();
-                        if (!text) return alert('Comment cannot be empty');
-                        await postComment(params.id, text);
-                        document.getElementById('commentText').value = '';
-                        await refreshComments();
-                    });
-                } else {
-                    displayNameArea.innerHTML = '<div style="font-size:13px; color:var(--color-text-secondary)">Sign in to set a display name and post comments.</div>';
-                    commentFormArea.innerHTML = '';
+                    refreshComments();
                 }
             };
 
-            // initial load
-            await refreshViews();
-            await refreshLikes();
-            await renderSignedInControls();
-            await refreshComments();
+            refreshComments();
         },
+
         admin: async () => {
-            if (sessionStorage.getItem('uploadAuthorized') !== 'true') {
-                return renderPasswordModal('admin');
-            }
-            const allShiurim = await fetchApi('/api/admin/shiurim');
+            if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('admin');
+            const data = await fetchMain('/api/admin/shiurim');
             contentArea.innerHTML = `
-                <h1 class="page-title">Admin Panel - All Shiurim</h1>
-                <div class="admin-table-container">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Thumbnail</th>
-                                <th>Title</th>
-                                <th>Speaker</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>`;
-            const tbody = contentArea.querySelector('tbody');
-            if (allShiurim) {
-                allShiurim.forEach(shiur => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><img src="${shiur.thumbnailDataUrl || ''}" style="width: 60px; border-radius: 4px;" loading="lazy"></td>
-                        <td>${shiur.title}</td>
-                        <td>${formatRabbiName(shiur.rabbi)}</td>
-                        <td>${new Date(shiur.date || Date.now()).toLocaleDateString()}</td>
-                        <td><button class="btn btn-danger" data-delete-id="${shiur.id}" data-delete-title="${shiur.title}">Delete</button></td>`;
-                    tbody.appendChild(tr);
-                });
-            }
+        <div class="flex-between" style="margin-bottom:24px;">
+            <h1>Admin Dashboard</h1>
+            <button class="btn btn-primary" onclick="loadPage('upload')">Upload New</button>
+        </div>
+        <div style="background:var(--bg-surface-solid); border:1px solid var(--border-light); border-radius:12px; overflow:hidden;">
+            ${data && data.length ? data.map(s => `
+                <div style="padding:16px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <img src="${s.thumbnailDataUrl || ''}" style="width:60px; height:34px; object-fit:cover; border-radius:4px;">
+                        <div>
+                            <div style="font-weight:600;">${s.title}</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);">${formatRabbiName(s.rabbi)}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" style="padding:6px 12px; color:red; border-color:transparent;" data-del="${s.id}">Delete</button>
+                </div>
+            `).join('') : '<div style="padding:20px;">No shiurim.</div>'}
+        </div>
+    `;
+            contentArea.querySelectorAll('[data-del]').forEach(b => {
+                b.onclick = async () => {
+                    if (confirm('Delete?')) {
+                        await fetchMain(`/api/admin/shiurim/${b.dataset.del}`, { method: 'DELETE' });
+                        loadPage('admin');
+                    }
+                }
+            });
         },
+
         upload: () => {
-            if (sessionStorage.getItem('uploadAuthorized') !== 'true') {
-                renderPasswordModal('upload');
-            } else {
-                renderUploadForm();
-            }
+            if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('upload');
+            contentArea.innerHTML = `
+        <div style="max-width:600px; margin:0 auto; background:var(--bg-surface-solid); padding:32px; border-radius:var(--radius-lg); border:1px solid var(--border-light);">
+            <h2 style="margin-bottom:24px;">Upload Shiur</h2>
+            <form id="upForm" style="display:grid; gap:16px;">
+                <div><label>Speaker</label><select id="rabbi"><option value="Rabbi_Hartman">Rabbi Hartman</option><option value="Rabbi_Rosenfeld">Rabbi Rosenfeld</option><option value="Rabbi_Golker">Rabbi Golker</option><option value="guests">Guest</option></select></div>
+                <div><label>Title</label><input type="text" id="title" required></div>
+                <div><label>Date</label><input type="date" id="date" required></div>
+                <div><label>File</label><input type="file" id="fInput" accept="video/*,audio/*" required></div>
+                <div id="prev" class="hidden"><video id="vidP" controls style="width:100%; border-radius:8px; margin-top:10px;"></video><button type="button" id="cap" class="btn btn-secondary" style="margin-top:8px;">Capture Thumb</button></div>
+                <button type="submit" class="btn btn-primary" id="sBtn">Upload</button>
+            </form>
+        </div>
+     `;
+            const form = document.getElementById('upForm');
+            const fInput = document.getElementById('fInput');
+            const vidP = document.getElementById('vidP');
+
+            fInput.onchange = (e) => {
+                if (e.target.files[0]) {
+                    vidP.src = URL.createObjectURL(e.target.files[0]);
+                    document.getElementById('prev').classList.remove('hidden');
+                }
+            };
+
+            document.getElementById('cap').onclick = () => {
+                const c = document.createElement('canvas');
+                c.width = vidP.videoWidth; c.height = vidP.videoHeight;
+                c.getContext('2d').drawImage(vidP, 0, 0);
+                capturedThumbnailDataUrl = c.toDataURL('image/jpeg', 0.8);
+                alert('Thumbnail Captured');
+            };
+
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('sBtn');
+                btn.disabled = true; btn.textContent = 'Uploading...';
+
+                try {
+                    const file = fInput.files[0];
+                    if (!capturedThumbnailDataUrl) throw new Error('Capture thumbnail first');
+
+                    const prep = await fetch(`${MAIN_API_URL}/api/admin/prepare-upload`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: document.getElementById('title').value,
+                            rabbi: document.getElementById('rabbi').value,
+                            date: document.getElementById('date').value,
+                            thumbnailDataUrl: capturedThumbnailDataUrl,
+                            fileName: file.name
+                        })
+                    });
+                    const { signedUrl } = await prep.json();
+
+                    await fetch(signedUrl, { method: 'PUT', body: file });
+                    alert('Uploaded');
+                    loadPage('home');
+                } catch (err) { alert(err.message); btn.disabled = false; }
+            };
         }
     };
 
-    // --- 6. NAVIGATION & ROUTING ---
-    const loadPage = (page, params = {}) => {
-        renderLoading();
-        const handler = pages[page] || pages.home;
-        handler(params);
-        window.location.hash = `${page}${params.id ? `/${params.id}` : ''}${params.rabbi ? `/${params.rabbi}` : ''}`;
-        navLinks.forEach(l => l.classList.remove('active'));
-        const activeLink = document.querySelector(`.nav-link[data-page="${page}"]` + (params.rabbi ? `[data-rabbi="${params.rabbi}"]` : ''));
-        if (activeLink) activeLink.classList.add('active');
-    };
-
-    // --- 7. GOOGLE LOGIN & UI ---
-    function updateLoginUI(user) {
-        currentUser = user;
-        const adminLink = document.getElementById('adminLink');
-        const uploadLink = document.getElementById('uploadLink');
-
-        if (currentUser) {
-            if (googleSignInBtn) googleSignInBtn.style.display = 'none';
-            profileDropdown.style.display = 'block';
-            document.getElementById('userAvatar').src = currentUser.picture;
-            document.getElementById('userName').textContent = currentUser.name;
-            document.getElementById('userEmail').textContent = currentUser.email;
-
-            if (adminLink) adminLink.style.display = 'flex';
-
-            if (currentUser.email === ADMIN_EMAIL) {
-                if (uploadLink) uploadLink.style.display = 'flex';
-            } else {
-                if (uploadLink) uploadLink.style.display = 'none';
-            }
-        } else {
-            if (googleSignInBtn) googleSignInBtn.style.display = 'block';
-            profileDropdown.style.display = 'none';
-            if (adminLink) adminLink.style.display = 'none';
-            if (uploadLink) uploadLink.style.display = 'none';
-        }
-    }
-
-    // --- 8. UPLOAD FORM & PASSWORD LOGIC ---
-    function renderPasswordModal(targetPage = 'upload') {
+    function renderPasswordModal(target) {
         contentArea.innerHTML = `
-            <h1 class="page-title">Admin Access Required</h1>
-            <form class="upload-form" id="passwordForm">
-                <div class="input-group">
-                    <label for="password">Enter Admin Password</label>
-                    <input type="password" id="password" required>
-                    <p id="passwordError" style="color: var(--color-danger); display: none;">Incorrect password.</p>
-                </div>
-                <div class="form-actions"><button type="submit" class="btn btn-primary">Submit</button></div>
-            </form>`;
-        document.getElementById('passwordForm').addEventListener('submit', e => {
-            e.preventDefault();
-            const passwordInput = document.getElementById('password');
-            if (passwordInput.value === UPLOAD_PASSWORD) {
+    <div style="max-width:400px; margin:60px auto; background:var(--bg-surface-solid); padding:30px; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+        <h3>Admin Access</h3>
+        <input type="password" id="pwd" placeholder="Password" style="margin:16px 0;">
+        <button id="pwdBtn" class="btn btn-primary">Unlock</button>
+    </div>
+`;
+        document.getElementById('pwdBtn').onclick = () => {
+            if (document.getElementById('pwd').value === UPLOAD_PASSWORD) {
                 sessionStorage.setItem('uploadAuthorized', 'true');
-                loadPage(targetPage);
-            } else {
-                document.getElementById('passwordError').style.display = 'block';
-                passwordInput.value = '';
-            }
-        });
+                loadPage(target);
+            } else alert('Incorrect');
+        };
     }
 
-    function renderUploadForm() {
-        contentArea.innerHTML = `
-            <h1 class="page-title">Upload a Shiur</h1>
-            <form class="upload-form" id="uploadForm">
-                <div class="form-grid">
-                    <div class="input-group">
-                        <label for="rabbi">Speaker</label>
-                        <select id="rabbi" required>
-                            <option value="" disabled selected>Select...</option>
-                            <option value="Rabbi_Hartman">Rabbi Hartman</option>
-                            <option value="Rabbi_Rosenfeld">Rabbi Rosenfeld</option>
-                            <option value="Rabbi_Golker">Rabbi Golker</option>
-                            <option value="guests">Guest Speakers</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label for="title">Title</label>
-                        <input type="text" id="title" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="date">Date</label>
-                        <input type="date" id="date" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="description">Description (Optional)</label>
-                        <textarea id="description"></textarea>
-                    </div>
-                    
-                    <div class="input-group" style="grid-column: 1 / -1;">
-                        <label>Video/Audio File (Required)</label>
-                        <input type="file" id="fileInput" accept="video/*,audio/*" required>
-                        
-                        <div id="videoPreviewContainer" style="display: none; margin-top: 15px;">
-                            <video id="videoPreview" controls style="width: 100%; max-height: 300px; background: #000; border-radius: 4px;"></video>
-                            <div style="margin-top: 15px; padding: 15px; background: var(--color-background); border-radius: 4px; border: 1px solid var(--color-border);">
-                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Thumbnail Frame</label>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px;">
-                                    <span id="currentTime">0:00</span>
-                                    <span id="duration">0:00</span>
-                                </div>
-                                <input type="range" id="videoScrubber" min="0" max="100" value="0" step="0.1" style="width: 100%; margin-bottom: 10px;">
-                                <button type="button" class="btn btn-primary" id="captureThumbnailBtn">📸 Capture This Frame</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="input-group" style="grid-column: 1 / -1;">
-                        <label>Thumbnail Preview</label>
-                        <div id="thumbnailPreview" style="display: none; margin-top: 10px;">
-                            <img id="thumbnailImg" src="" alt="Thumbnail" style="max-width: 300px; border-radius: 4px; border: 1px solid var(--color-border);">
-                            <p style="font-size: 12px; color: var(--color-success); margin-top: 5px;">✓ Thumbnail captured</p>
-                        </div>
-                        <p style="font-size: 12px; color: var(--color-danger); margin-top: 5px; display: none;" id="thumbnailRequired">⚠ Please capture a thumbnail before uploading</p>
-                    </div>
-                </div>
-                
-                <div class="progress-bar" id="progressBar" style="display: none;">
-                    <div class="progress-bar-inner" id="progressBarInner"></div>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="uploadBtn">Upload Shiur</button>
-                </div>
-            </form>`;
-
-        document.getElementById('date').valueAsDate = new Date();
-        attachUploadFormListeners();
-    }
-
-    function attachUploadFormListeners() {
-        const form = document.getElementById('uploadForm');
-        const fileInput = document.getElementById('fileInput');
-        const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-        let videoPreview = document.getElementById('videoPreview');
-        const videoScrubber = document.getElementById('videoScrubber');
-        const captureThumbnailBtn = document.getElementById('captureThumbnailBtn');
-
-        if (!form) return;
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (videoPreview.src && videoPreview.src.startsWith('blob:')) {
-                URL.revokeObjectURL(videoPreview.src);
-            }
-
-            if (file.type.startsWith('video/')) {
-                const videoUrl = URL.createObjectURL(file);
-                videoPreviewContainer.style.display = 'block';
-
-                const newVideoPreview = videoPreview.cloneNode(true);
-                newVideoPreview.src = videoUrl;
-                videoPreview.parentNode.replaceChild(newVideoPreview, videoPreview);
-                videoPreview = newVideoPreview;
-
-                videoPreview.addEventListener('loadedmetadata', () => {
-                    videoScrubber.max = videoPreview.duration;
-                    document.getElementById('duration').textContent = formatTime(videoPreview.duration);
-                }, { once: true });
-
-                videoPreview.addEventListener('timeupdate', () => {
-                    document.getElementById('currentTime').textContent = formatTime(videoPreview.currentTime);
-                    videoScrubber.value = videoPreview.currentTime;
-                });
-
-            } else {
-                videoPreviewContainer.style.display = 'none';
-                capturedThumbnailDataUrl = null;
-                document.getElementById('thumbnailPreview').style.display = 'none';
-            }
+    // --- Routing & Transitions ---
+    window.loadPage = (p, params) => {
+        document.body.classList.remove('cinema-mode');
+        navItems.forEach(n => {
+            n.classList.remove('active');
+            if (n.dataset.page === p) n.classList.add('active');
         });
 
-        videoScrubber.addEventListener('input', (e) => {
-            videoPreview.currentTime = e.target.value;
-        });
+        const render = () => {
+            document.body.setAttribute('data-page-context', p);
+            window.scrollTo(0, 0);
+            if (pages[p]) pages[p](params || {});
+            else pages.home();
+        };
 
-        captureThumbnailBtn.addEventListener('click', () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoPreview.videoWidth;
-            canvas.height = videoPreview.videoHeight;
+        if (document.startViewTransition) document.startViewTransition(() => render());
+        else render();
 
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+        const hash = `${p}${params && params.id ? '/' + params.id : ''}`;
+        window.history.replaceState(null, null, `#${hash}`);
+    };
 
-            capturedThumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-            document.getElementById('thumbnailImg').src = capturedThumbnailDataUrl;
-            document.getElementById('thumbnailPreview').style.display = 'block';
-            document.getElementById('thumbnailRequired').style.display = 'none';
-        });
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const uploadBtn = document.getElementById('uploadBtn');
-            const mediaFile = fileInput.files[0];
-
-            if (!mediaFile) {
-                alert('Please select a media file.');
-                return;
-            }
-
-            if (mediaFile.type.startsWith('video/') && !capturedThumbnailDataUrl) {
-                document.getElementById('thumbnailRequired').style.display = 'block';
-                alert('Please capture a thumbnail from the video before uploading.');
-                return;
-            }
-
-            uploadBtn.disabled = true;
-            uploadBtn.textContent = 'Preparing...';
-
-            try {
-                const prepareResponse = await fetch(`${API_BASE_URL}/api/admin/prepare-upload`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: document.getElementById('title').value,
-                        rabbi: document.getElementById('rabbi').value,
-                        date: document.getElementById('date').value,
-                        description: document.getElementById('description').value,
-                        thumbnailDataUrl: capturedThumbnailDataUrl || '',
-                        fileName: mediaFile.name
-                    })
-                });
-
-                if (!prepareResponse.ok) {
-                    const error = await prepareResponse.json();
-                    throw new Error(error.error || 'Failed to prepare upload');
-                }
-
-                const { signedUrl, shiurId } = await prepareResponse.json();
-
-                const progressBar = document.getElementById('progressBar');
-                const progressBarInner = document.getElementById('progressBarInner');
-                progressBar.style.display = 'block';
-                uploadBtn.textContent = 'Uploading...';
-
-                await new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-
-                    xhr.upload.addEventListener('progress', (event) => {
-                        if (event.lengthComputable) {
-                            const percent = (event.loaded / event.total) * 100;
-                            progressBarInner.style.width = `${percent}%`;
-                            uploadBtn.textContent = `Uploading... ${Math.round(percent)}%`;
-                        }
-                    });
-
-                    xhr.addEventListener('load', () => {
-                        if (xhr.status >= 200 && xhr.status < 300) {
-                            resolve();
-                        } else {
-                            reject(new Error(`Upload failed with status ${xhr.status}`));
-                        }
-                    });
-
-                    xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-
-                    xhr.open('PUT', signedUrl);
-                    xhr.setRequestHeader('Content-Type', mediaFile.type);
-                    xhr.send(mediaFile);
-                });
-
-                uploadBtn.textContent = 'Upload Complete!';
-                alert('Shiur uploaded successfully!');
-
-                if (videoPreview.src) {
-                    URL.revokeObjectURL(videoPreview.src);
-                }
-                capturedThumbnailDataUrl = null;
-                allShiurimCache = [];
-
-                setTimeout(() => loadPage('home'), 1500);
-
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert(`Upload failed: ${error.message}`);
-                uploadBtn.disabled = false;
-                uploadBtn.textContent = 'Upload Shiur';
-                document.getElementById('progressBar').style.display = 'none';
-            }
-        });
-
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            if (videoPreview.src) {
-                URL.revokeObjectURL(videoPreview.src);
-            }
-            capturedThumbnailDataUrl = null;
-            loadPage('home');
-        });
-    }
-
-    // --- 9. EVENT LISTENERS & INITIALIZATION ---
-    themeToggle.addEventListener('click', () => {
-        applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-    });
-
-    navLinks.forEach(link => {
-        link.addEventListener('click', e => {
-            e.preventDefault();
-            loadPage(link.dataset.page, { rabbi: link.dataset.rabbi });
-        });
-    });
-
-    signOutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        currentUser = null;
-        localStorage.removeItem('googleUser');
-        sessionStorage.removeItem('uploadAuthorized');
-        if (window.google && google.accounts && google.accounts.id) {
-            google.accounts.id.disableAutoSelect();
-        }
-        profileDropdown.classList.remove('is-active');
-        updateLoginUI(null);
-        loadPage('home');
-    });
-
-    profileToggle.addEventListener('click', () => {
-        profileDropdown.classList.toggle('is-active');
-    });
+    // --- Events & Init ---
+    themeToggle.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 
     document.addEventListener('click', (e) => {
-        if (profileDropdown && !profileDropdown.contains(e.target)) {
-            profileDropdown.classList.remove('is-active');
+        const link = e.target.closest('[data-page]');
+        if (link && !e.target.closest('.nav-item') && !e.target.closest('.bottom-nav-item')) {
+            e.preventDefault();
+            loadPage(link.dataset.page);
+        }
+
+        const navItem = e.target.closest('.nav-item, .bottom-nav-item');
+        if (navItem && navItem.dataset.page) {
+            e.preventDefault();
+            loadPage(navItem.dataset.page);
+        }
+
+        const card = e.target.closest('.video-card');
+        if (card && card.dataset.shiurId) {
+            e.preventDefault();
+            loadPage('view_shiur', { id: card.dataset.shiurId });
         }
     });
 
-    contentArea.addEventListener('click', async (e) => {
-        const videoCard = e.target.closest('.video-card');
-        if (videoCard) {
-            e.preventDefault();
-            loadPage('view_shiur', { id: videoCard.dataset.shiurId });
-        }
+    // Profile Dropdown Logic
+    const pToggle = document.getElementById('profileToggle'); // Desktop
+    const mProfile = document.getElementById('mobileProfileBtn'); // Mobile
+    const globalMenu = document.getElementById('globalMenu');
 
-        const backButton = e.target.closest('.btn-back');
-        if (backButton) {
-            e.preventDefault();
-            window.history.back();
-        }
-
-        const deleteButton = e.target.closest('[data-delete-id]');
-        if (deleteButton) {
-            e.preventDefault();
-            const shiurId = deleteButton.dataset.deleteId;
-            const shiurTitle = deleteButton.dataset.deleteTitle;
-            if (confirm(`Are you sure you want to permanently delete "${shiurTitle}"?`)) {
-                try {
-                    await fetchApi(`/api/admin/shiurim/${shiurId}`, { method: 'DELETE' });
-                    alert('Shiur deleted successfully.');
-                    allShiurimCache = [];
-                    loadPage('admin');
-                } catch (error) {
-                    alert(`Failed to delete shiur: ${error.message}`);
-                }
-            }
-        }
-    });
-
-    document.getElementById('adminLink').addEventListener('click', (e) => {
+    const toggleMenu = (e) => {
+        e.stopPropagation();
         e.preventDefault();
-        loadPage('admin');
-        profileDropdown.classList.remove('is-active');
+        globalMenu.classList.toggle('active');
+    };
+
+    if (pToggle) pToggle.onclick = toggleMenu;
+    if (mProfile) mProfile.onclick = toggleMenu;
+
+    document.addEventListener('click', (e) => {
+        if (!globalMenu.contains(e.target) && !mProfile.contains(e.target) && !pToggle.contains(e.target)) {
+            globalMenu.classList.remove('active');
+        }
     });
 
-    window.addEventListener('google-signin-success', (event) => {
-        updateLoginUI(event.detail);
+    document.getElementById('signOutBtn').onclick = () => {
+        localStorage.removeItem('googleUser');
+        window.location.reload();
+    };
+
+    // Auth UI Update
+    window.addEventListener('google-signin-success', (e) => {
+        currentUser = e.detail;
+
+        document.getElementById('desktop-auth-container').style.display = 'none';
+        document.getElementById('profileDropdown').style.display = 'block';
+        document.getElementById('userAvatar').src = currentUser.picture;
+
+        document.getElementById('menuLoggedOut').style.display = 'none';
+        document.getElementById('menuLoggedIn').style.display = 'block';
+        document.getElementById('menuUserName').textContent = currentUser.name;
+
+        if (currentUser.email === ADMIN_EMAIL) {
+            document.getElementById('adminLink').style.display = 'flex';
+            document.getElementById('uploadLink').style.display = 'flex';
+        }
     });
 
-    function initializeRouting() {
-        const hash = window.location.hash.slice(1);
-        const [page, param] = hash.split('/');
-        if (page && pages[page]) {
-            const params = page === 'speaker' ? { rabbi: param } : { id: param };
-            loadPage(page, params);
-        } else {
-            loadPage('home');
-        }
-    }
+    // Boot
+    const storedUser = localStorage.getItem('googleUser');
+    if (storedUser) window.dispatchEvent(new CustomEvent('google-signin-success', { detail: JSON.parse(storedUser) }));
 
-    function initialize() {
-        applyTheme(localStorage.getItem('theme') || 'light');
-        const savedUser = localStorage.getItem('googleUser');
+    applyTheme(localStorage.getItem('theme') || 'light');
 
-        // Create upload link dynamically
-        const dropdownMenu = document.getElementById('profileDropdownMenu');
-        if (dropdownMenu && !document.getElementById('uploadLink')) {
-            const uploadLink = document.createElement('a');
-            uploadLink.href = '#';
-            uploadLink.className = 'dropdown-item';
-            uploadLink.id = 'uploadLink';
-            uploadLink.innerHTML = '<i class="fas fa-upload fa-fw"></i> Upload Shiur';
-            uploadLink.style.display = 'none';
+    const initialHash = window.location.hash.slice(1);
+    const [page, param] = initialHash.split('/');
+    loadPage(page || 'home', param ? { id: param } : {});
 
-            dropdownMenu.insertBefore(uploadLink, signOutBtn);
-
-            uploadLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                loadPage('upload');
-                profileDropdown.classList.remove('is-active');
-            });
-        }
-
-        if (savedUser) {
-            updateLoginUI(JSON.parse(savedUser));
-        }
-
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(() => initializeRouting());
-        } else {
-            setTimeout(initializeRouting, 1);
-        }
-    }
-
-    initialize();
+    // Check for new community posts
+    checkLatestPost();
 });
