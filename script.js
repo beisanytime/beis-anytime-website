@@ -511,10 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </span>
                                 <span style="color:var(--text-muted); font-size:0.9rem;">${new Date(shiur.date).toLocaleDateString()}</span>
                                 <span id="views-count" style="color:var(--text-muted); font-size:0.9rem; margin-left:8px; display:none;"><i class="fas fa-eye"></i> <span id="views-num">0</span></span>
-                                <div class="live-badge">
-                                    <div class="live-dot"></div>
-                                    <span id="live-count-num">${Math.floor(Math.random() * 40) + 12}</span> watching now
-                                </div>
                             </div>
                         </div>
                         <button id="likeBtn" class="btn btn-secondary">
@@ -897,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Routing & Transitions ---
-    window.loadPage = (p, params) => {
+    window.loadPage = (p, params, skipHistory = false) => {
         document.body.classList.remove('cinema-mode');
         navItems.forEach(n => {
             n.classList.remove('active');
@@ -914,8 +910,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.startViewTransition) document.startViewTransition(() => render());
         else render();
 
-        const hash = `${p}${params && params.id ? '/' + params.id : ''}`;
-        window.history.replaceState(null, null, `#${hash}`);
+        if (!skipHistory) {
+            const hash = `${p}${params && params.id ? '/' + params.id : ''}`;
+            const url = `#${hash}`;
+            if (window.location.hash !== url) {
+                window.history.pushState({ p, params }, null, url);
+            }
+        }
+    };
+
+    window.onpopstate = (e) => {
+        if (e.state) {
+            loadPage(e.state.p, e.state.params, true);
+        } else {
+            const initialHash = window.location.hash.slice(1);
+            const [page, param] = initialHash.split('/');
+            loadPage(page || 'home', param ? { id: param } : {}, true);
+        }
     };
 
     // --- Events & Init ---
