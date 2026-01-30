@@ -917,28 +917,6 @@ textarea:focus {
     border-color: var(--color-accent);
 }
 
-/* --- Live Badge --- */
-.live-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--color-danger);
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-left: 12px;
-}
-
-.live-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--color-danger);
-    border-radius: 50%;
-    animation: pulse-red 1.5s infinite;
-}
-
 @keyframes pulse-red {
     0% {
         transform: scale(0.95);
