@@ -199,13 +199,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const getAllShiurim = async (force = false) => {
-        if (allShiurimCache.length > 0 && !force) return allShiurimCache;
-        const data = await fetchMain('/api/all-shiurim');
-        if (data) {
-            data.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-            allShiurimCache = data;
+        if (!force) {
+            if (allShiurimCache.length > 0) return allShiurimCache;
+            const cached = sessionStorage.getItem('allShiurim');
+            if (cached) {
+                allShiurimCache = JSON.parse(cached);
+                return allShiurimCache;
+            }
         }
-        return data;
+
+        try {
+            const data = await fetchMain('/api/all-shiurim');
+            if (data) {
+                data.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                allShiurimCache = data;
+                try { sessionStorage.setItem('allShiurim', JSON.stringify(data)); } catch (e) { }
+            }
+            return data;
+        } catch (e) { console.error('Failed to fetch shiurim', e); return []; }
     };
 
     // --- Components Renderers ---
@@ -229,6 +240,12 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'video-card';
             card.dataset.shiurId = v.id;
             if (v.rabbi) card.setAttribute('data-rabbi', v.rabbi);
+
+            // On Click, load view_shiur
+            card.onclick = (e) => {
+                e.preventDefault();
+                loadPage('view_shiur', { id: v.id });
+            };
 
             const isTime4Mishna = v.rabbi && v.rabbi.toLowerCase() === 'time4mishna';
             const thumb = isTime4Mishna ? '' : (v.thumbnailDataUrl || v.thumbnailUrl || '');
@@ -504,11 +521,24 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         view_shiur: async (params) => {
-            const shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
+            // OPTIMIZATION: Logic to load player immediately
+            let shiur = null;
+
+            // 1. Check if we already have this shiur in our cache
+            if (allShiurimCache.length > 0) {
+                shiur = allShiurimCache.find(s => s.id == params.id);
+            }
+
+            // 2. If not found (e.g. direct link), fetch it specifically
+            if (!shiur) {
+                shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
+            }
+
             if (!shiur) { contentArea.innerHTML = renderEmptyState("Shiur unavailable."); return; }
 
+            // 3. Render Player & Skeleton for 'Related'
             contentArea.innerHTML = `
-        <div style="max-width:1300px; margin:0 auto; display:grid; grid-template-columns: 1fr 350px; gap:40px;">
+        <div class="view-shiur-grid">
             <div class="main-video-column">
                 <div class="flex-between" style="margin-bottom:20px;">
                     <button class="btn btn-secondary" onclick="window.history.back()">
@@ -525,31 +555,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 
                 <div class="video-container">
-                    <video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || ''}" src="${shiur.playbackUrl}" style="width:100%; height:100%;"></video>
+                    <video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || ''}" src="${shiur.playbackUrl}"></video>
                 </div>
                 
                 <div class="video-details" id="vDetails">
-                    <div class="flex-between" style="flex-wrap:wrap; gap:16px; margin-bottom:16px;">
-                        <div>
-                            <h1 style="font-size:1.5rem; margin-bottom:8px; color:var(--text-main);">${shiur.title}</h1>
-                            <div style="display:flex; gap:12px; align-items:center;">
-                                <span class="rabbi-badge" style="position:static; margin:0;">
-                                    <span class="rabbi-dot"></span>${formatRabbiName(shiur.rabbi)}
-                                </span>
-                                <span style="color:var(--text-muted); font-size:0.9rem;">${new Date(shiur.date).toLocaleDateString()}</span>
-                                <span id="views-count" style="color:var(--text-muted); font-size:0.9rem; margin-left:8px; display:none;"><i class="fas fa-eye"></i> <span id="views-num">0</span></span>
-                            </div>
-                        </div>
-                        <button id="likeBtn" class="btn btn-secondary">
+                    <h1 class="video-title">${shiur.title}</h1>
+                    
+                    <div class="video-meta-row">
+                        <span class="rabbi-badge" style="position:static; margin:0;">
+                            <span class="rabbi-dot"></span>${formatRabbiName(shiur.rabbi)}
+                        </span>
+                        <span style="color:var(--text-muted); font-size:0.95rem;">${new Date(shiur.date).toLocaleDateString()}</span>
+                        <span id="views-count" style="color:var(--text-muted); font-size:0.95rem; margin-left:auto; display:none;">
+                            <i class="fas fa-eye"></i> <span id="views-num">0</span>
+                        </span>
+                        <button id="likeBtn" class="btn btn-secondary" style="margin-left:12px;">
                             <i class="far fa-thumbs-up"></i> <span id="likes-count" style="margin-left:6px;">0</span>
                         </button>
                     </div>
-                    <p style="color:var(--text-muted); line-height:1.6;">${shiur.description || 'No description provided.'}</p>
-                    <div style="margin-top:12px;">
+
+                    <div class="video-description">${shiur.description || 'No description provided.'}</div>
+                    
+                    <div style="margin-top:24px; display:flex; flex-wrap:wrap; gap:8px;">
                         ${shiur.tags ? shiur.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
                     </div>
-                    <div class="player-extra-controls">
-                        <span style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Speed:</span>
+
+                    <div class="player-extra-controls" style="margin-top:30px; padding-top:20px; border-top:1px solid var(--border-light); display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:0.9rem; font-weight:600; color:var(--text-muted);">Playback Speed:</span>
                         <div class="speed-badge active" data-speed="1">1x</div>
                         <div class="speed-badge" data-speed="1.25">1.25x</div>
                         <div class="speed-badge" data-speed="1.5">1.5x</div>
@@ -558,37 +590,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="video-comments-area" id="vComments">
-                    <h2 style="font-size:1.2rem; margin-bottom:20px;">Comments</h2>
+                    <h2 style="font-size:1.4rem; margin-bottom:24px; font-weight:700;">Comments</h2>
                     
                     ${currentUser ? `
                     <div class="comment-composer">
-                        <div style="display:flex; gap:12px;">
+                        <div style="display:flex; gap:16px;">
                             <img src="${currentUser.picture}" class="comment-avatar">
                             <div style="flex:1;">
-                                <textarea id="commentInput" placeholder="Add a comment..." style="width:100%; border:1px solid var(--border-light); background:var(--bg-body); resize:none; font-size:0.9rem; outline:none; border-radius:8px; padding:10px;" rows="2"></textarea>
-                                <div style="text-align:right; margin-top:8px;">
-                                    <button id="commentSubmitBtn" class="btn btn-primary" style="font-size:0.8rem; padding:6px 16px;">Post</button>
+                                <textarea id="commentInput" placeholder="Add a comment..." rows="2"></textarea>
+                                <div style="text-align:right; margin-top:12px;">
+                                    <button id="commentSubmitBtn" class="btn btn-primary">Post Comment</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     ` : `
-                    <div style="padding:20px; text-align:center; color:var(--text-muted); border:1px dashed var(--border-light); border-radius:8px; margin-bottom:20px;">
-                        Sign in to join the conversation.
+                    <div style="padding:30px; text-align:center; color:var(--text-muted); background:var(--bg-surface-hover); border-radius:var(--radius-lg); margin-bottom:30px;">
+                        <p style="margin-bottom:12px;">Sign in to join the conversation.</p>
+                        <button class="btn btn-primary" onclick="google.accounts.id.prompt()">Sign In</button>
                     </div>
                     `}
 
                     <div id="commentsList">
-                        <div class="skeleton" style="height:60px; margin-bottom:12px;"></div>
+                        <div class="skeleton" style="height:80px; margin-bottom:16px;"></div>
+                        <div class="skeleton" style="height:80px; margin-bottom:16px;"></div>
                     </div>
                 </div>
             </div>
 
             <aside class="related-column">
-                <h3 style="margin-top:0; margin-bottom:20px; font-size:1.1rem;">Up Next</h3>
+                <h3>Up Next</h3>
                 <div id="relatedList" class="related-shiurim-container">
-                    <div class="skeleton" style="height:80px;"></div>
-                    <div class="skeleton" style="height:80px;"></div>
+                    <div class="skeleton" style="height:100px;"></div>
+                    <div class="skeleton" style="height:100px;"></div>
+                    <div class="skeleton" style="height:100px;"></div>
                 </div>
             </aside>
         </div>
