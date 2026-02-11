@@ -885,9 +885,11 @@ textarea:focus {
     display: none;
 }
 
-.continue-card {
+.continue-card,
+.continue-watching-tray .video-card {
     min-width: 260px;
     max-width: 260px;
+    flex: 0 0 auto;
 }
 
 /* --- Player Controls Enhancements --- */

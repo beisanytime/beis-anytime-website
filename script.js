@@ -230,7 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.shiurId = v.id;
             if (v.rabbi) card.setAttribute('data-rabbi', v.rabbi);
 
-            const thumb = v.thumbnailDataUrl || v.thumbnailUrl || '';
+            const isTime4Mishna = v.rabbi && v.rabbi.toLowerCase() === 'time4mishna';
+            const thumb = isTime4Mishna ? '' : (v.thumbnailDataUrl || v.thumbnailUrl || '');
             const progress = parseFloat(localStorage.getItem(`vid_progress_${v.id}`) || 0);
             const duration = parseFloat(localStorage.getItem(`vid_duration_${v.id}`) || 0);
             const percent = (progress && duration) ? (progress / duration) * 100 : 0;
