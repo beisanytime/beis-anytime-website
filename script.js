@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatRabbiName = (id) => {
         if (!id) return 'Unknown';
         if (id.toLowerCase() === 'guests') return 'Guest Speakers';
+        if (id.toLowerCase() === 'time4mishna') return 'Time4Mishna';
         return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     };
 
@@ -237,7 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             card.innerHTML = `
         <div class="thumb-wrapper">
-            <img data-src="${thumb}" class="thumb-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E" alt="Thumbnail" loading="lazy">
+            <img data-src="${thumb}" class="thumb-img" src="${thumb ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E" : ""}" alt="Thumbnail" loading="lazy" style="${!thumb ? 'display:none' : ''}">
+            ${!thumb ? `<div class="thumb-placeholder"><i class="fas fa-music"></i></div>` : ''}
             <div class="rabbi-badge">
                 <span class="rabbi-dot"></span>
                 ${formatRabbiName(v.rabbi)}
@@ -461,6 +463,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.onclick = (e) => { e.preventDefault(); loadPage('speaker', { rabbi: s.id }); };
                 grid.appendChild(el);
             });
+        },
+
+        time4mishna: async () => {
+            const data = await getAllShiurim();
+            const filtered = data.filter(s => s.rabbi && s.rabbi.toLowerCase() === 'time4mishna');
+
+            // Check if user is authorized to upload (simple check based on session)
+            const canUpload = sessionStorage.getItem('uploadAuthorized') === 'true';
+
+            contentArea.innerHTML = `
+                 <div class="flex-between" style="margin-bottom: 30px;">
+                     <div>
+                         <h1>Time4Mishna</h1>
+                         <p>${filtered.length} Shiurim available</p>
+                     </div>
+                     <button class="btn btn-primary" onclick="loadPage('upload_time4mishna')">
+                        <i class="fas fa-upload"></i> Upload Mishna
+                     </button>
+                 </div>
+                 <div class="grid-videos"></div>
+             `;
+            renderVideoGrid(filtered, contentArea.querySelector('.grid-videos'));
         },
 
         speaker: async (params) => {
@@ -873,7 +897,57 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadPage('home');
                 } catch (err) { alert(err.message); btn.disabled = false; }
             };
-        }
+
+        },
+
+        upload_time4mishna: () => {
+            if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('upload_time4mishna');
+            contentArea.innerHTML = `
+        <div style="max-width:600px; margin:0 auto; background:var(--bg-surface-solid); padding:32px; border-radius:var(--radius-lg); border:1px solid var(--border-light);">
+            <div class="flex-between" style="margin-bottom:24px;">
+                <h2 style="margin:0;">Upload to Time4Mishna (Audio)</h2>
+                <button class="btn btn-secondary" onclick="loadPage('time4mishna')">Cancel</button>
+            </div>
+            <form id="upForm" style="display:grid; gap:16px;">
+                <div style="display:none;"><input type="text" id="rabbi" value="time4mishna"></div>
+                <div><label>Title</label><input type="text" id="title" required></div>
+                <div><label>Date</label><input type="date" id="date" required></div>
+                <div><label>Audio File</label><input type="file" id="fInput" accept="audio/*" required></div>
+                <button type="submit" class="btn btn-primary" id="sBtn" style="margin-top:16px;">Upload Audio</button>
+            </form>
+        </div>
+     `;
+            const form = document.getElementById('upForm');
+            const fInput = document.getElementById('fInput');
+
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('sBtn');
+                btn.disabled = true; btn.textContent = 'Uploading...';
+
+                try {
+                    const file = fInput.files[0];
+                    if (!file) throw new Error('No file selected');
+
+                    const prep = await fetch(`${MAIN_API_URL}/api/admin/prepare-upload`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: document.getElementById('title').value,
+                            rabbi: 'time4mishna',
+                            date: document.getElementById('date').value,
+                            thumbnailDataUrl: '', // No thumbnail for audio
+                            fileName: file.name
+                        })
+                    });
+                    const { signedUrl } = await prep.json();
+
+                    await fetch(signedUrl, { method: 'PUT', body: file });
+                    alert('Uploaded');
+                    loadPage('time4mishna');
+                } catch (err) { alert(err.message); btn.disabled = false; }
+            };
+        },
     };
 
     function renderPasswordModal(target) {
