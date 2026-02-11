@@ -237,9 +237,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const bookmarked = isBookmarked(v.id);
 
             card.innerHTML = `
+        ${thumb ? `
         <div class="thumb-wrapper">
-            <img data-src="${thumb}" class="thumb-img" src="${thumb ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E" : ""}" alt="Thumbnail" loading="lazy" style="${!thumb ? 'display:none' : ''}">
-            ${!thumb ? `<div class="thumb-placeholder"><i class="fas fa-music"></i></div>` : ''}
+            <img data-src="${thumb}" class="thumb-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E" alt="Thumbnail" loading="lazy">
             <div class="rabbi-badge">
                 <span class="rabbi-dot"></span>
                 ${formatRabbiName(v.rabbi)}
@@ -253,13 +253,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="${bookmarked ? 'fas' : 'far'} fa-bookmark"></i>
             </button>
         </div>
+        ` : ''}
         <div class="card-content">
             <h3 class="card-title">${v.title}</h3>
             ${v.tags ? v.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
             <span class="card-date">${v.date ? new Date(v.date).toLocaleDateString() : ''}</span>
         </div>
     `;
-            card.querySelector('.bookmark-btn').onclick = (e) => toggleBookmark(v.id, e);
+            const btn = card.querySelector('.bookmark-btn');
+            if (btn) btn.onclick = (e) => toggleBookmark(v.id, e);
             frag.appendChild(card);
         });
         container.innerHTML = '';
