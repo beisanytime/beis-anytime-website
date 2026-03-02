@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. API for Video Likes/Comments (The original KV Worker)
     const VIDEO_API_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
 
-    const ADMIN_EMAIL = 'beisanytime@gmail.com';
+    const ADMIN_EMAILS = ['beisanytime@gmail.com', 'joshuacalvert1@gmail.com'];
     const UPLOAD_PASSWORD = 'beis24/7';
 
     // --- State ---
@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         community: async () => {
-            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+            const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email);
 
             contentArea.innerHTML = `
         <div class="feed-container">
