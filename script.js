@@ -248,14 +248,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const isTime4Mishna = v.rabbi && v.rabbi.toLowerCase() === 'time4mishna';
-            const thumb = isTime4Mishna ? '' : (v.thumbnailDataUrl || v.thumbnailUrl || '');
+            const thumb = isTime4Mishna ? 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=1000' : (v.thumbnailDataUrl || v.thumbnailUrl || '');
             const progress = parseFloat(localStorage.getItem(`vid_progress_${v.id}`) || 0);
             const duration = parseFloat(localStorage.getItem(`vid_duration_${v.id}`) || 0);
             const percent = (progress && duration) ? (progress / duration) * 100 : 0;
             const bookmarked = isBookmarked(v.id);
 
             card.innerHTML = `
-        ${thumb ? `
         <div class="thumb-wrapper">
             <img data-src="${thumb}" class="thumb-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E" alt="Thumbnail" loading="lazy">
             <div class="rabbi-badge">
@@ -271,7 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="${bookmarked ? 'fas' : 'far'} fa-bookmark"></i>
             </button>
         </div>
-        ` : ''}
         <div class="card-content">
             <h3 class="card-title">${v.title}</h3>
             ${v.tags ? v.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
@@ -548,14 +546,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn btn-secondary" id="shareBtn" title="Share">
                             <i class="fas fa-share"></i> Share
                         </button>
-                        <button class="btn btn-secondary" id="cinemaToggle" title="Cinema Mode">
+                        ${!(shiur.rabbi && shiur.rabbi.toLowerCase() === 'time4mishna') ? `<button class="btn btn-secondary" id="cinemaToggle" title="Cinema Mode">
                             <i class="fas fa-expand"></i>
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>
                 
-                <div class="video-container">
-                    <video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || ''}" src="${shiur.playbackUrl}"></video>
+                <div class="video-container" id="player-container">
+                    ${shiur.rabbi && shiur.rabbi.toLowerCase() === 'time4mishna'
+                    ? `<div class="audio-player-card" id="audioCard" style="cursor:pointer;" onclick="const a=document.getElementById('player-video'); a.paused ? a.play() : a.pause();">
+                                <div class="audio-player-art">
+                                    <i class="fas fa-headphones" id="audioPlayIcon"></i>
+                                </div>
+                                <div class="audio-player-info">
+                                    <div class="audio-player-title">${shiur.title}</div>
+                                    <div class="audio-player-rabbi">Time4Mishna</div>
+                                </div>
+                                <audio id="player-video" controls autoplay preload="auto" src="${shiur.playbackUrl}" style="width:100%; margin-top:16px;"></audio>
+                           </div>`
+                    : `<video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || ''}" src="${shiur.playbackUrl}"></video>`
+                }
                 </div>
                 
                 <div class="video-details" id="vDetails">
@@ -632,15 +642,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- Enhanced Video Player Logic ---
             const vid = document.getElementById('player-video');
 
-            vid.onloadedmetadata = () => {
-                localStorage.setItem(`vid_duration_${params.id}`, vid.duration);
+            vid.onerror = () => {
+                console.error("Playback error:", vid.error);
+                showToast("Error loading audio/video source. It might be unavailable.", "error");
+                document.getElementById('player-container').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:var(--color-danger); margin-bottom:16px;"></i>
+                        <h3>Playback Error</h3>
+                        <p>We couldn't load this shiur. Please try again later.</p>
+                        <button class="btn btn-primary" onclick="window.location.reload()">Retry</button>
+                    </div>
+                `;
             };
 
-            // 1. Resume Playback
-            const savedTime = localStorage.getItem(`vid_progress_${params.id}`);
-            if (savedTime) {
-                vid.currentTime = parseFloat(savedTime);
-            }
+            vid.onloadedmetadata = () => {
+                localStorage.setItem(`vid_duration_${params.id}`, vid.duration);
+                // Resume Playback
+                const savedTime = localStorage.getItem(`vid_progress_${params.id}`);
+                if (savedTime) {
+                    vid.currentTime = parseFloat(savedTime);
+                }
+            };
 
             vid.addEventListener('timeupdate', () => {
                 localStorage.setItem(`vid_progress_${params.id}`, vid.currentTime);
@@ -747,12 +769,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             vid.addEventListener('play', () => {
+                const icon = document.getElementById('audioPlayIcon');
+                if (icon) icon.className = 'fas fa-pause';
+
                 workerFetch(VIDEO_API_URL, '/api/views/increment', {
                     method: 'POST',
                     body: JSON.stringify({ id: params.id }),
                     headers: { 'Content-Type': 'application/json' }
                 });
             }, { once: true });
+
+            vid.addEventListener('pause', () => {
+                const icon = document.getElementById('audioPlayIcon');
+                if (icon) icon.className = 'fas fa-headphones';
+            });
+
+            vid.addEventListener('playing', () => {
+                const icon = document.getElementById('audioPlayIcon');
+                if (icon) icon.className = 'fas fa-pause';
+            });
 
             // 2. Likes
             const getLikes = async () => workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`);

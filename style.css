@@ -1542,3 +1542,60 @@ body[data-page-context="view_shiur"] .video-comments-area .comment-time {
         display: block;
     }
 }
+
+/* --- Audio Player Styles --- */
+.audio-player-card {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    color: white;
+}
+
+.audio-player-art {
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+.audio-player-info {
+    margin-bottom: 24px;
+}
+
+.audio-player-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.audio-player-rabbi {
+    font-size: 1rem;
+    color: var(--color-warning);
+    font-weight: 600;
+}
+
+audio {
+    filter: invert(100%) hue-rotate(180deg) brightness(1.5); /* Make standard player look better on dark */
+    opacity: 0.9;
+}
+
+[data-theme="light"] audio {
+    filter: none;
+}
+
+.video-container:has(.audio-player-card) {
+    background: #0f172a;
+}
