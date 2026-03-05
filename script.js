@@ -241,12 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.shiurId = v.id;
             if (v.rabbi) card.setAttribute('data-rabbi', v.rabbi);
 
-            // On Click, load view_shiur
-            card.onclick = (e) => {
-                e.preventDefault();
-                loadPage('view_shiur', { id: v.id });
-            };
-
             const isTime4Mishna = v.rabbi && v.rabbi.toLowerCase() === 'time4mishna';
             const thumb = isTime4Mishna ? 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=1000' : (v.thumbnailDataUrl || v.thumbnailUrl || '');
             const progress = parseFloat(localStorage.getItem(`vid_progress_${v.id}`) || 0);
@@ -519,20 +513,18 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         view_shiur: async (params) => {
-            // OPTIMIZATION: Logic to load player immediately
-            let shiur = null;
+            // ALWAYS fetch fresh metadata to ensure signed URLs (playbackUrl) haven't expired
+            const shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
 
-            // 1. Check if we already have this shiur in our cache
-            if (allShiurimCache.length > 0) {
-                shiur = allShiurimCache.find(s => s.id == params.id);
-            }
-
-            // 2. If not found (e.g. direct link), fetch it specifically
             if (!shiur) {
-                shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
+                contentArea.innerHTML = renderEmptyState("Shiur unavailable.");
+                return;
             }
 
-            if (!shiur) { contentArea.innerHTML = renderEmptyState("Shiur unavailable."); return; }
+            // Sync fresh data back to global cache
+            const idx = allShiurimCache.findIndex(s => s.id === shiur.id);
+            if (idx !== -1) allShiurimCache[idx] = shiur;
+            else allShiurimCache.push(shiur);
 
             // 3. Render Player & Skeleton for 'Related'
             contentArea.innerHTML = `
@@ -553,8 +545,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 
                 <div class="video-container" id="player-container">
+                    <div class="skeleton" style="width:100%; height:100%; position:absolute; top:0; left:0; z-index:0;"></div>
                     ${shiur.rabbi && shiur.rabbi.toLowerCase() === 'time4mishna'
-                    ? `<div class="audio-player-card" id="audioCard" style="cursor:pointer;" onclick="const a=document.getElementById('player-video'); a.paused ? a.play() : a.pause();">
+                    ? `<div class="audio-player-card" id="audioCard" style="cursor:pointer; position:relative; z-index:1;" onclick="const a=document.getElementById('player-video'); a.paused ? a.play() : a.pause();">
                                 <div class="audio-player-art">
                                     <i class="fas fa-headphones" id="audioPlayIcon"></i>
                                 </div>
@@ -562,9 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="audio-player-title">${shiur.title}</div>
                                     <div class="audio-player-rabbi">Time4Mishna</div>
                                 </div>
-                                <audio id="player-video" controls autoplay preload="auto" src="${shiur.playbackUrl}" style="width:100%; margin-top:16px;"></audio>
+                                <audio id="player-video" controls autoplay playsinline preload="auto" style="width:100%; margin-top:16px;"></audio>
                            </div>`
-                    : `<video id="player-video" controls autoplay poster="${shiur.thumbnailDataUrl || ''}" src="${shiur.playbackUrl}"></video>`
+                    : `<video id="player-video" controls autoplay playsinline preload="auto" poster="${shiur.thumbnailDataUrl || ''}" style="position:relative; z-index:1;"></video>`
                 }
                 </div>
                 
@@ -642,18 +635,36 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- Enhanced Video Player Logic ---
             const vid = document.getElementById('player-video');
 
-            vid.onerror = () => {
-                console.error("Playback error:", vid.error);
-                showToast("Error loading audio/video source. It might be unavailable.", "error");
-                document.getElementById('player-container').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:var(--color-danger); margin-bottom:16px;"></i>
-                        <h3>Playback Error</h3>
-                        <p>We couldn't load this shiur. Please try again later.</p>
-                        <button class="btn btn-primary" onclick="window.location.reload()">Retry</button>
-                    </div>
-                `;
-            };
+            if (vid) {
+                // 1. Attach error handler first
+                vid.onerror = () => {
+                    const error = vid.error;
+                    console.error("Playback error details:", error);
+                    let errorMsg = "Error loading audio/video source.";
+                    if (error) {
+                        if (error.code === 1) errorMsg = "Playback aborted.";
+                        if (error.code === 2) errorMsg = "Network error.";
+                        if (error.code === 3) errorMsg = "Decoding error.";
+                        if (error.code === 4) errorMsg = "Resource not supported or found.";
+                    }
+
+                    showToast(errorMsg, "error");
+                    document.getElementById('player-container').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:var(--color-danger); margin-bottom:16px;"></i>
+                            <h3>Playback Error</h3>
+                            <p>We couldn't load this shiur. Please try again later.</p>
+                            <button class="btn btn-primary" onclick="window.location.reload()">Retry</button>
+                        </div>
+                    `;
+                };
+
+                // 2. Set source and load after a small delay to ensure DOM parsing is complete
+                setTimeout(() => {
+                    vid.src = shiur.playbackUrl;
+                    vid.load();
+                }, 50);
+            }
 
             vid.onloadedmetadata = () => {
                 localStorage.setItem(`vid_duration_${params.id}`, vid.duration);
@@ -727,26 +738,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // 4. Related & Up Next
-            const allData = await getAllShiurim();
-            const related = allData
-                .filter(s => s.id !== params.id)
-                .sort((a, b) => (a.rabbi === shiur.rabbi ? -1 : 1) - (b.rabbi === shiur.rabbi ? -1 : 1))
-                .slice(0, 10);
+            // --- Background Data Loading (Non-blocking) ---
 
-            const rList = document.getElementById('relatedList');
-            if (rList) {
-                rList.innerHTML = related.map(r => `
-                <a href="#" class="related-card" onclick="loadPage('view_shiur', {id:'${r.id}'}); return false;">
-                    <img data-src="${r.thumbnailDataUrl || r.thumbnailUrl}" class="related-thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E">
-                    <div class="related-info">
-                        <h4>${r.title}</h4>
-                        <span>${formatRabbiName(r.rabbi)}</span>
-                    </div>
-                </a>
-            `).join('');
-                rList.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img));
-            }
+            // 4. Related & Up Next
+            const loadRelated = async () => {
+                const allData = await getAllShiurim();
+                const related = allData
+                    .filter(s => s.id !== params.id)
+                    .sort((a, b) => (a.rabbi === shiur.rabbi ? -1 : 1) - (b.rabbi === shiur.rabbi ? -1 : 1))
+                    .slice(0, 10);
+
+                const rList = document.getElementById('relatedList');
+                if (rList) {
+                    rList.innerHTML = related.map(r => `
+                    <a href="#" class="related-card" onclick="loadPage('view_shiur', {id:'${r.id}'}); return false;">
+                        <img data-src="${r.thumbnailDataUrl || r.thumbnailUrl}" class="related-thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E">
+                        <div class="related-info">
+                            <h4>${r.title}</h4>
+                            <span>${formatRabbiName(r.rabbi)}</span>
+                        </div>
+                    </a>
+                `).join('');
+                    rList.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img));
+                }
+            };
+            loadRelated();
 
             // 5. Shortcuts
             const handleShortcuts = (e) => {
@@ -761,12 +777,17 @@ document.addEventListener('DOMContentLoaded', () => {
             document.addEventListener('keydown', handleShortcuts);
 
             // 6. Views
-            const getViews = async () => workerFetch(VIDEO_API_URL, `/api/views/${encodeURIComponent(params.id)}`);
-            const viewRes = await getViews();
-            if (viewRes && viewRes.count !== undefined) {
-                document.getElementById('views-count').style.display = 'inline-block';
-                document.getElementById('views-num').textContent = viewRes.count;
-            }
+            const loadViews = async () => {
+                const getViews = async () => workerFetch(VIDEO_API_URL, `/api/views/${encodeURIComponent(params.id)}`);
+                const viewRes = await getViews();
+                if (viewRes && viewRes.count !== undefined) {
+                    const el = document.getElementById('views-count');
+                    if (el) el.style.display = 'inline-block';
+                    const numEl = document.getElementById('views-num');
+                    if (numEl) numEl.textContent = viewRes.count;
+                }
+            };
+            loadViews();
 
             vid.addEventListener('play', () => {
                 const icon = document.getElementById('audioPlayIcon');
@@ -789,91 +810,108 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (icon) icon.className = 'fas fa-pause';
             });
 
-            // 2. Likes
-            const getLikes = async () => workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`);
-            const toggleLike = async () => {
-                if (!currentUser) return showToast('Please sign in', 'error');
-                await workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`, {
-                    method: 'POST',
-                    headers: { 'X-User-Email': currentUser.email }
-                });
-            };
-
-            const refreshLikes = async () => {
-                const likeData = await getLikes();
-                if (likeData) {
-                    const btn = document.getElementById('likeBtn');
-                    document.getElementById('likes-count').textContent = likeData.count;
-                    if (likeData.userLiked) {
-                        btn.style.color = 'var(--color-accent)';
-                        btn.querySelector('i').className = 'fas fa-thumbs-up';
-                    } else {
-                        btn.style.color = 'inherit';
-                        btn.querySelector('i').className = 'far fa-thumbs-up';
-                    }
-                }
-            };
-            refreshLikes();
-
-            document.getElementById('likeBtn').onclick = async function () {
-                await toggleLike();
-                refreshLikes();
-            };
-
-            // 3. Comments
-            const getComments = async () => workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`);
-
-            const refreshComments = async () => {
-                const res = await getComments();
-                const list = document.getElementById('commentsList');
-                list.innerHTML = '';
-
-                if (!res || !res.comments || res.comments.length === 0) {
-                    list.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No comments yet.</p>`;
-                    return;
-                }
-
-                list.innerHTML = res.comments.map(c => `
-            <div class="comment-item" style="padding:16px;">
-                <div class="comment-header" style="margin-bottom:8px;">
-                    <div style="font-weight:700; font-size:0.9rem; color:var(--text-main);">${c.displayName || c.email}</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.createdAt).toLocaleDateString()}</div>
-                </div>
-                <div class="comment-text" style="font-size:0.95rem;">${c.text}</div>
-                ${(currentUser && currentUser.email === ADMIN_EMAIL) ? `
-                    <button onclick="deleteComment('${c.id}')" style="background:none; border:none; color:red; font-size:0.75rem; cursor:pointer; margin-top:8px;">Delete</button>
-                ` : ''}
-            </div>
-        `).join('');
-            };
-
-            if (currentUser) {
-                document.getElementById('commentSubmitBtn').onclick = async () => {
-                    const txt = document.getElementById('commentInput').value.trim();
-                    if (!txt) return;
-
-                    await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`, {
+            // 7. Likes
+            const loadLikes = async () => {
+                const getLikes = async () => workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`);
+                const toggleLike = async () => {
+                    if (!currentUser) return showToast('Please sign in', 'error');
+                    await workerFetch(VIDEO_API_URL, `/api/likes/${encodeURIComponent(params.id)}`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
-                        body: JSON.stringify({ text: txt })
-                    });
-
-                    document.getElementById('commentInput').value = '';
-                    refreshComments();
-                };
-            }
-
-            window.deleteComment = async (cid) => {
-                if (confirm('Delete comment?')) {
-                    await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}/${cid}`, {
-                        method: 'DELETE',
                         headers: { 'X-User-Email': currentUser.email }
                     });
-                    refreshComments();
-                }
-            };
+                };
 
-            refreshComments();
+                const refreshLikes = async () => {
+                    const likeData = await getLikes();
+                    if (likeData) {
+                        const btn = document.getElementById('likeBtn');
+                        const cnt = document.getElementById('likes-count');
+                        if (cnt) cnt.textContent = likeData.count;
+                        if (btn) {
+                            if (likeData.userLiked) {
+                                btn.style.color = 'var(--color-accent)';
+                                btn.querySelector('i').className = 'fas fa-thumbs-up';
+                            } else {
+                                btn.style.color = 'inherit';
+                                btn.querySelector('i').className = 'far fa-thumbs-up';
+                            }
+                        }
+                    }
+                };
+
+                const likeBtn = document.getElementById('likeBtn');
+                if (likeBtn) {
+                    likeBtn.onclick = async function () {
+                        await toggleLike();
+                        refreshLikes();
+                    };
+                }
+                refreshLikes();
+            };
+            loadLikes();
+
+            // 8. Comments
+            const loadComments = async () => {
+                const getComments = async () => workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`);
+
+                const refreshComments = async () => {
+                    const res = await getComments();
+                    const list = document.getElementById('commentsList');
+                    if (!list) return;
+                    list.innerHTML = '';
+
+                    if (!res || !res.comments || res.comments.length === 0) {
+                        list.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No comments yet.</p>`;
+                        return;
+                    }
+
+                    list.innerHTML = res.comments.map(c => `
+                <div class="comment-item" style="padding:16px;">
+                    <div class="comment-header" style="margin-bottom:8px;">
+                        <div style="font-weight:700; font-size:0.9rem; color:var(--text-main);">${c.displayName || c.email}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div class="comment-text" style="font-size:0.95rem;">${c.text}</div>
+                    ${(currentUser && (currentUser.email === ADMIN_EMAIL || (ADMIN_EMAILS && ADMIN_EMAILS.includes(currentUser.email)))) ? `
+                        <button onclick="deleteComment('${c.id}')" style="background:none; border:none; color:red; font-size:0.75rem; cursor:pointer; margin-top:8px;">Delete</button>
+                    ` : ''}
+                </div>
+            `).join('');
+                };
+
+                if (currentUser) {
+                    const submitBtn = document.getElementById('commentSubmitBtn');
+                    if (submitBtn) {
+                        submitBtn.onclick = async () => {
+                            const inp = document.getElementById('commentInput');
+                            const txt = inp.value.trim();
+                            if (!txt) return;
+
+                            await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-User-Email': currentUser.email },
+                                body: JSON.stringify({ text: txt })
+                            });
+
+                            inp.value = '';
+                            refreshComments();
+                        };
+                    }
+                }
+
+                window.deleteComment = async (cid) => {
+                    if (confirm('Delete comment?')) {
+                        await workerFetch(VIDEO_API_URL, `/api/comments/${encodeURIComponent(params.id)}/${cid}`, {
+                            method: 'DELETE',
+                            headers: { 'X-User-Email': currentUser.email }
+                        });
+                        refreshComments();
+                    }
+                };
+
+                refreshComments();
+            };
+            loadComments();
         },
 
         admin: async () => {
@@ -1047,15 +1085,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (n.dataset.page === p) n.classList.add('active');
         });
 
-        const render = () => {
+        const render = async () => {
             document.body.setAttribute('data-page-context', p);
             window.scrollTo(0, 0);
-            if (pages[p]) pages[p](params || {});
-            else pages.home();
+            if (pages[p]) await pages[p](params || {});
+            else await pages.home();
         };
 
-        if (document.startViewTransition) document.startViewTransition(() => render());
-        else render();
+        // View Transition API can interfere with video initialization in some browsers
+        if (document.startViewTransition && p !== 'view_shiur') {
+            document.startViewTransition(() => render());
+        } else {
+            render();
+        }
 
         if (!skipHistory) {
             const hash = `${p}${params && params.id ? '/' + params.id : ''}`;
