@@ -28,7 +28,8 @@ window.handleCredentialResponse = (response) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
-    const MAIN_API_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
+    // 0. API for Video Metadata & Uploads (New R2-based worker)
+    const MAIN_API_URL = 'https://beis-api.beisanytime.workers.dev';
 
     // 1. API for Community Feed (The new D1 Worker)
     const COMMUNITY_API_URL = 'https://beis-social-worker.beisanytime.workers.dev'; // UPDATE THIS!
@@ -448,12 +449,28 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         speakers: async () => {
-            const speakers = [
-                { id: 'Rabbi_Hartman', name: 'Rabbi Hartman', icon: 'fa-user-tie' },
-                { id: 'Rabbi_Rosenfeld', name: 'Rabbi Rosenfeld', icon: 'fa-user-tie' },
-                { id: 'Rabbi_Golker', name: 'Rabbi Golker', icon: 'fa-user-tie' },
-                { id: 'guests', name: 'Guest Speakers', icon: 'fa-users' }
-            ];
+            const data = await getAllShiurim();
+            const rabbisMap = new Map();
+            
+            data.forEach(s => {
+                if (!s.rabbi) return;
+                // Normalize key for grouping (e.g., "rabbi hartman" and "rabbi_hartman" group together)
+                const normalized = s.rabbi.toLowerCase().replace(/_/g, ' ');
+                if (!rabbisMap.has(normalized) && normalized !== 'time4mishna') {
+                    rabbisMap.set(normalized, {
+                        id: s.rabbi, // Keep original ID for the link
+                        name: formatRabbiName(s.rabbi),
+                        icon: normalized === 'guests' ? 'fa-users' : 'fa-user-tie'
+                    });
+                }
+            });
+
+            const speakers = Array.from(rabbisMap.values());
+            speakers.sort((a, b) => {
+                if (a.id.toLowerCase() === 'guests') return 1;
+                if (b.id.toLowerCase() === 'guests') return -1;
+                return a.name.localeCompare(b.name);
+            });
 
             contentArea.innerHTML = `<h1 style="margin-bottom:30px;">Speakers</h1><div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:24px;" id="speakerGrid"></div>`;
 
@@ -501,7 +518,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         speaker: async (params) => {
             const data = await getAllShiurim();
-            const filtered = data.filter(s => s.rabbi && s.rabbi.toLowerCase() === params.rabbi.toLowerCase());
+            const normalizedParam = params.rabbi.toLowerCase().replace(/_/g, ' ');
+            const filtered = data.filter(s => s.rabbi && s.rabbi.toLowerCase().replace(/_/g, ' ') === normalizedParam);
             contentArea.innerHTML = `
         <div style="margin-bottom: 30px;">
             <h1>${formatRabbiName(params.rabbi)}</h1>
@@ -947,13 +965,25 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         },
 
-        upload: () => {
+        upload: async () => {
             if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('upload');
+            
+            // Get existing rabbis for the datalist
+            const data = await getAllShiurim();
+            const existingRabbis = [...new Set(data.map(s => s.rabbi).filter(r => r && r.toLowerCase() !== 'time4mishna'))];
+
             contentArea.innerHTML = `
         <div style="max-width:600px; margin:0 auto; background:var(--bg-surface-solid); padding:32px; border-radius:var(--radius-lg); border:1px solid var(--border-light);">
             <h2 style="margin-bottom:24px;">Upload Shiur</h2>
             <form id="upForm" style="display:grid; gap:16px;">
-                <div><label>Speaker</label><select id="rabbi"><option value="Rabbi_Hartman">Rabbi Hartman</option><option value="Rabbi_Rosenfeld">Rabbi Rosenfeld</option><option value="Rabbi_Golker">Rabbi Golker</option><option value="guests">Guest</option></select></div>
+                <div>
+                    <label>Speaker</label>
+                    <input type="text" id="rabbi" list="rabbi-list" placeholder="e.g. Rabbi Hartman" required>
+                    <datalist id="rabbi-list">
+                        ${existingRabbis.map(r => `<option value="${r}">`).join('')}
+                        <option value="guests">Guest Speakers</option>
+                    </datalist>
+                </div>
                 <div><label>Title</label><input type="text" id="title" required></div>
                 <div><label>Date</label><input type="date" id="date" required></div>
                 <div><label>File</label><input type="file" id="fInput" accept="video/*,audio/*" required></div>
@@ -990,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const file = fInput.files[0];
                     if (!capturedThumbnailDataUrl) throw new Error('Capture thumbnail first');
 
+                    // Step 1: Prepare upload (starts multipart upload on worker)
                     const prep = await fetch(`${MAIN_API_URL}/api/admin/prepare-upload`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -997,16 +1028,57 @@ document.addEventListener('DOMContentLoaded', () => {
                             title: document.getElementById('title').value,
                             rabbi: document.getElementById('rabbi').value,
                             date: document.getElementById('date').value,
-                            thumbnailDataUrl: capturedThumbnailDataUrl,
                             fileName: file.name
                         })
                     });
-                    const { signedUrl } = await prep.json();
+                    const { r2Key, uploadId, thumbnailUrl } = await prep.json();
 
-                    await fetch(signedUrl, { method: 'PUT', body: file });
-                    alert('Uploaded');
+                    // Step 2: Upload video in chunks (10MB each)
+                    const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
+                    const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+                    const uploadedParts = [];
+
+                    for (let i = 0; i < totalParts; i++) {
+                        const start = i * CHUNK_SIZE;
+                        const end = Math.min(start + CHUNK_SIZE, file.size);
+                        const chunk = file.slice(start, end);
+                        const partNumber = i + 1;
+
+                        btn.textContent = `Uploading part ${partNumber}/${totalParts}...`;
+
+                        const partRes = await fetch(
+                            `${MAIN_API_URL}/api/admin/upload-part?key=${encodeURIComponent(r2Key)}&uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`,
+                            { method: 'PUT', body: chunk }
+                        );
+                        const partData = await partRes.json();
+                        if (partData.error) throw new Error(partData.error);
+                        uploadedParts.push({ partNumber: partData.partNumber, etag: partData.etag });
+                    }
+
+                    // Step 3: Complete the multipart upload
+                    btn.textContent = 'Finalizing...';
+                    const completeRes = await fetch(`${MAIN_API_URL}/api/admin/complete-upload`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ r2Key, uploadId, parts: uploadedParts })
+                    });
+                    const completeData = await completeRes.json();
+                    if (completeData.error) throw new Error(completeData.error);
+
+                    // Step 4: Upload thumbnail (small file, simple proxy)
+                    if (thumbnailUrl && capturedThumbnailDataUrl) {
+                        btn.textContent = 'Uploading thumbnail...';
+                        const thumbBlob = await (await fetch(capturedThumbnailDataUrl)).blob();
+                        await fetch(thumbnailUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'image/jpeg' },
+                            body: thumbBlob
+                        });
+                    }
+
+                    alert('Uploaded successfully to R2!');
                     loadPage('home');
-                } catch (err) { alert(err.message); btn.disabled = false; }
+                } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = 'Upload Shiur'; }
             };
 
         },
@@ -1047,16 +1119,44 @@ document.addEventListener('DOMContentLoaded', () => {
                             title: document.getElementById('title').value,
                             rabbi: 'time4mishna',
                             date: document.getElementById('date').value,
-                            thumbnailDataUrl: '', // No thumbnail for audio
                             fileName: file.name
                         })
                     });
-                    const { signedUrl } = await prep.json();
+                    const { r2Key, uploadId } = await prep.json();
 
-                    await fetch(signedUrl, { method: 'PUT', body: file });
-                    alert('Uploaded');
+                    // Upload audio in chunks
+                    const CHUNK_SIZE = 10 * 1024 * 1024;
+                    const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+                    const uploadedParts = [];
+
+                    for (let i = 0; i < totalParts; i++) {
+                        const start = i * CHUNK_SIZE;
+                        const end = Math.min(start + CHUNK_SIZE, file.size);
+                        const chunk = file.slice(start, end);
+                        const partNumber = i + 1;
+                        btn.textContent = `Uploading part ${partNumber}/${totalParts}...`;
+
+                        const partRes = await fetch(
+                            `${MAIN_API_URL}/api/admin/upload-part?key=${encodeURIComponent(r2Key)}&uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`,
+                            { method: 'PUT', body: chunk }
+                        );
+                        const partData = await partRes.json();
+                        if (partData.error) throw new Error(partData.error);
+                        uploadedParts.push({ partNumber: partData.partNumber, etag: partData.etag });
+                    }
+
+                    btn.textContent = 'Finalizing...';
+                    const completeRes = await fetch(`${MAIN_API_URL}/api/admin/complete-upload`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ r2Key, uploadId, parts: uploadedParts })
+                    });
+                    const completeData = await completeRes.json();
+                    if (completeData.error) throw new Error(completeData.error);
+
+                    alert('Uploaded to R2!');
                     loadPage('time4mishna');
-                } catch (err) { alert(err.message); btn.disabled = false; }
+                } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = 'Upload Audio'; }
             };
         },
     };
@@ -1178,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('menuLoggedIn').style.display = 'block';
         document.getElementById('menuUserName').textContent = currentUser.name;
 
-        if (currentUser.email === ADMIN_EMAIL) {
+        if (ADMIN_EMAILS && ADMIN_EMAILS.includes(currentUser.email)) {
             document.getElementById('adminLink').style.display = 'flex';
             document.getElementById('uploadLink').style.display = 'flex';
         }
