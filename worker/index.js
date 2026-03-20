@@ -1,252 +1,329 @@
-/* Cloudflare Worker for views, likes, comments, users, bans
+/**
+ * Beis Anytime - R2 Metadata Worker
+ * 
+ * This worker replaces the KV-based metadata system.
+ * It lists videos directly from an R2 bucket and parses metadata from filenames.
+ * Filename Format: YYYY-MM-DD-Rabbi_Name-Title_of_Video.mp4
+ * 
+ * It also proxies requests to the "old" worker to ensure legacy videos remain accessible.
+ */
 
-KV namespaces expected (bind these in Worker settings or wrangler):
-- VIEWS_KV
-- LIKES_KV
-- COMMENTS_KV
-- USERS_KV
-- BANS_KV
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
 
-Environment variables (recommended):
-- ADMIN_EMAIL  (e.g. beisanytime@gmail.com)
-- ADMIN_API_KEY  (optional secret for admin actions)
+    // Configuration
+    const OLD_WORKER_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
+    // You should bind your new R2 bucket to 'NEW_VIDEO_BUCKET'
+    // And your public R2 URL to 'R2_PUBLIC_URL' in wrangler.toml or dashboard
+    // Note: The public URL usually looks like https://pub-xxxx.r2.dev or a custom domain.
+    // The .cloudflarestorage.com URL is for the S3 API and won't work in browsers.
+    const R2_PUBLIC_BASE = env.R2_PUBLIC_URL || 'https://r2.beisanytime.com';
 
-Security note: This simple worker trusts the header 'x-user-email' sent by the client to identify users.
-For production, verify Google ID tokens server-side to prove identity. See README.md for instructions.
-*/
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, X-User-Email, X-Admin-Key",
+    };
 
-addEventListener('fetch', event => {
-  // Wrap handler so any uncaught exception still returns a JSON error with CORS headers.
-  event.respondWith((async () => {
-    try {
-      return await handle(event.request);
-    } catch (err) {
-      // Log the error and return a JSON 500 that includes CORS headers so browsers don't block it.
-      console.error('Unhandled worker error:', err);
-      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Content-Type, X-User-Email, X-Admin-Key',
-          'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+    if (method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    // --- Utility: Parse filename to Metadata ---
+    const parseFilename = (filename) => {
+      const cleanName = filename.replace(/\.(mp4|m4a|mp3)$/i, '');
+      const base = `${url.origin}/api/video-proxy?key=`;
+
+      // Helper to build URLs using the proxy
+      const getProxyUrl = (key) => `${base}${encodeURIComponent(key)}`;
+
+      // Try OLD format first: split by " - " (space dash space)
+      const oldParts = cleanName.split(' - ');
+      if (oldParts.length >= 3 && /^\d{4}-\d{2}-\d{2}$/.test(oldParts[0].trim())) {
+        const date = oldParts[0].trim();
+        const rabbi = oldParts[1].trim().replace(/_/g, ' ');
+        const title = oldParts.slice(2).join(' - ').trim().replace(/_/g, ' ');
+        return {
+          id: filename,
+          title: title,
+          rabbi: rabbi,
+          date: date,
+          thumbnailUrl: getProxyUrl(`thumbnails/${cleanName}.jpg`),
+          playbackUrl: getProxyUrl(filename),
+          source: 'r2'
+        };
+      }
+
+      // Try NEW format: YYYY-MM-DD-Rabbi-Title (date is first 10 chars)
+      const dateMatch = cleanName.match(/^(\d{4}-\d{2}-\d{2})-(.+)$/);
+      if (dateMatch) {
+        const date = dateMatch[1];
+        const rest = dateMatch[2];
+        const firstDash = rest.indexOf('-');
+        let rabbi, title;
+        if (firstDash !== -1) {
+          rabbi = rest.substring(0, firstDash).replace(/_/g, ' ');
+          title = rest.substring(firstDash + 1).replace(/_/g, ' ');
+        } else {
+          rabbi = 'guests';
+          title = rest.replace(/_/g, ' ');
         }
+        return {
+          id: filename,
+          title: title,
+          rabbi: rabbi,
+          date: date,
+          thumbnailUrl: getProxyUrl(`thumbnails/${cleanName}.jpg`),
+          playbackUrl: getProxyUrl(filename),
+          source: 'r2'
+        };
+      }
+
+      // Fallback: return basic info so the video still shows
+      return {
+        id: filename,
+        title: cleanName.replace(/[-_]/g, ' '),
+        rabbi: 'guests',
+        date: new Date().toISOString().split('T')[0],
+        thumbnailUrl: getProxyUrl(`thumbnails/${cleanName}.jpg`),
+        playbackUrl: getProxyUrl(filename),
+        source: 'r2'
+      };
+    };
+
+    // --- Route: GET /api/video-proxy?key=... ---
+    // Serves files (videos/thumbnails) directly via the worker's binding.
+    // Bypasses any custom domain/CORS issues on the public R2 domain.
+    if (path === "/api/video-proxy" && method === "GET") {
+      const key = url.searchParams.get("key");
+      if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
+
+      const obj = await env.NEW_VIDEO_BUCKET.get(key);
+      if (!obj) return new Response("Not found", { status: 404, headers: corsHeaders });
+
+      const headers = new Headers(corsHeaders);
+      obj.writeHttpMetadata(headers);
+      headers.set("etag", obj.httpEtag);
+      headers.set("Accept-Ranges", "bytes"); // Crucial for video seek/scrubbing
+
+      return new Response(obj.body, { headers });
+    }
+
+    // --- Route: GET /api/debug-r2 ---
+    // Helpful to see exactly what's in your bucket
+    if (path === "/api/debug-r2" && method === "GET") {
+      const objects = await env.NEW_VIDEO_BUCKET.list();
+      return new Response(JSON.stringify(objects), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
-  })());
-});
 
-const json = (data, init = {}) => {
-  return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' , 'Access-Control-Allow-Headers': 'Content-Type, X-User-Email, X-Admin-Key' },
-    status: init.status || 200
-  });
-};
-
-const text = (s, status = 200) => new Response(s, { status, headers: { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' } });
-
-async function getKVJson(kv, key) {
-  const txt = await kv.get(key);
-  if (!txt) return null;
-  try { return JSON.parse(txt); } catch (e) { return null; }
-}
-
-async function putKVJson(kv, key, val) {
-  await kv.put(key, JSON.stringify(val));
-}
-
-async function handle(request) {
-  // Defensive check: ensure required KV bindings exist and return a clear error
-  const requiredBindings = ['VIEWS_KV','LIKES_KV','COMMENTS_KV','USERS_KV','BANS_KV'];
-  const missing = requiredBindings.filter(name => typeof globalThis[name] === 'undefined' || globalThis[name] === null);
-  if (missing.length > 0) {
-    console.error('Missing KV bindings:', missing);
-    return json({ error: `Missing KV bindings: ${missing.join(', ')}` }, { status: 500 });
-  }
-
-  // Log basic request info to help debug unexpected errors (will appear in worker logs)
-  console.log('Request', request.method, request.url);
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, X-User-Email, X-Admin-Key', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS' } });
-  }
-
-  const url = new URL(request.url);
-  const path = url.pathname.replace(/\/+$/, '');
-  const parts = path.split('/').filter(Boolean);
-
-  const userEmail = request.headers.get('x-user-email') || '';
-  const adminKey = request.headers.get('x-admin-key') || '';
-  const ADMIN = ADMIN_EMAIL || '';
-  const ADMIN_KEY = ADMIN_API_KEY || '';
-
-  // Simple helper to check admin
-  const isAdmin = () => {
-    if (userEmail && ADMIN && userEmail === ADMIN) return true;
-    if (ADMIN_KEY && adminKey && adminKey === ADMIN_KEY) return true;
-    return false;
-  };
-
-  // Routes
-  // /api/views/:id
-  if (parts[0] === 'api' && parts[1] === 'views') {
-    const id = parts[2];
-    if (!id) return json({ error: 'Missing id' }, { status: 400 });
-    if (request.method === 'GET') {
-      const val = await VIEWS_KV.get(id);
-      return json({ count: parseInt(val || '0', 10) });
-    }
-    if (request.method === 'POST' && parts[2] === undefined) {
-      return json({ error: 'Missing id in path' }, { status: 400 });
+    // --- Route: GET /api/admin/shiurim ---
+    // Lists all shiurim for the admin panel
+    if (path === "/api/admin/shiurim" && method === "GET") {
+      return handleAllShiurim();
     }
 
-    // fallback
-  }
+    // --- Route: DELETE /api/admin/shiurim/:id ---
+    if (path.startsWith("/api/admin/shiurim/") && method === "DELETE") {
+      const id = decodeURIComponent(path.split("/").pop());
 
-  // POST /api/views/increment
-  if (parts[0] === 'api' && parts[1] === 'views' && parts[2] === 'increment' && request.method === 'POST') {
-    try {
-      const body = await request.json();
-      const id = body && body.id;
-      if (!id) return json({ error: 'Missing id' }, { status: 400 });
-      const key = String(id);
-      const prev = await VIEWS_KV.get(key) || '0';
-      const next = String((parseInt(prev, 10) || 0) + 1);
-      await VIEWS_KV.put(key, next);
-      return json({ count: parseInt(next, 10) });
-    } catch (e) {
-      return json({ error: 'Invalid JSON' }, { status: 400 });
+      if (/\.(mp4|m4a|mp3)$/i.test(id)) {
+        // Delete from R2
+        await env.NEW_VIDEO_BUCKET.delete(id);
+        // Also try deleting thumbnail
+        const thumbKey = `thumbnails/${id.replace(/\.[^.]+$/, '.jpg')}`;
+        await env.NEW_VIDEO_BUCKET.delete(thumbKey);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      // Fallback
+      return fetch(`${OLD_WORKER_URL}${path}`, {
+        method: 'DELETE',
+        headers: request.headers
+      });
     }
-  }
 
-  // GET /api/views/:id
-  if (parts[0] === 'api' && parts[1] === 'views' && parts[2] && request.method === 'GET') {
-    const id = parts[2];
-    const val = await VIEWS_KV.get(id) || '0';
-    return json({ count: parseInt(val, 10) });
-  }
+    // --- Route: GET /api/all-shiurim ---
+    async function handleAllShiurim() {
+      try {
+        // 1. Fetch from Old Worker (Parallel)
+        const oldPromise = fetch(`${OLD_WORKER_URL}/api/all-shiurim`).then(r => r.ok ? r.json() : []);
 
-  // Likes
-  // GET /api/likes/:id
-  if (parts[0] === 'api' && parts[1] === 'likes' && parts[2] && request.method === 'GET') {
-    const id = parts[2];
-    const key = `likes:${id}`;
-    const data = await getKVJson(LIKES_KV, key) || { users: [] };
-    const count = Array.isArray(data.users) ? data.users.length : 0;
-    const userLiked = !!(userEmail && data.users.includes(userEmail));
-    return json({ count, userLiked });
-  }
+        // 2. List from R2
+        const objects = await env.NEW_VIDEO_BUCKET.list();
+        const r2Shiurim = objects.objects
+          .filter(obj => /\.(mp4|m4a|mp3)$/i.test(obj.key))
+          .map(obj => parseFilename(obj.key))
+          .filter(s => s !== null);
 
-  // POST /api/likes/:id  (toggles like for x-user-email)
-  if (parts[0] === 'api' && parts[1] === 'likes' && parts[2] && request.method === 'POST') {
-    const id = parts[2];
-    if (!userEmail) return json({ error: 'Missing X-User-Email header' }, { status: 401 });
-    const key = `likes:${id}`;
-    const data = await getKVJson(LIKES_KV, key) || { users: [] };
-    data.users = data.users || [];
-    const idx = data.users.indexOf(userEmail);
-    let userLiked = false;
-    if (idx >= 0) {
-      data.users.splice(idx, 1);
-      userLiked = false;
-    } else {
-      data.users.push(userEmail);
-      userLiked = true;
+        let oldShiurim = await oldPromise;
+
+        // Safety: Ensure oldShiurim is an array
+        if (oldShiurim && !Array.isArray(oldShiurim)) {
+          oldShiurim = [oldShiurim];
+        } else if (!oldShiurim) {
+          oldShiurim = [];
+        }
+
+        // Merge results
+        const merged = [...r2Shiurim, ...oldShiurim];
+
+        // Sort by date descending
+        merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        return new Response(JSON.stringify(merged), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
     }
-    await putKVJson(LIKES_KV, key, data);
-    return json({ count: data.users.length, userLiked });
-  }
 
-  // Comments
-  // GET /api/comments/:id
-  if (parts[0] === 'api' && parts[1] === 'comments' && parts[2] && request.method === 'GET') {
-    const id = parts[2];
-    const key = `comments:${id}`;
-    const data = await getKVJson(COMMENTS_KV, key) || { comments: [] };
-    // return in reverse chronological
-    const comments = (data.comments || []).slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return json({ comments });
-  }
-
-  // POST /api/comments/:id
-  if (parts[0] === 'api' && parts[1] === 'comments' && parts[2] && request.method === 'POST') {
-    const id = parts[2];
-    if (!userEmail) return json({ error: 'Missing X-User-Email header' }, { status: 401 });
-    // check ban
-    const banKey = `ban:${userEmail}`;
-    const isBanned = await BANS_KV.get(banKey);
-    if (isBanned) return json({ error: 'You are banned from commenting' }, { status: 403 });
-    try {
-      const body = await request.json();
-      const text = (body && body.text) ? String(body.text).slice(0, 2000) : '';
-      if (!text) return json({ error: 'Empty comment' }, { status: 400 });
-      const userObj = await getKVJson(USERS_KV, `user:${userEmail}`) || {};
-      const displayName = userObj.displayName || userEmail;
-      const comment = { id: `${Date.now()}-${Math.random().toString(36).slice(2,9)}`, email: userEmail, displayName, text, createdAt: new Date().toISOString() };
-      const key = `comments:${id}`;
-      const data = await getKVJson(COMMENTS_KV, key) || { comments: [] };
-      data.comments = data.comments || [];
-      data.comments.push(comment);
-      await putKVJson(COMMENTS_KV, key, data);
-      return json({ ok: true, comment });
-    } catch (e) {
-      return json({ error: 'Invalid JSON' }, { status: 400 });
+    if (path === "/api/all-shiurim" && method === "GET") {
+      return handleAllShiurim();
     }
-  }
 
-  // DELETE /api/comments/:id/:commentId
-  if (parts[0] === 'api' && parts[1] === 'comments' && parts[2] && parts[3] && request.method === 'DELETE') {
-    const id = parts[2];
-    const commentId = parts[3];
-    if (!isAdmin()) return json({ error: 'Admin only' }, { status: 403 });
-    const key = `comments:${id}`;
-    const data = await getKVJson(COMMENTS_KV, key) || { comments: [] };
-    data.comments = (data.comments || []).filter(c => c.id !== commentId);
-    await putKVJson(COMMENTS_KV, key, data);
-    return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*' } });
-  }
+    // --- Route: GET /api/shiurim/id/:id ---
+    if (path.startsWith("/api/shiurim/id/") && method === "GET") {
+      const id = decodeURIComponent(path.split("/").pop());
 
-  // Users
-  // GET /api/users/:email
-  if (parts[0] === 'api' && parts[1] === 'users' && parts[2] && request.method === 'GET') {
-    const email = parts[2];
-    const data = await getKVJson(USERS_KV, `user:${email}`) || {};
-    return json(data);
-  }
+      // Check if it's an R2 file (ends with video extension)
+      if (/\.(mp4|m4a|mp3)$/i.test(id)) {
+        const metadata = parseFilename(id);
+        if (metadata) {
+          return new Response(JSON.stringify(metadata), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+      }
 
-  // PUT /api/users/:email  (set displayName)
-  if (parts[0] === 'api' && parts[1] === 'users' && parts[2] && request.method === 'PUT') {
-    const email = parts[2];
-    // require matching user or admin
-    if (!userEmail) return json({ error: 'Missing X-User-Email header' }, { status: 401 });
-    if (userEmail !== email && !isAdmin()) return json({ error: 'Permission denied' }, { status: 403 });
-    try {
-      const body = await request.json();
-      const displayName = body && body.displayName ? String(body.displayName).slice(0, 80) : '';
-      const key = `user:${email}`;
-      const prev = await getKVJson(USERS_KV, key) || {};
-      prev.displayName = displayName;
-      await putKVJson(USERS_KV, key, prev);
-      return json({ ok: true });
-    } catch (e) {
-      return json({ error: 'Invalid JSON' }, { status: 400 });
+      // Fallback to Old Worker
+      return fetch(`${OLD_WORKER_URL}${path}`, {
+        headers: { ...request.headers, "Access-Control-Allow-Origin": "*" }
+      });
     }
-  }
 
-  // Ban endpoint (admin)
-  // POST /api/ban  body { email }
-  if (parts[0] === 'api' && parts[1] === 'ban' && request.method === 'POST') {
-    if (!isAdmin()) return json({ error: 'Admin only' }, { status: 403 });
-    try {
-      const body = await request.json();
-      const email = body && body.email ? String(body.email) : '';
-      if (!email) return json({ error: 'Missing email' }, { status: 400 });
-      const key = `ban:${email}`;
-      await BANS_KV.put(key, '1');
-      return json({ ok: true });
-    } catch (e) {
-      return json({ error: 'Invalid JSON' }, { status: 400 });
+    // ============================================================
+    // CHUNKED MULTIPART UPLOAD (Bypasses 100MB worker body limit)
+    // Flow: start-upload -> upload-part (x N) -> complete-upload
+    // ============================================================
+
+    // --- Route: POST /api/admin/prepare-upload ---
+    // Returns the R2 key + starts a multipart upload for the video
+    if (path === "/api/admin/prepare-upload" && method === "POST") {
+      try {
+        const body = await request.json();
+        const { title, rabbi, date, fileName } = body;
+
+        if (!title || !rabbi || !date) {
+          return new Response("Missing metadata", { status: 400, headers: corsHeaders });
+        }
+
+        const extension = fileName.split('.').pop();
+        const cleanTitle = title.replace(/[\\/:*?"<>| ]/g, '_');
+        const cleanRabbi = rabbi.replace(/ /g, '_');
+        const r2Key = `${date}-${cleanRabbi}-${cleanTitle}.${extension}`;
+        const thumbKey = `thumbnails/${date}-${cleanRabbi}-${cleanTitle}.jpg`;
+
+        // Start multipart upload for the video
+        const multipartUpload = await env.NEW_VIDEO_BUCKET.createMultipartUpload(r2Key, {
+          httpMetadata: { contentType: "video/mp4" }
+        });
+
+        return new Response(JSON.stringify({
+          r2Key: r2Key,
+          thumbKey: thumbKey,
+          uploadId: multipartUpload.uploadId,
+          // Thumbnail goes through the simple proxy (small file)
+          thumbnailUrl: `${url.origin}/api/upload-proxy?key=${encodeURIComponent(thumbKey)}`
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+      }
     }
-  }
 
-  return json({ error: 'Not found' }, { status: 404 });
+    // --- Route: PUT /api/admin/upload-part ---
+    // Uploads a single chunk of a multipart upload
+    if (path === "/api/admin/upload-part" && method === "PUT") {
+      try {
+        const r2Key = url.searchParams.get("key");
+        const uploadId = url.searchParams.get("uploadId");
+        const partNumber = parseInt(url.searchParams.get("partNumber"));
+
+        if (!r2Key || !uploadId || isNaN(partNumber)) {
+          return new Response("Missing key, uploadId, or partNumber", { status: 400, headers: corsHeaders });
+        }
+
+        const multipartUpload = env.NEW_VIDEO_BUCKET.resumeMultipartUpload(r2Key, uploadId);
+        const part = await multipartUpload.uploadPart(partNumber, request.body);
+
+        return new Response(JSON.stringify({
+          partNumber: part.partNumber,
+          etag: part.etag
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // --- Route: POST /api/admin/complete-upload ---
+    // Completes a multipart upload after all parts are uploaded
+    if (path === "/api/admin/complete-upload" && method === "POST") {
+      try {
+        const { r2Key, uploadId, parts } = await request.json();
+
+        if (!r2Key || !uploadId || !parts) {
+          return new Response("Missing r2Key, uploadId, or parts", { status: 400, headers: corsHeaders });
+        }
+
+        const multipartUpload = env.NEW_VIDEO_BUCKET.resumeMultipartUpload(r2Key, uploadId);
+        await multipartUpload.complete(parts);
+
+        return new Response(JSON.stringify({ success: true, r2Key: r2Key }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // --- Route: PUT /api/upload-proxy ---
+    // Simple proxy for small files (thumbnails)
+    if (path === "/api/upload-proxy" && method === "PUT") {
+      const key = url.searchParams.get("key");
+      if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
+
+      const contentType = key.endsWith(".jpg") ? "image/jpeg" : (request.headers.get("Content-Type") || "video/mp4");
+
+      await env.NEW_VIDEO_BUCKET.put(key, request.body, {
+        httpMetadata: { contentType: contentType }
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // --- Default: Proxy everything else to the old worker ---
+    return fetch(`${OLD_WORKER_URL}${path}`, {
+      method: method,
+      headers: request.headers,
+      body: request.body
+    });
+  }
 }

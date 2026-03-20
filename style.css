@@ -964,8 +964,35 @@ select:focus {
     background: var(--bg-surface);
 }
 
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-light);
+    z-index: 1000;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+}
+
+.mobile-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 /* --- Mobile Responsiveness --- */
 @media (max-width: 1024px) {
+    .mobile-header {
+        display: flex;
+    }
+
     .sidebar {
         display: none;
     }
@@ -973,7 +1000,7 @@ select:focus {
     .main-viewport {
         margin-left: 0;
         width: 100%;
-        padding: 24px 20px 100px 20px;
+        padding: 80px 20px 100px 20px;
     }
 
     .bottom-nav {
@@ -1028,11 +1055,12 @@ select:focus {
     /* Mobile resets are automatic due to removing :first-child specific css */
 
     .popup-menu {
-        left: 16px;
+        left: auto;
         right: 16px;
-        bottom: 80px;
-        width: auto;
-        transform: translateY(20px);
+        top: 68px;
+        bottom: auto;
+        width: 260px;
+        transform: translateY(-10px);
     }
 }
 
@@ -1598,4 +1626,86 @@ audio {
 
 .video-container:has(.audio-player-card) {
     background: #0f172a;
+}
+
+/* --- Mobile Breakpoint (<768px) --- */
+@media (max-width: 768px) {
+    .hero-card {
+        padding: 24px 16px;
+        margin: 0 -12px 24px -12px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .hero-card h1 {
+        font-size: 2rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .hero-card::after {
+        width: 300px;
+        height: 300px;
+        top: -10%;
+        right: -10%;
+    }
+
+    .main-viewport {
+        padding: 76px 12px 100px 12px;
+    }
+
+    .grid-videos {
+        gap: 16px;
+    }
+
+    .card-content {
+        padding: 16px;
+    }
+
+    .video-details,
+    .video-comments-area {
+        padding: 16px;
+    }
+
+    .video-title {
+        font-size: 1.4rem;
+    }
+
+    .post-card,
+    .comment-item,
+    .post-composer,
+    .comment-composer {
+        padding: 16px;
+    }
+
+    .post-avatar,
+    .comment-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .audio-player-card {
+        padding: 20px;
+    }
+
+    .audio-player-art {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+    }
+
+    .share-modal {
+        width: 95%;
+        padding: 16px;
+    }
 }

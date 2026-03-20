@@ -49,13 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentArea = document.getElementById('app-content');
     const navItems = document.querySelectorAll('.nav-item, .bottom-nav-item');
     const themeToggle = document.getElementById('theme-toggle');
+    const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
 
     // --- Helpers ---
     const applyTheme = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        const icon = themeToggle.querySelector('i');
-        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        if (themeToggle) themeToggle.querySelector('i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        if (mobileThemeToggle) mobileThemeToggle.querySelector('i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     };
 
     const formatRabbiName = (id) => {
@@ -210,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const data = await fetchMain('/api/all-shiurim');
+            const data = await fetchMain('/api/all-shiurim', { cache: 'no-store' });
             if (data) {
                 data.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
                 allShiurimCache = data;
@@ -1076,6 +1077,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
 
+                    // Clear cache
+                    sessionStorage.removeItem('allShiurim');
+                    allShiurimCache = [];
+
                     alert('Uploaded successfully to R2!');
                     loadPage('home');
                 } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = 'Upload Shiur'; }
@@ -1154,6 +1159,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const completeData = await completeRes.json();
                     if (completeData.error) throw new Error(completeData.error);
 
+                    // Clear cache
+                    sessionStorage.removeItem('allShiurim');
+                    allShiurimCache = [];
+
                     alert('Uploaded to R2!');
                     loadPage('time4mishna');
                 } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = 'Upload Audio'; }
@@ -1219,7 +1228,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Events & Init ---
-    themeToggle.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+    const toggleTheme = () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+    if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
 
     document.addEventListener('click', (e) => {
         const link = e.target.closest('[data-page]');
@@ -1243,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Profile Dropdown Logic
     const pToggle = document.getElementById('profileToggle'); // Desktop
-    const mProfile = document.getElementById('mobileProfileBtn'); // Mobile
+    const mProfile = document.getElementById('mobileProfileToggle'); // Mobile Header
     const globalMenu = document.getElementById('globalMenu');
 
     const toggleMenu = (e) => {
@@ -1256,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mProfile) mProfile.onclick = toggleMenu;
 
     document.addEventListener('click', (e) => {
-        if (!globalMenu.contains(e.target) && !mProfile.contains(e.target) && !pToggle.contains(e.target)) {
+        if (!globalMenu.contains(e.target) && (!mProfile || !mProfile.contains(e.target)) && (!pToggle || !pToggle.contains(e.target))) {
             globalMenu.classList.remove('active');
         }
     });
@@ -1270,9 +1281,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('google-signin-success', (e) => {
         currentUser = e.detail;
 
-        document.getElementById('desktop-auth-container').style.display = 'none';
+        const desktopAuth = document.getElementById('desktop-auth-container');
+        if (desktopAuth) desktopAuth.style.display = 'none';
         document.getElementById('profileDropdown').style.display = 'block';
         document.getElementById('userAvatar').src = currentUser.picture;
+
+        const mobileAuth = document.getElementById('mobile-auth-container');
+        if (mobileAuth) mobileAuth.style.display = 'none';
+        const mobileProfile = document.getElementById('mobileProfileDropdown');
+        if (mobileProfile) mobileProfile.style.display = 'block';
+        const mobileAvatar = document.getElementById('mobileUserAvatar');
+        if (mobileAvatar) mobileAvatar.src = currentUser.picture;
 
         document.getElementById('menuLoggedOut').style.display = 'none';
         document.getElementById('menuLoggedIn').style.display = 'block';

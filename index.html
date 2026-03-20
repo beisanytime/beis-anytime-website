@@ -32,6 +32,27 @@
 <body>
 
     <div class="app-shell">
+        
+        <!-- Mobile Top Header (Visible only on mobile) -->
+        <header class="mobile-header">
+            <a href="#" class="logo nav-link" onclick="loadPage('home'); return false;">
+                <i class="fas fa-play-circle" style="color: var(--color-accent)"></i>
+                <span>BEIS ANYTIME</span>
+            </a>
+            <div class="mobile-header-actions">
+                <button class="btn btn-secondary btn-icon" style="padding: 6px; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center;" id="mobile-theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div id="mobile-auth-container">
+                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.8rem;" onclick="google.accounts.id.prompt()">Sign In</button>
+                </div>
+                <div class="profile-wrapper" id="mobileProfileDropdown" style="display: none;">
+                    <button class="profile-trigger" id="mobileProfileToggle" style="padding:0;">
+                        <img id="mobileUserAvatar" src="" class="avatar" alt="User" style="width:32px;height:32px;">
+                    </button>
+                </div>
+            </div>
+        </header>
 
         <!-- Sidebar (Desktop) -->
         <aside class="sidebar">
@@ -134,9 +155,6 @@
             </a>
             <a href="#" class="bottom-nav-item" data-page="time4mishna">
                 <i class="fas fa-clock"></i> Mishna
-            </a>
-            <a href="#" class="bottom-nav-item" id="mobileProfileBtn">
-                <i class="fas fa-user"></i> Profile
             </a>
         </nav>
 
