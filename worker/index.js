@@ -3,7 +3,7 @@
  * 
  * This worker replaces the KV-based metadata system.
  * It lists videos directly from an R2 bucket and parses metadata from filenames.
- * Filename Format: YYYY-MM-DD-Rabbi_Name-Title_of_Video.mp4
+ * Filename Format: YYYY-MM-DD-Rabbi_Name-Title_of_Video.mp4 (also supports .mov)
  * 
  * It also proxies requests to the "old" worker to ensure legacy videos remain accessible.
  */
@@ -34,7 +34,7 @@ export default {
 
     // --- Utility: Parse filename to Metadata ---
     const parseFilename = (filename) => {
-      const cleanName = filename.replace(/\.(mp4|m4a|mp3)$/i, '');
+      const cleanName = filename.replace(/\.(mp4|mov|m4a|mp3)$/i, '');
       const base = `${url.origin}/api/video-proxy?key=`;
 
       // Helper to build URLs using the proxy
@@ -131,7 +131,7 @@ export default {
     if (path.startsWith("/api/admin/shiurim/") && method === "DELETE") {
       const id = decodeURIComponent(path.split("/").pop());
 
-      if (/\.(mp4|m4a|mp3)$/i.test(id)) {
+      if (/\.(mp4|mov|m4a|mp3)$/i.test(id)) {
         // Delete from R2
         await env.NEW_VIDEO_BUCKET.delete(id);
         // Also try deleting thumbnail
@@ -159,7 +159,7 @@ export default {
         // 2. List from R2
         const objects = await env.NEW_VIDEO_BUCKET.list();
         const r2Shiurim = objects.objects
-          .filter(obj => /\.(mp4|m4a|mp3)$/i.test(obj.key))
+          .filter(obj => /\.(mp4|mov|m4a|mp3)$/i.test(obj.key))
           .map(obj => parseFilename(obj.key))
           .filter(s => s !== null);
 
@@ -198,7 +198,7 @@ export default {
       const id = decodeURIComponent(path.split("/").pop());
 
       // Check if it's an R2 file (ends with video extension)
-      if (/\.(mp4|m4a|mp3)$/i.test(id)) {
+      if (/\.(mp4|mov|m4a|mp3)$/i.test(id)) {
         const metadata = parseFilename(id);
         if (metadata) {
           return new Response(JSON.stringify(metadata), {
@@ -235,9 +235,12 @@ export default {
         const r2Key = `${date}-${cleanRabbi}-${cleanTitle}.${extension}`;
         const thumbKey = `thumbnails/${date}-${cleanRabbi}-${cleanTitle}.jpg`;
 
+        // Set content type based on extension
+        const contentType = extension.toLowerCase() === 'mov' ? 'video/quicktime' : 'video/mp4';
+
         // Start multipart upload for the video
         const multipartUpload = await env.NEW_VIDEO_BUCKET.createMultipartUpload(r2Key, {
-          httpMetadata: { contentType: "video/mp4" }
+          httpMetadata: { contentType: contentType }
         });
 
         return new Response(JSON.stringify({
@@ -308,7 +311,9 @@ export default {
       const key = url.searchParams.get("key");
       if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
 
-      const contentType = key.endsWith(".jpg") ? "image/jpeg" : (request.headers.get("Content-Type") || "video/mp4");
+      const contentType = key.endsWith(".jpg") ? "image/jpeg" : 
+                      key.endsWith(".mov") ? "video/quicktime" : 
+                      (request.headers.get("Content-Type") || "video/mp4");
 
       await env.NEW_VIDEO_BUCKET.put(key, request.body, {
         httpMetadata: { contentType: contentType }
