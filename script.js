@@ -1043,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${data && data.length ? data.map(s => `
                 <div style="padding:16px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; gap:12px; align-items:center;">
-                        <img src="${s.thumbnailDataUrl || ''}" style="width:60px; height:34px; object-fit:cover; border-radius:4px;">
+                        <img src="${s.thumbnailDataUrl || s.thumbnailUrl || ''}" alt="Thumbnail for ${s.title}" style="width:60px; height:34px; object-fit:cover; border-radius:4px;" onerror="this.style.visibility='hidden';">
                         <div>
                             <div style="font-weight:600;">${s.title}</div>
                             <div style="font-size:0.8rem; color:var(--text-muted);">${formatRabbiName(s.rabbi)}</div>
