@@ -1,10 +1,10 @@
 /**
  * Beis Anytime - R2 Metadata Worker
- * 
+ *
  * This worker replaces the KV-based metadata system.
  * It lists videos directly from an R2 bucket and parses metadata from filenames.
  * Filename Format: YYYY-MM-DD-Rabbi_Name-Title_of_Video.mp4 (also supports .mov)
- * 
+ *
  * It also proxies requests to the "old" worker to ensure legacy videos remain accessible.
  */
 
@@ -337,8 +337,8 @@ export default {
       const key = url.searchParams.get("key");
       if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
 
-      const contentType = key.endsWith(".jpg") ? "image/jpeg" : 
-                      key.endsWith(".mov") ? "video/quicktime" : 
+      const contentType = key.endsWith(".jpg") ? "image/jpeg" :
+                      key.endsWith(".mov") ? "video/quicktime" :
                       (request.headers.get("Content-Type") || "video/mp4");
 
       await env.NEW_VIDEO_BUCKET.put(key, request.body, {
