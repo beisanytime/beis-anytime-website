@@ -619,8 +619,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         view_shiur: async (params) => {
-            // ALWAYS fetch fresh metadata to ensure signed URLs (playbackUrl) haven't expired
-            const shiur = await fetchMain(`/api/shiurim/id/${params.id}`);
+            // Reuse metadata already loaded by Up Next; fetch only when opened elsewhere.
+            const shiur = params.preloadedShiur || await fetchMain(`/api/shiurim/id/${params.id}`);
 
             if (!shiur) {
                 contentArea.innerHTML = renderEmptyState("Shiur unavailable.");
@@ -766,10 +766,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 // 2. Set source and load after a small delay to ensure DOM parsing is complete
-                setTimeout(() => {
-                    vid.src = shiur.playbackUrl;
-                    vid.load();
-                }, 50);
+                // Let the browser fetch metadata first; this avoids delaying initial layout.
+                vid.preload = 'metadata';
+                vid.src = shiur.playbackUrl;
+                vid.load();
             }
 
             vid.onloadedmetadata = () => {
@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rList = document.getElementById('relatedList');
                 if (rList) {
                     rList.innerHTML = related.map(r => `
-                    <a href="#" class="related-card" onclick="loadPage('view_shiur', {id:'${r.id}'}); return false;">
+                    <a href="#" class="related-card" data-related-id="${r.id}">
                         <img data-src="${r.thumbnailDataUrl || r.thumbnailUrl}" class="related-thumb" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23f3f4f6'%3E%3C/svg%3E">
                         <div class="related-info">
                             <h4>${r.title}</h4>
@@ -866,6 +866,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </a>
                 `).join('');
                     rList.querySelectorAll('img[data-src]').forEach(img => imageObserver.observe(img));
+                    rList.querySelectorAll('[data-related-id]').forEach(card => {
+                        card.onclick = event => {
+                            event.preventDefault();
+                            const related = allData.find(item => item.id === card.dataset.relatedId);
+                            if (related) loadPage('view_shiur', { id: related.id, preloadedShiur: related });
+                        };
+                    });
                 }
             };
             loadRelated();

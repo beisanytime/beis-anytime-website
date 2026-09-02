@@ -119,6 +119,7 @@ export default {
       obj.writeHttpMetadata(headers);
       headers.set("etag", obj.httpEtag);
       headers.set("Accept-Ranges", "bytes");
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
       if (obj.range) {
         headers.set("Content-Range", `bytes ${obj.range.offset}-${obj.range.offset + obj.range.length - 1}/${obj.size}`);
         headers.set("Content-Length", String(obj.range.length));
