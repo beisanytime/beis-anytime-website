@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         video.playsInline = true;
         video.preload = 'auto';
         video.crossOrigin = 'anonymous';
-        const timeout = setTimeout(() => { cleanup(); reject(new Error('Timed out loading video')); }, 30000);
+        const timeout = setTimeout(() => { cleanup(); reject(new Error('Timed out loading video')); }, 10000);
         const cleanup = () => {
             clearTimeout(timeout);
             video.pause();
@@ -1067,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let completed = 0;
                 let failed = 0;
                 const videos = allVideos;
-                const concurrency = 6;
+                const concurrency = 3;
                 let nextIndex = 0;
 
                 const processNext = async () => {
@@ -1094,8 +1094,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await Promise.all(Array.from({ length: Math.min(concurrency, videos.length) }, processNext));
                 refreshStatus.textContent = videos.length === 0
-                    ? 'No supported video files were found. Only .mp4, .mov, and .m4v files can generate thumbnails.'
-                    : `Finished: ${completed} refreshed${failed ? `, ${failed} failed` : ''}.`;
+                    ? 'No supported video files were found.'
+                    : `Finished: ${completed} refreshed${failed ? `, ${failed} skipped (unreadable or unavailable)` : ''}.`;
                 refreshButton.disabled = false;
                 sessionStorage.removeItem('allShiurim');
                 allShiurimCache = [];
