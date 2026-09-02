@@ -178,11 +178,12 @@ export default {
     }
 
     // --- Route: POST /api/admin/cleanup-malformed-thumbnails ---
-    // Removes accidental thumbnails/thumbnails/... objects created by older refresh attempts.
+    // Removes thumbnail objects that were accidentally uploaded with a video extension.
     if (path === "/api/admin/cleanup-malformed-thumbnails" && method === "POST") {
-      const objects = await env.NEW_VIDEO_BUCKET.list({ prefix: "thumbnails/thumbnails/" });
-      await Promise.all(objects.objects.map(object => env.NEW_VIDEO_BUCKET.delete(object.key)));
-      return new Response(JSON.stringify({ deleted: objects.objects.length }), {
+      const objects = await env.NEW_VIDEO_BUCKET.list({ prefix: "thumbnails/" });
+      const malformed = objects.objects.filter(object => /\.(mp4|mov|m4v)$/i.test(object.key));
+      await Promise.all(malformed.map(object => env.NEW_VIDEO_BUCKET.delete(object.key)));
+      return new Response(JSON.stringify({ deleted: malformed.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
@@ -225,7 +226,7 @@ export default {
         // 2. List from R2
         const objects = await env.NEW_VIDEO_BUCKET.list();
         const r2Shiurim = objects.objects
-          .filter(obj => /\.(mp4|mov|m4a|mp3)$/i.test(obj.key))
+          .filter(obj => !/^thumbnails\//i.test(obj.key) && /\.(mp4|mov|m4a|mp3)$/i.test(obj.key))
           .map(obj => parseFilename(obj.key))
           .filter(s => s !== null);
 

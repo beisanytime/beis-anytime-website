@@ -1099,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 refreshButton.disabled = false;
                 sessionStorage.removeItem('allShiurim');
                 allShiurimCache = [];
+                await loadPage('admin');
             };
 
             contentArea.querySelectorAll('[data-del]').forEach(b => {
