@@ -114,6 +114,12 @@ export default {
       const requestedRange = range ? parseByteRange(range) : undefined;
       const obj = await env.NEW_VIDEO_BUCKET.get(key, requestedRange ? { range: requestedRange } : undefined);
       if (!obj) return new Response("Not found", { status: 404, headers: corsHeaders });
+      if (/^thumbnails\\//i.test(key)) {
+        const imageHeaders = new Headers(corsHeaders);
+        imageHeaders.set("Content-Type", "image/jpeg");
+        imageHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
+        return new Response(obj.body, { headers: imageHeaders });
+      }
 
       const headers = new Headers(corsHeaders);
       obj.writeHttpMetadata(headers);

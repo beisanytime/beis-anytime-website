@@ -1057,7 +1057,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const refreshButton = document.getElementById('refreshThumbnailsBtn');
             const refreshStatus = document.getElementById('thumbnailRefreshStatus');
             if (refreshButton) refreshButton.onclick = async () => {
-                const allVideos = (data || []).filter(video => video.playbackUrl);
+                const allVideos = (data || []).filter(video => {
+                    const key = video.id || '';
+                    return video.playbackUrl && !key.toLowerCase().startsWith('thumbnails/');
+                });
                 if (!confirm(`Regenerate first-frame thumbnails for ${allVideos.length} videos? Existing thumbnails will be overwritten.`)) return;
                 refreshButton.disabled = true;
                 refreshStatus.style.display = 'block';
