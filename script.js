@@ -17,13 +17,68 @@ const imageObserver = new IntersectionObserver((entries, observer) => {
 }, { rootMargin: '200px' });
 
 // --- Google Auth ---
+const GOOGLE_CLIENT_ID = '248585696121-67ecvsoqhtbpc0b2qt5f486864p0uvnq.apps.googleusercontent.com';
+
+const decodeBase64Url = (value) => {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    return decodeURIComponent(atob(normalized).split('').map(char => `%${('00' + char.charCodeAt(0).toString(16)).slice(-2)}`).join(''));
+};
+
 window.handleCredentialResponse = (response) => {
     try {
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        const currentUser = { name: payload.name, email: payload.email, picture: payload.picture };
-        localStorage.setItem('googleUser', JSON.stringify(currentUser));
-        window.dispatchEvent(new CustomEvent('google-signin-success', { detail: currentUser }));
-    } catch (e) { console.error(e); }
+        if (!response || !response.credential) throw new Error('Google returned no credential');
+        const parts = response.credential.split('.');
+        if (parts.length !== 3) throw new Error('Invalid Google credential');
+        const payload = JSON.parse(decodeBase64Url(parts[1]));
+        if (!payload.email || payload.email_verified === false) throw new Error('Google account email is not verified');
+
+        const user = {
+            name: payload.name || payload.email,
+            email: payload.email,
+            picture: payload.picture || ''
+        };
+        localStorage.setItem('googleUser', JSON.stringify(user));
+        window.dispatchEvent(new CustomEvent('google-signin-success', { detail: user }));
+    } catch (error) {
+        console.error('Google sign-in failed:', error);
+        const message = error instanceof Error ? error.message : 'Unable to sign in with Google';
+        window.dispatchEvent(new CustomEvent('google-signin-error', { detail: message }));
+    }
+};
+
+const initializeGoogleSignIn = () => {
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) return false;
+    window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: window.handleCredentialResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: true
+    });
+
+    const button = document.getElementById('google-signin-button');
+    if (button) {
+        window.google.accounts.id.renderButton(button, {
+            type: 'icon',
+            shape: 'circle',
+            theme: 'outline',
+            size: 'large'
+        });
+    }
+    return true;
+};
+
+const startGoogleSignIn = () => {
+    if (initializeGoogleSignIn()) {
+        window.google.accounts.id.prompt();
+        return;
+    }
+    showToast('Google Sign-In is still loading. Please try again.', 'error');
+    let attempts = 0;
+    const retry = setInterval(() => {
+        attempts += 1;
+        if (initializeGoogleSignIn() || attempts >= 20) clearInterval(retry);
+    }, 250);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -629,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ` : `
                     <div style="padding:30px; text-align:center; color:var(--text-muted); background:var(--bg-surface-hover); border-radius:var(--radius-lg); margin-bottom:30px;">
                         <p style="margin-bottom:12px;">Sign in to join the conversation.</p>
-                        <button class="btn btn-primary" onclick="google.accounts.id.prompt()">Sign In</button>
+                        <button class="btn btn-primary js-google-sign-in">Sign In</button>
                     </div>
                     `}
 
@@ -1252,6 +1307,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Initialize Google Identity Services after the async script is available.
+    initializeGoogleSignIn();
+    document.querySelectorAll('.js-google-sign-in').forEach(button => {
+        button.addEventListener('click', startGoogleSignIn);
+    });
+    // Dynamic page content (comments and other sign-in prompts) is handled here.
+    contentArea.addEventListener('click', event => {
+        if (event.target.closest('.js-google-sign-in')) startGoogleSignIn();
+    });
+    window.addEventListener('google-signin-error', event => showToast(event.detail || 'Unable to sign in with Google', 'error'));
+
     // Profile Dropdown Logic
     const pToggle = document.getElementById('profileToggle'); // Desktop
     const mProfile = document.getElementById('mobileProfileToggle'); // Mobile Header
@@ -1274,6 +1340,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('signOutBtn').onclick = () => {
         localStorage.removeItem('googleUser');
+        currentUser = null;
+        if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
         window.location.reload();
     };
 
@@ -1305,7 +1373,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Boot
     const storedUser = localStorage.getItem('googleUser');
-    if (storedUser) window.dispatchEvent(new CustomEvent('google-signin-success', { detail: JSON.parse(storedUser) }));
+    if (storedUser) {
+        try {
+            window.dispatchEvent(new CustomEvent('google-signin-success', { detail: JSON.parse(storedUser) }));
+        } catch {
+            localStorage.removeItem('googleUser');
+        }
+    }
 
     applyTheme(localStorage.getItem('theme') || 'light');
 
