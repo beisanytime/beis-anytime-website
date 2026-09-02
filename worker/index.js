@@ -121,6 +121,32 @@ export default {
       });
     }
 
+    // --- Route: POST /api/admin/refresh-thumbnails ---
+    // Regenerates thumbnails for every video using a supplied first-frame JPEG.
+    // The browser extracts frames because Workers cannot decode video containers.
+    if (path === "/api/admin/refresh-thumbnails" && method === "POST") {
+      try {
+        const body = await request.json();
+        const { key, thumbnail } = body || {};
+        if (!key || !thumbnail || !/^data:image\/jpeg;base64,/.test(thumbnail)) {
+          return new Response(JSON.stringify({ error: "Missing video key or JPEG thumbnail" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        const base64 = thumbnail.substring("data:image/jpeg;base64,".length);
+        const binary = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
+        const thumbKey = `thumbnails/${key.replace(/\\.[^.]+$/, '.jpg')}`;
+        await env.NEW_VIDEO_BUCKET.put(thumbKey, binary, { httpMetadata: { contentType: "image/jpeg" } });
+        return new Response(JSON.stringify({ success: true, key, thumbnailKey: thumbKey }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
     // --- Route: GET /api/admin/shiurim ---
     // Lists all shiurim for the admin panel
     if (path === "/api/admin/shiurim" && method === "GET") {

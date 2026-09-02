@@ -84,7 +84,6 @@ const startGoogleSignIn = () => {
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // 0. API for Video Metadata & Uploads (New R2-based worker)
-    const MAIN_API_URL = 'https://beis-api.beisanytime.workers.dev';
 
     // 1. API for Community Feed (The new D1 Worker)
     const COMMUNITY_API_URL = 'https://beis-social-worker.beisanytime.workers.dev'; // UPDATE THIS!
@@ -94,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ADMIN_EMAILS = ['beisanytime@gmail.com', 'joshuacalvert1@gmail.com'];
     const UPLOAD_PASSWORD = 'beis24/7';
+    const MAIN_API_URL = 'https://beis-api.beisanytime.workers.dev';
 
     // --- State ---
     let allShiurimCache = [];
@@ -141,6 +141,36 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Toast Helper ---
+    const captureFirstFrame = (videoUrl) => new Promise((resolve, reject) => {
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.crossOrigin = 'anonymous';
+        const cleanup = () => {
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        };
+        video.onerror = () => { cleanup(); reject(new Error('Video could not be loaded')); };
+        video.onloadeddata = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                if (!canvas.width || !canvas.height) throw new Error('Video has no dimensions');
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                const frame = canvas.toDataURL('image/jpeg', 0.85);
+                cleanup();
+                resolve(frame);
+            } catch (error) {
+                cleanup();
+                reject(error);
+            }
+        };
+        video.src = videoUrl;
+    });
+
     const showToast = (message, type = 'success') => {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -992,10 +1022,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('admin');
             const data = await fetchMain('/api/admin/shiurim');
             contentArea.innerHTML = `
-        <div class="flex-between" style="margin-bottom:24px;">
+        <div class="flex-between" style="margin-bottom:24px; gap:12px; flex-wrap:wrap;">
             <h1>Admin Dashboard</h1>
-            <button class="btn btn-primary" onclick="loadPage('upload')">Upload New</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-secondary" id="refreshThumbnailsBtn"><i class="fas fa-images"></i> Refresh All Thumbnails</button>
+                <button class="btn btn-primary" onclick="loadPage('upload')">Upload New</button>
+            </div>
         </div>
+        <div id="thumbnailRefreshStatus" style="display:none; margin-bottom:20px; padding:12px 16px; border-radius:var(--radius-md); background:var(--bg-surface-hover); color:var(--text-muted);"></div>
         <div style="background:var(--bg-surface-solid); border:1px solid var(--border-light); border-radius:12px; overflow:hidden;">
             ${data && data.length ? data.map(s => `
                 <div style="padding:16px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
@@ -1011,6 +1045,39 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('') : '<div style="padding:20px;">No shiurim.</div>'}
         </div>
     `;
+            const refreshButton = document.getElementById('refreshThumbnailsBtn');
+            const refreshStatus = document.getElementById('thumbnailRefreshStatus');
+            if (refreshButton) refreshButton.onclick = async () => {
+                if (!confirm(`Regenerate first-frame thumbnails for ${data?.length || 0} videos? Existing thumbnails will be overwritten.`)) return;
+                refreshButton.disabled = true;
+                refreshStatus.style.display = 'block';
+                let completed = 0;
+                let failed = 0;
+                const videos = (data || []).filter(video => video.playbackUrl && /\\.(mp4|mov)$/i.test(video.id || video.playbackUrl));
+
+                for (const video of videos) {
+                    refreshStatus.textContent = `Refreshing thumbnail ${completed + failed + 1} of ${videos.length}...`;
+                    try {
+                        const frame = await captureFirstFrame(video.playbackUrl);
+                        const response = await fetch(`${MAIN_API_URL}/api/admin/refresh-thumbnails`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: video.id, thumbnail: frame })
+                        });
+                        const result = await response.json();
+                        if (!response.ok || result.error) throw new Error(result.error || 'Upload failed');
+                        completed++;
+                    } catch (error) {
+                        failed++;
+                        console.error(`Thumbnail refresh failed for ${video.id}:`, error);
+                    }
+                }
+                refreshStatus.textContent = `Finished: ${completed} refreshed${failed ? `, ${failed} failed` : ''}.`;
+                refreshButton.disabled = false;
+                sessionStorage.removeItem('allShiurim');
+                allShiurimCache = [];
+            };
+
             contentArea.querySelectorAll('[data-del]').forEach(b => {
                 b.onclick = async () => {
                     if (confirm('Delete?')) {
