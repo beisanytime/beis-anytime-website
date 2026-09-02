@@ -667,7 +667,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <audio id="player-video" controls autoplay playsinline preload="auto" style="width:100%; margin-top:16px;"></audio>
                            </div>`
-                    : `<video id="player-video" controls autoplay playsinline preload="auto" poster="${shiur.thumbnailDataUrl || ''}" style="position:relative; z-index:1;"></video>`
+                    : `<div style="position:relative; z-index:1; width:100%; height:100%;">
+                        <video id="player-video" controls playsinline preload="metadata" poster="${shiur.thumbnailDataUrl || shiur.thumbnailUrl || ''}" style="width:100%; height:100%;"></video>
+                        <button id="videoPlayButton" class="btn btn-primary" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); display:none;">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                    </div>`
                 }
                 </div>
                 
@@ -769,20 +774,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 };
 
-                // 2. Set source and load after a small delay to ensure DOM parsing is complete
-                // Let the browser fetch metadata first; this avoids delaying initial layout.
+                // Load metadata first, then start playback when the browser has enough data.
                 vid.preload = 'metadata';
                 vid.src = shiur.playbackUrl;
                 vid.load();
+
+                const playButton = document.getElementById('videoPlayButton');
+                const tryPlay = () => {
+                    vid.play().then(() => {
+                        if (playButton) playButton.style.display = 'none';
+                    }).catch(() => {
+                        // Browsers may block autoplay after async navigation; expose an explicit control.
+                        if (playButton) playButton.style.display = 'block';
+                    });
+                };
+                vid.addEventListener('canplay', tryPlay, { once: true });
+                if (playButton) playButton.onclick = tryPlay;
             }
 
+            if (!vid) return;
             vid.onloadedmetadata = () => {
                 localStorage.setItem(`vid_duration_${params.id}`, vid.duration);
                 // Resume Playback
                 const savedTime = localStorage.getItem(`vid_progress_${params.id}`);
-                if (savedTime) {
-                    vid.currentTime = parseFloat(savedTime);
-                }
+                if (savedTime) vid.currentTime = parseFloat(savedTime);
             };
 
             vid.addEventListener('timeupdate', () => {
