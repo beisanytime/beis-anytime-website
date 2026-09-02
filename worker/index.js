@@ -25,21 +25,13 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-User-Email, X-Admin-Key",
+      "Access-Control-Allow-Headers": "Content-Type, Range, X-User-Email, X-Admin-Key",
+      "Access-Control-Expose-Headers": "Accept-Ranges, Content-Length, Content-Range, ETag, Content-Type",
     };
 
     if (method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
-
-    const parseByteRange = (header) => {
-      const match = /^bytes=(\\d*)-(\\d*)$/.exec(header || '');
-      if (!match) return undefined;
-      const offset = match[1] ? Number(match[1]) : 0;
-      const end = match[2] ? Number(match[2]) : undefined;
-      if (!Number.isFinite(offset) || (end !== undefined && !Number.isFinite(end))) return undefined;
-      return end !== undefined ? { offset, length: Math.max(0, end - offset + 1) } : { offset };
-    };
 
     // --- Utility: Parse filename to Metadata ---
     const parseFilename = (filename) => {
@@ -111,8 +103,16 @@ export default {
       if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
 
       const range = request.headers.get("Range");
-      const requestedRange = range ? parseByteRange(range) : undefined;
-      const obj = await env.NEW_VIDEO_BUCKET.get(key, requestedRange ? { range: requestedRange } : undefined);
+      let obj;
+      try {
+        // Let R2 parse the browser's Range header, including suffix ranges.
+        obj = await env.NEW_VIDEO_BUCKET.get(key, range ? { range: request.headers } : undefined);
+      } catch (error) {
+        return new Response(JSON.stringify({ error: "Unable to read video" }), {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       if (!obj) return new Response("Not found", { status: 404, headers: corsHeaders });
       if (/^thumbnails\//i.test(key)) {
         const imageHeaders = new Headers(corsHeaders);
@@ -123,12 +123,16 @@ export default {
 
       const headers = new Headers(corsHeaders);
       obj.writeHttpMetadata(headers);
+      if (/\.mov$/i.test(key)) headers.set("Content-Type", "video/quicktime");
+      if (/\.mp4$/i.test(key)) headers.set("Content-Type", "video/mp4");
       headers.set("etag", obj.httpEtag);
       headers.set("Accept-Ranges", "bytes");
       headers.set("Cache-Control", "public, max-age=31536000, immutable");
       if (obj.range) {
-        headers.set("Content-Range", `bytes ${obj.range.offset}-${obj.range.offset + obj.range.length - 1}/${obj.size}`);
-        headers.set("Content-Length", String(obj.range.length));
+        const rangeOffset = obj.range.offset ?? Math.max(0, obj.size - obj.range.length);
+        const rangeLength = obj.range.length ?? obj.size;
+        headers.set("Content-Range", `bytes ${rangeOffset}-${rangeOffset + rangeLength - 1}/${obj.size}`);
+        headers.set("Content-Length", String(rangeLength));
       } else {
         headers.set("Content-Length", String(obj.size));
       }

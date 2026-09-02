@@ -120,10 +120,6 @@ body::before {
     z-index: -1;
 }
 
-@view-transition {
-    navigation: auto;
-}
-
 /* --- App Shell --- */
 .app-shell {
     display: flex;
@@ -644,7 +640,6 @@ body.cinema-mode .video-container {
     flex-direction: column;
     position: relative;
     box-shadow: var(--shadow-sm);
-    view-transition-name: card-generic;
 }
 
 .video-card:hover {

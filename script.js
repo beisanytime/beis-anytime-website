@@ -154,7 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
             video.removeAttribute('src');
             video.load();
         };
-        video.onerror = () => { cleanup(); reject(new Error('Video could not be loaded')); };
+        video.onerror = () => {
+            const code = video.error?.code;
+            cleanup();
+            reject(new Error(code ? `Video could not be loaded (media error ${code})` : 'Video could not be loaded'));
+        };
         video.onloadeddata = () => {
             try {
                 const canvas = document.createElement('canvas');
