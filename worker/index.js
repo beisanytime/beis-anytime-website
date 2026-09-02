@@ -32,6 +32,15 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    const parseByteRange = (header) => {
+      const match = /^bytes=(\\d*)-(\\d*)$/.exec(header || '');
+      if (!match) return undefined;
+      const offset = match[1] ? Number(match[1]) : 0;
+      const end = match[2] ? Number(match[2]) : undefined;
+      if (!Number.isFinite(offset) || (end !== undefined && !Number.isFinite(end))) return undefined;
+      return end !== undefined ? { offset, length: Math.max(0, end - offset + 1) } : { offset };
+    };
+
     // --- Utility: Parse filename to Metadata ---
     const parseFilename = (filename) => {
       const cleanName = filename.replace(/\.(mp4|mov|m4a|mp3)$/i, '');
@@ -101,15 +110,23 @@ export default {
       const key = url.searchParams.get("key");
       if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
 
-      const obj = await env.NEW_VIDEO_BUCKET.get(key);
+      const range = request.headers.get("Range");
+      const requestedRange = range ? parseByteRange(range) : undefined;
+      const obj = await env.NEW_VIDEO_BUCKET.get(key, requestedRange ? { range: requestedRange } : undefined);
       if (!obj) return new Response("Not found", { status: 404, headers: corsHeaders });
 
       const headers = new Headers(corsHeaders);
       obj.writeHttpMetadata(headers);
       headers.set("etag", obj.httpEtag);
-      headers.set("Accept-Ranges", "bytes"); // Crucial for video seek/scrubbing
+      headers.set("Accept-Ranges", "bytes");
+      if (obj.range) {
+        headers.set("Content-Range", `bytes ${obj.range.offset}-${obj.range.offset + obj.range.length - 1}/${obj.size}`);
+        headers.set("Content-Length", String(obj.range.length));
+      } else {
+        headers.set("Content-Length", String(obj.size));
+      }
 
-      return new Response(obj.body, { headers });
+      return new Response(obj.body, { status: obj.range ? 206 : 200, headers });
     }
 
     // --- Route: GET /api/debug-r2 ---

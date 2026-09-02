@@ -147,7 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
         video.playsInline = true;
         video.preload = 'auto';
         video.crossOrigin = 'anonymous';
+        const timeout = setTimeout(() => { cleanup(); reject(new Error('Timed out loading video')); }, 30000);
         const cleanup = () => {
+            clearTimeout(timeout);
             video.pause();
             video.removeAttribute('src');
             video.load();
@@ -1055,24 +1057,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 let completed = 0;
                 let failed = 0;
                 const videos = allVideos;
+                const concurrency = 6;
+                let nextIndex = 0;
 
-                for (const video of videos) {
-                    refreshStatus.textContent = `Refreshing thumbnail ${completed + failed + 1} of ${videos.length}...`;
-                    try {
-                        const frame = await captureFirstFrame(video.playbackUrl);
-                        const response = await fetch(`${MAIN_API_URL}/api/admin/refresh-thumbnails`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ key: video.id, thumbnail: frame })
-                        });
-                        const result = await response.json();
-                        if (!response.ok || result.error) throw new Error(result.error || 'Upload failed');
-                        completed++;
-                    } catch (error) {
-                        failed++;
-                        console.error(`Thumbnail refresh failed for ${video.id}:`, error);
+                const processNext = async () => {
+                    while (nextIndex < videos.length) {
+                        const video = videos[nextIndex++];
+                        refreshStatus.textContent = `Refreshing thumbnail ${completed + failed + 1} of ${videos.length}...`;
+                        try {
+                            const frame = await captureFirstFrame(video.playbackUrl);
+                            const response = await fetch(`${MAIN_API_URL}/api/admin/refresh-thumbnails`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ key: video.id, thumbnail: frame })
+                            });
+                            const result = await response.json();
+                            if (!response.ok || result.error) throw new Error(result.error || 'Upload failed');
+                            completed++;
+                        } catch (error) {
+                            failed++;
+                            console.error(`Thumbnail refresh failed for ${video.id}:`, error);
+                        }
+                        refreshStatus.textContent = `Refreshed ${completed + failed} of ${videos.length}...`;
                     }
-                }
+                };
+
+                await Promise.all(Array.from({ length: Math.min(concurrency, videos.length) }, processNext));
                 refreshStatus.textContent = videos.length === 0
                     ? 'No supported video files were found. Only .mp4, .mov, and .m4v files can generate thumbnails.'
                     : `Finished: ${completed} refreshed${failed ? `, ${failed} failed` : ''}.`;
