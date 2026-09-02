@@ -114,7 +114,7 @@ export default {
       const requestedRange = range ? parseByteRange(range) : undefined;
       const obj = await env.NEW_VIDEO_BUCKET.get(key, requestedRange ? { range: requestedRange } : undefined);
       if (!obj) return new Response("Not found", { status: 404, headers: corsHeaders });
-      if (/^thumbnails\\//i.test(key)) {
+      if (/^thumbnails\//i.test(key)) {
         const imageHeaders = new Headers(corsHeaders);
         imageHeaders.set("Content-Type", "image/jpeg");
         imageHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
@@ -159,7 +159,13 @@ export default {
         }
         const base64 = thumbnail.substring("data:image/jpeg;base64,".length);
         const binary = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
-        const thumbKey = `thumbnails/${key.replace(/\\.[^.]+$/, '.jpg')}`;
+        const videoKey = key.replace(/^thumbnails\//i, '');
+        if (/^thumbnails\//i.test(key) || !/\.(mp4|mov|m4v)$/i.test(videoKey)) {
+          return new Response(JSON.stringify({ error: "Expected a video object key" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        const thumbKey = `thumbnails/${videoKey.replace(/\.[^.]+$/, '.jpg')}`;
         await env.NEW_VIDEO_BUCKET.put(thumbKey, binary, { httpMetadata: { contentType: "image/jpeg" } });
         return new Response(JSON.stringify({ success: true, key, thumbnailKey: thumbKey }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -169,6 +175,16 @@ export default {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
+    }
+
+    // --- Route: POST /api/admin/cleanup-malformed-thumbnails ---
+    // Removes accidental thumbnails/thumbnails/... objects created by older refresh attempts.
+    if (path === "/api/admin/cleanup-malformed-thumbnails" && method === "POST") {
+      const objects = await env.NEW_VIDEO_BUCKET.list({ prefix: "thumbnails/thumbnails/" });
+      await Promise.all(objects.objects.map(object => env.NEW_VIDEO_BUCKET.delete(object.key)));
+      return new Response(JSON.stringify({ deleted: objects.objects.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
 
     // --- Route: GET /api/admin/shiurim ---

@@ -1059,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (refreshButton) refreshButton.onclick = async () => {
                 const allVideos = (data || []).filter(video => {
                     const key = video.id || '';
-                    return video.playbackUrl && !key.toLowerCase().startsWith('thumbnails/');
+                    return video.playbackUrl && !key.toLowerCase().startsWith('thumbnails/') && /\.(mp4|mov|m4v)$/i.test(key);
                 });
                 if (!confirm(`Regenerate first-frame thumbnails for ${allVideos.length} videos? Existing thumbnails will be overwritten.`)) return;
                 refreshButton.disabled = true;
