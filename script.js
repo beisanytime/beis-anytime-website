@@ -1048,12 +1048,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const refreshButton = document.getElementById('refreshThumbnailsBtn');
             const refreshStatus = document.getElementById('thumbnailRefreshStatus');
             if (refreshButton) refreshButton.onclick = async () => {
-                if (!confirm(`Regenerate first-frame thumbnails for ${data?.length || 0} videos? Existing thumbnails will be overwritten.`)) return;
+                const allVideos = (data || []).filter(video => video.playbackUrl);
+                if (!confirm(`Regenerate first-frame thumbnails for ${allVideos.length} videos? Existing thumbnails will be overwritten.`)) return;
                 refreshButton.disabled = true;
                 refreshStatus.style.display = 'block';
                 let completed = 0;
                 let failed = 0;
-                const videos = (data || []).filter(video => video.playbackUrl && /\\.(mp4|mov)$/i.test(video.id || video.playbackUrl));
+                const videos = allVideos;
 
                 for (const video of videos) {
                     refreshStatus.textContent = `Refreshing thumbnail ${completed + failed + 1} of ${videos.length}...`;
@@ -1072,7 +1073,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.error(`Thumbnail refresh failed for ${video.id}:`, error);
                     }
                 }
-                refreshStatus.textContent = `Finished: ${completed} refreshed${failed ? `, ${failed} failed` : ''}.`;
+                refreshStatus.textContent = videos.length === 0
+                    ? 'No supported video files were found. Only .mp4, .mov, and .m4v files can generate thumbnails.'
+                    : `Finished: ${completed} refreshed${failed ? `, ${failed} failed` : ''}.`;
                 refreshButton.disabled = false;
                 sessionStorage.removeItem('allShiurim');
                 allShiurimCache = [];
