@@ -24,7 +24,7 @@ export default {
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Range, X-User-Email, X-Admin-Key",
       "Access-Control-Expose-Headers": "Accept-Ranges, Content-Length, Content-Range, ETag, Content-Type",
     };
@@ -98,36 +98,38 @@ export default {
     // --- Route: GET /api/video-proxy?key=... ---
     // Serves files (videos/thumbnails) directly via the worker's binding.
     // Bypasses any custom domain/CORS issues on the public R2 domain.
-    if (path === "/api/video-proxy" && method === "GET") {
+    if (path === "/api/video-proxy" && (method === "GET" || method === "HEAD")) {
       const key = url.searchParams.get("key");
       if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
 
       const range = request.headers.get("Range");
       let obj;
       try {
-        // Let R2 parse the browser's Range header, including suffix ranges.
+        // R2 understands the browser's Range header, including suffix ranges.
         obj = await env.NEW_VIDEO_BUCKET.get(key, range ? { range: request.headers } : undefined);
       } catch (error) {
-        return new Response(JSON.stringify({ error: "Unable to read video" }), {
+        return new Response(JSON.stringify({ error: "Unable to read media" }), {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
       if (!obj) return new Response("Not found", { status: 404, headers: corsHeaders });
-      if (/^thumbnails\//i.test(key)) {
-        const imageHeaders = new Headers(corsHeaders);
-        imageHeaders.set("Content-Type", "image/jpeg");
-        imageHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
-        return new Response(obj.body, { headers: imageHeaders });
-      }
 
       const headers = new Headers(corsHeaders);
       obj.writeHttpMetadata(headers);
-      if (/\.mov$/i.test(key)) headers.set("Content-Type", "video/quicktime");
-      if (/\.mp4$/i.test(key)) headers.set("Content-Type", "video/mp4");
-      headers.set("etag", obj.httpEtag);
+      if (/^thumbnails\//i.test(key)) {
+        headers.set("Content-Type", "image/jpeg");
+      } else if (/\.mp4$/i.test(key)) {
+        headers.set("Content-Type", "video/mp4");
+      } else if (/\.mov$/i.test(key)) {
+        headers.set("Content-Type", "video/quicktime");
+      } else if (/\.(m4a|mp3)$/i.test(key)) {
+        headers.set("Content-Type", "audio/mpeg");
+      }
+      headers.set("ETag", obj.httpEtag);
       headers.set("Accept-Ranges", "bytes");
       headers.set("Cache-Control", "public, max-age=31536000, immutable");
+
       if (obj.range) {
         const rangeOffset = obj.range.offset ?? Math.max(0, obj.size - obj.range.length);
         const rangeLength = obj.range.length ?? obj.size;
@@ -137,7 +139,11 @@ export default {
         headers.set("Content-Length", String(obj.size));
       }
 
-      return new Response(obj.body, { status: obj.range ? 206 : 200, headers });
+      // HEAD must expose the same metadata as GET without consuming a body.
+      return new Response(method === "HEAD" ? null : obj.body, {
+        status: obj.range ? 206 : 200,
+        headers
+      });
     }
 
     // --- Route: GET /api/debug-r2 ---

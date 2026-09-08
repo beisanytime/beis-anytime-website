@@ -775,8 +775,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 // Load metadata first, then start playback when the browser has enough data.
+                const playbackUrl = typeof shiur.playbackUrl === 'string' ? shiur.playbackUrl.trim() : '';
+                if (!playbackUrl) {
+                    showToast('This shiur has no playable media source.', 'error');
+                    document.getElementById('player-container').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:var(--color-danger); margin-bottom:16px;"></i>
+                            <h3>Playback Unavailable</h3>
+                            <p>This shiur is missing a playable media source.</p>
+                        </div>
+                    `;
+                    return;
+                }
                 vid.preload = 'metadata';
-                vid.src = shiur.playbackUrl;
+                vid.src = playbackUrl;
                 vid.load();
 
                 const playButton = document.getElementById('videoPlayButton');
