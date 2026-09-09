@@ -1089,7 +1089,21 @@ document.addEventListener('DOMContentLoaded', () => {
         admin: async () => {
             if (!currentUser) return renderGoogleSignInPrompt('admin');
             if (!getStoredPassword()) return renderPasswordModal('admin');
-            const data = await fetchAdmin('/api/admin/shiurim');
+            const [data, logs] = await Promise.all([
+                fetchAdmin('/api/admin/shiurim'),
+                fetchAdmin('/api/admin/upload-logs?limit=200')
+            ]);
+
+            // Build map of filename -> most recent uploader
+            const uploaderMap = {};
+            if (logs && logs.length) {
+                for (const log of logs) {
+                    if (log.filename && !uploaderMap[log.filename]) {
+                        uploaderMap[log.filename] = log;
+                    }
+                }
+            }
+
             contentArea.innerHTML = `
         <div class="flex-between" style="margin-bottom:24px; gap:12px; flex-wrap:wrap;">
             <h1>Admin Dashboard</h1>
@@ -1100,18 +1114,24 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div id="thumbnailRefreshStatus" style="display:none; margin-bottom:20px; padding:12px 16px; border-radius:var(--radius-md); background:var(--bg-surface-hover); color:var(--text-muted);"></div>
         <div style="background:var(--bg-surface-solid); border:1px solid var(--border-light); border-radius:12px; overflow:hidden;">
-            ${data && data.length ? data.map(s => `
+            ${data && data.length ? data.map(s => {
+                const uploader = uploaderMap[s.id];
+                const uploaderHtml = uploader
+                    ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Uploaded by ${uploader.name} (${uploader.email}) on ${new Date(uploader.timestamp).toLocaleDateString()}</div>`
+                    : '';
+                return `
                 <div style="padding:16px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; gap:12px; align-items:center;">
                         <img src="${s.thumbnailDataUrl || s.thumbnailUrl || ''}" alt="Thumbnail for ${s.title}" style="width:60px; height:34px; object-fit:cover; border-radius:4px;" onerror="this.style.visibility='hidden';">
                         <div>
                             <div style="font-weight:600;">${s.title}</div>
                             <div style="font-size:0.8rem; color:var(--text-muted);">${formatRabbiName(s.rabbi)}</div>
+                            ${uploaderHtml}
                         </div>
                     </div>
                     <button class="btn btn-secondary" style="padding:6px 12px; color:red; border-color:transparent;" data-del="${s.id}">Delete</button>
-                </div>
-            `).join('') : '<div style="padding:20px;">No shiurim.</div>'}
+                </div>`;
+            }).join('') : '<div style="padding:20px;">No shiurim.</div>'}
         </div>
     `;
             const refreshButton = document.getElementById('refreshThumbnailsBtn');
