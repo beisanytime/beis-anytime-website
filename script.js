@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const VIDEO_API_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
 
     const ADMIN_EMAILS = ['beisanytime@gmail.com', 'joshuacalvert1@gmail.com'];
-    const UPLOAD_PASSWORD = 'beis24/7';
+    const UPLOAD_PASSWORD = 'beis24/6';
     const MAIN_API_URL = 'https://beis-api.beisanytime.workers.dev';
 
     // --- State ---
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="btn btn-primary" onclick="loadPage('all')">Browse Library</button>
             </div>
         </section>
-        
+
         ${continuing.length > 0 ? `
             <h2 style="margin-bottom: 24px;">Continue Watching</h2>
             <div class="continue-watching-tray" id="continueTray"></div>
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h1>Community Feed</h1>
                 <button class="btn btn-secondary" onclick="loadPage('community')"><i class="fas fa-sync"></i> Refresh</button>
             </div>
-            
+
             ${isAdmin ? `
             <div class="post-composer">
                 <h3 style="margin-top:0; margin-bottom:12px; font-size:1rem;">Post Announcement</h3>
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="fas fa-bullhorn"></i> Official Announcements and Updates
             </div>
             `}
-            
+
             <div id="postsList">
                 <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
                 <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
         speakers: async () => {
             const data = await getAllShiurim();
             const rabbisMap = new Map();
-            
+
             data.forEach(s => {
                 if (!s.rabbi) return;
                 // Normalize key for grouping (e.g., "rabbi hartman" and "rabbi_hartman" group together)
@@ -653,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </button>` : ''}
                     </div>
                 </div>
-                
+
                 <div class="video-container" id="player-container">
                     <div class="skeleton" style="width:100%; height:100%; position:absolute; top:0; left:0; z-index:0;"></div>
                     ${shiur.rabbi && shiur.rabbi.toLowerCase() === 'time4mishna'
@@ -675,10 +675,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>`
                 }
                 </div>
-                
+
                 <div class="video-details" id="vDetails">
                     <h1 class="video-title">${shiur.title}</h1>
-                    
+
                     <div class="video-meta-row">
                         <span class="rabbi-badge" style="position:static; margin:0;">
                             <span class="rabbi-dot"></span>${formatRabbiName(shiur.rabbi)}
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <div class="video-description">${shiur.description || 'No description provided.'}</div>
-                    
+
                     <div style="margin-top:24px; display:flex; flex-wrap:wrap; gap:8px;">
                         ${shiur.tags ? shiur.tags.map(t => `<span class="tag-badge">${t}</span>`).join('') : ''}
                     </div>
@@ -709,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="video-comments-area" id="vComments">
                     <h2 style="font-size:1.4rem; margin-bottom:24px; font-weight:700;">Comments</h2>
-                    
+
                     ${currentUser ? `
                     <div class="comment-composer">
                         <div style="display:flex; gap:16px;">
@@ -1145,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         upload: async () => {
             if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('upload');
-            
+
             // Get existing rabbis for the datalist
             const data = await getAllShiurim();
             const existingRabbis = [...new Set(data.map(s => s.rabbi).filter(r => r && r.toLowerCase() !== 'time4mishna'))];
