@@ -22,6 +22,37 @@ Environment variables
 - ADMIN_EMAIL (e.g. beisanytime@gmail.com) — used for admin checks
 - ADMIN_API_KEY (optional) — optional secret you can use instead of or in addition to ADMIN_EMAIL
 
+R2 Metadata Worker (worker/index.js) — Admin Auth & Upload Logging
+===================================================================
+
+The main API worker now requires server-side password validation and Google Sign-In for all admin operations.
+
+Environment variables (set via Cloudflare dashboard or `wrangler secret put`):
+- UPLOAD_PASSWORD — The admin password (secret, not in client code)
+- R2_PUBLIC_URL — Public R2 domain (optional, defaults to https://r2.beisanytime.com)
+
+KV Namespace to create and bind:
+- UPLOAD_LOGS_KV — Stores upload logs (who uploaded what, when)
+
+Admin routes (all require X-Upload-Password header):
+- POST /api/admin/prepare-upload — Start multipart upload (also requires X-User-Email)
+- PUT /api/admin/upload-part — Upload chunk
+- POST /api/admin/complete-upload — Finalize upload
+- PUT /api/upload-proxy — Upload thumbnail
+- GET /api/admin/shiurim — List all shiurim
+- DELETE /api/admin/shiurim/:id — Delete shiur
+- POST /api/admin/refresh-thumbnails — Regenerate thumbnails
+- POST /api/admin/cleanup-malformed-thumbnails — Fix bad thumbnails
+- GET /api/admin/upload-logs — View upload history
+
+Setup:
+1. Set the upload password: wrangler secret put UPLOAD_PASSWORD
+2. Create UPLOAD_LOGS_KV namespace: wrangler kv:namespace create UPLOAD_LOGS_KV
+3. Add to wrangler.toml:
+   [[kv_namespaces]]
+   binding = "UPLOAD_LOGS_KV"
+   id = "YOUR_KV_ID_HERE"
+
 Recommended binding in wrangler.toml (example)
 
 name = "beis-anytime-api"

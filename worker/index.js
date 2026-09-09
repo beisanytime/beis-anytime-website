@@ -16,22 +16,44 @@ export default {
 
     // Configuration
     const OLD_WORKER_URL = 'https://beis-anytime-api.beisanytime.workers.dev';
-    // You should bind your new R2 bucket to 'NEW_VIDEO_BUCKET'
-    // And your public R2 URL to 'R2_PUBLIC_URL' in wrangler.toml or dashboard
-    // Note: The public URL usually looks like https://pub-xxxx.r2.dev or a custom domain.
-    // The .cloudflarestorage.com URL is for the S3 API and won't work in browsers.
     const R2_PUBLIC_BASE = env.R2_PUBLIC_URL || 'https://r2.beisanytime.com';
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Range, X-User-Email, X-Admin-Key",
+      "Access-Control-Allow-Headers": "Content-Type, Range, X-User-Email, X-Admin-Key, X-Upload-Password, X-User-Name",
       "Access-Control-Expose-Headers": "Accept-Ranges, Content-Length, Content-Range, ETag, Content-Type",
     };
 
     if (method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
+
+    // --- Helper: Verify upload password ---
+    const verifyPassword = (request) => {
+      const password = request.headers.get('X-Upload-Password');
+      if (!env.UPLOAD_PASSWORD) {
+        console.error('UPLOAD_PASSWORD environment variable is not set');
+        return false;
+      }
+      return password === env.UPLOAD_PASSWORD;
+    };
+
+    // --- Helper: Log upload to KV ---
+    const logUpload = async (env, userEmail, userName, filename, type) => {
+      try {
+        if (!env.UPLOAD_LOGS_KV) return;
+        const timestamp = new Date().toISOString();
+        const key = `upload:${Date.now()}:${filename}`;
+        const entry = { timestamp, email: userEmail, name: userName, filename, type };
+        await env.UPLOAD_LOGS_KV.put(key, JSON.stringify(entry), {
+          expirationTtl: 60 * 60 * 24 * 365 // 1 year retention
+        });
+        console.log(`Upload logged: ${userName} (${userEmail}) uploaded ${filename}`);
+      } catch (err) {
+        console.error('Failed to log upload:', err);
+      }
+    };
 
     // --- Utility: Parse filename to Metadata ---
     const parseFilename = (filename) => {
@@ -156,9 +178,18 @@ export default {
     }
 
     // --- Route: POST /api/admin/refresh-thumbnails ---
-    // Regenerates thumbnails for every video using a supplied first-frame JPEG.
-    // The browser extracts frames because Workers cannot decode video containers.
     if (path === "/api/admin/refresh-thumbnails" && method === "POST") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const userEmail = request.headers.get('X-User-Email');
+      if (!userEmail) {
+        return new Response(JSON.stringify({ error: 'Google sign-in required' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       try {
         const body = await request.json();
         const { key, thumbnail } = body || {};
@@ -188,8 +219,18 @@ export default {
     }
 
     // --- Route: POST /api/admin/cleanup-malformed-thumbnails ---
-    // Removes thumbnail objects that were accidentally uploaded with a video extension.
     if (path === "/api/admin/cleanup-malformed-thumbnails" && method === "POST") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const userEmail = request.headers.get('X-User-Email');
+      if (!userEmail) {
+        return new Response(JSON.stringify({ error: 'Google sign-in required' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       const objects = await env.NEW_VIDEO_BUCKET.list({ prefix: "thumbnails/" });
       const malformed = objects.objects.filter(object => /\.(mp4|mov|m4v)$/i.test(object.key));
       await Promise.all(malformed.map(object => env.NEW_VIDEO_BUCKET.delete(object.key)));
@@ -199,13 +240,22 @@ export default {
     }
 
     // --- Route: GET /api/admin/shiurim ---
-    // Lists all shiurim for the admin panel
     if (path === "/api/admin/shiurim" && method === "GET") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       return handleAllShiurim();
     }
 
     // --- Route: DELETE /api/admin/shiurim/:id ---
     if (path.startsWith("/api/admin/shiurim/") && method === "DELETE") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       const id = decodeURIComponent(path.split("/").pop());
 
       if (/\.(mp4|mov|m4a|mp3)$/i.test(id)) {
@@ -296,8 +346,18 @@ export default {
     // ============================================================
 
     // --- Route: POST /api/admin/prepare-upload ---
-    // Returns the R2 key + starts a multipart upload for the video
     if (path === "/api/admin/prepare-upload" && method === "POST") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const userEmail = request.headers.get('X-User-Email');
+      if (!userEmail) {
+        return new Response(JSON.stringify({ error: 'Google sign-in required' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       try {
         const body = await request.json();
         const { title, rabbi, date, fileName } = body;
@@ -320,6 +380,10 @@ export default {
           httpMetadata: { contentType: contentType }
         });
 
+        // Log the upload
+        const userName = request.headers.get('X-User-Name') || userEmail;
+        await logUpload(env, userEmail, userName, r2Key, 'prepare');
+
         return new Response(JSON.stringify({
           r2Key: r2Key,
           thumbKey: thumbKey,
@@ -336,8 +400,12 @@ export default {
     }
 
     // --- Route: PUT /api/admin/upload-part ---
-    // Uploads a single chunk of a multipart upload
     if (path === "/api/admin/upload-part" && method === "PUT") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       try {
         const r2Key = url.searchParams.get("key");
         const uploadId = url.searchParams.get("uploadId");
@@ -362,8 +430,12 @@ export default {
     }
 
     // --- Route: POST /api/admin/complete-upload ---
-    // Completes a multipart upload after all parts are uploaded
     if (path === "/api/admin/complete-upload" && method === "POST") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       try {
         const { r2Key, uploadId, parts } = await request.json();
 
@@ -383,8 +455,12 @@ export default {
     }
 
     // --- Route: PUT /api/upload-proxy ---
-    // Simple proxy for small files (thumbnails)
     if (path === "/api/upload-proxy" && method === "PUT") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       const key = url.searchParams.get("key");
       if (!key) return new Response("Missing key", { status: 400, headers: corsHeaders });
 
@@ -399,6 +475,32 @@ export default {
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
+    }
+
+    // --- Route: GET /api/admin/upload-logs ---
+    if (path === "/api/admin/upload-logs" && method === "GET") {
+      if (!verifyPassword(request)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      try {
+        const limit = parseInt(url.searchParams.get('limit') || '50');
+        const list = await env.UPLOAD_LOGS_KV.list({ prefix: 'upload:', limit });
+        const logs = [];
+        for (const key of list.keys) {
+          const value = await env.UPLOAD_LOGS_KV.get(key.name);
+          if (value) logs.push(JSON.parse(value));
+        }
+        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return new Response(JSON.stringify(logs), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
     }
 
     // --- Default: Proxy everything else to the old worker ---

@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const VIDEO_API_URL = 'https://beis-anytime-viewsapi.beisanytime.workers.dev';
 
     const ADMIN_EMAILS = ['beisanytime@gmail.com', 'joshuacalvert1@gmail.com'];
-    const UPLOAD_PASSWORD = 'beis24/6';
     const MAIN_API_URL = 'https://beis-api.beisanytime.workers.dev';
 
     // --- State ---
@@ -138,6 +137,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.status === 204) return null;
             return await res.json();
         } catch (e) { return null; }
+    };
+
+    // --- Password helpers (stored in sessionStorage, validated server-side) ---
+    const getStoredPassword = () => sessionStorage.getItem('uploadPassword');
+    const setStoredPassword = (pwd) => sessionStorage.setItem('uploadPassword', pwd);
+
+    // Authenticated fetch for admin endpoints (sends password + Google email)
+    const fetchAdmin = async (endpoint, options = {}) => {
+        const password = getStoredPassword();
+        if (!password) {
+            renderPasswordModal('admin');
+            return null;
+        }
+        const headers = { ...options.headers, 'X-Upload-Password': password };
+        if (currentUser) {
+            headers['X-User-Email'] = currentUser.email;
+            headers['X-User-Name'] = currentUser.name;
+        }
+        try {
+            const res = await fetch(`${MAIN_API_URL}${endpoint}`, { ...options, headers });
+            if (res.status === 401) {
+                sessionStorage.removeItem('uploadPassword');
+                renderPasswordModal('admin');
+                return null;
+            }
+            if (!res.ok) throw new Error('API Error');
+            if (res.status === 204) return null;
+            return await res.json();
+        } catch (e) { console.error(e); return null; }
     };
 
     // --- Toast Helper ---
@@ -590,8 +618,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await getAllShiurim();
             const filtered = data.filter(s => s.rabbi && s.rabbi.toLowerCase() === 'time4mishna');
 
-            // Check if user is authorized to upload (simple check based on session)
-            const canUpload = sessionStorage.getItem('uploadAuthorized') === 'true';
+            // Check if user is authorized to upload
+            const canUpload = currentUser && ADMIN_EMAILS.includes(currentUser.email) && getStoredPassword();
 
             contentArea.innerHTML = `
                  <div class="flex-between" style="margin-bottom: 30px;">
@@ -1059,8 +1087,9 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         admin: async () => {
-            if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('admin');
-            const data = await fetchMain('/api/admin/shiurim');
+            if (!currentUser) return renderGoogleSignInPrompt('admin');
+            if (!getStoredPassword()) return renderPasswordModal('admin');
+            const data = await fetchAdmin('/api/admin/shiurim');
             contentArea.innerHTML = `
         <div class="flex-between" style="margin-bottom:24px; gap:12px; flex-wrap:wrap;">
             <h1>Admin Dashboard</h1>
@@ -1107,11 +1136,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         refreshStatus.textContent = `Refreshing thumbnail ${completed + failed + 1} of ${videos.length}...`;
                         try {
                             const frame = await captureFirstFrame(video.playbackUrl);
+                            const password = getStoredPassword();
                             const response = await fetch(`${MAIN_API_URL}/api/admin/refresh-thumbnails`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Upload-Password': password,
+                                    'X-User-Email': currentUser.email,
+                                    'X-User-Name': currentUser.name
+                                },
                                 body: JSON.stringify({ key: video.id, thumbnail: frame })
                             });
+                            if (response.status === 401) {
+                                sessionStorage.removeItem('uploadPassword');
+                                renderPasswordModal('admin');
+                                return;
+                            }
                             const result = await response.json();
                             if (!response.ok || result.error) throw new Error(result.error || 'Upload failed');
                             completed++;
@@ -1136,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contentArea.querySelectorAll('[data-del]').forEach(b => {
                 b.onclick = async () => {
                     if (confirm('Delete?')) {
-                        await fetchMain(`/api/admin/shiurim/${b.dataset.del}`, { method: 'DELETE' });
+                        await fetchAdmin(`/api/admin/shiurim/${b.dataset.del}`, { method: 'DELETE' });
                         loadPage('admin');
                     }
                 }
@@ -1144,7 +1184,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         upload: async () => {
-            if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('upload');
+            if (!currentUser) return renderGoogleSignInPrompt('upload');
+            if (!getStoredPassword()) return renderPasswordModal('upload');
 
             // Get existing rabbis for the datalist
             const data = await getAllShiurim();
@@ -1198,10 +1239,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const file = fInput.files[0];
                     if (!capturedThumbnailDataUrl) throw new Error('Capture thumbnail first');
 
+                    const password = getStoredPassword();
+                    const authHeaders = {
+                        'X-Upload-Password': password,
+                        'X-User-Email': currentUser.email,
+                        'X-User-Name': currentUser.name
+                    };
+
                     // Step 1: Prepare upload (starts multipart upload on worker)
                     const prep = await fetch(`${MAIN_API_URL}/api/admin/prepare-upload`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
                         body: JSON.stringify({
                             title: document.getElementById('title').value,
                             rabbi: document.getElementById('rabbi').value,
@@ -1209,6 +1257,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             fileName: file.name
                         })
                     });
+                    if (prep.status === 401) {
+                        sessionStorage.removeItem('uploadPassword');
+                        renderPasswordModal('upload');
+                        return;
+                    }
                     const { r2Key, uploadId, thumbnailUrl } = await prep.json();
 
                     // Step 2: Upload video in chunks (10MB each)
@@ -1226,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const partRes = await fetch(
                             `${MAIN_API_URL}/api/admin/upload-part?key=${encodeURIComponent(r2Key)}&uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`,
-                            { method: 'PUT', body: chunk }
+                            { method: 'PUT', body: chunk, headers: authHeaders }
                         );
                         const partData = await partRes.json();
                         if (partData.error) throw new Error(partData.error);
@@ -1237,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.textContent = 'Finalizing...';
                     const completeRes = await fetch(`${MAIN_API_URL}/api/admin/complete-upload`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
                         body: JSON.stringify({ r2Key, uploadId, parts: uploadedParts })
                     });
                     const completeData = await completeRes.json();
@@ -1249,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const thumbBlob = await (await fetch(capturedThumbnailDataUrl)).blob();
                         await fetch(thumbnailUrl, {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'image/jpeg' },
+                            headers: { 'Content-Type': 'image/jpeg', ...authHeaders },
                             body: thumbBlob
                         });
                     }
@@ -1266,7 +1319,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         upload_time4mishna: () => {
-            if (sessionStorage.getItem('uploadAuthorized') !== 'true') return renderPasswordModal('upload_time4mishna');
+            if (!currentUser) return renderGoogleSignInPrompt('upload_time4mishna');
+            if (!getStoredPassword()) return renderPasswordModal('upload_time4mishna');
             contentArea.innerHTML = `
         <div style="max-width:600px; margin:0 auto; background:var(--bg-surface-solid); padding:32px; border-radius:var(--radius-lg); border:1px solid var(--border-light);">
             <div class="flex-between" style="margin-bottom:24px;">
@@ -1294,9 +1348,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const file = fInput.files[0];
                     if (!file) throw new Error('No file selected');
 
+                    const password = getStoredPassword();
+                    const authHeaders = {
+                        'X-Upload-Password': password,
+                        'X-User-Email': currentUser.email,
+                        'X-User-Name': currentUser.name
+                    };
+
                     const prep = await fetch(`${MAIN_API_URL}/api/admin/prepare-upload`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
                         body: JSON.stringify({
                             title: document.getElementById('title').value,
                             rabbi: 'time4mishna',
@@ -1304,6 +1365,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             fileName: file.name
                         })
                     });
+                    if (prep.status === 401) {
+                        sessionStorage.removeItem('uploadPassword');
+                        renderPasswordModal('upload_time4mishna');
+                        return;
+                    }
                     const { r2Key, uploadId } = await prep.json();
 
                     // Upload audio in chunks
@@ -1320,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const partRes = await fetch(
                             `${MAIN_API_URL}/api/admin/upload-part?key=${encodeURIComponent(r2Key)}&uploadId=${encodeURIComponent(uploadId)}&partNumber=${partNumber}`,
-                            { method: 'PUT', body: chunk }
+                            { method: 'PUT', body: chunk, headers: authHeaders }
                         );
                         const partData = await partRes.json();
                         if (partData.error) throw new Error(partData.error);
@@ -1330,7 +1396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.textContent = 'Finalizing...';
                     const completeRes = await fetch(`${MAIN_API_URL}/api/admin/complete-upload`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
                         body: JSON.stringify({ r2Key, uploadId, parts: uploadedParts })
                     });
                     const completeData = await completeRes.json();
@@ -1347,19 +1413,65 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     };
 
+    function renderGoogleSignInPrompt(target) {
+        contentArea.innerHTML = `
+    <div style="max-width:400px; margin:60px auto; background:var(--bg-surface-solid); padding:30px; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+        <h3>Sign In Required</h3>
+        <p style="color:var(--text-muted); margin:12px 0 20px;">Please sign in with Google to access admin features.</p>
+        <div id="googleSignInModal" style="display:flex; justify-content:center;"></div>
+    </div>
+`;
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+            window.google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: (response) => {
+                    window.handleCredentialResponse(response);
+                    setTimeout(() => {
+                        if (currentUser) renderPasswordModal(target);
+                    }, 500);
+                },
+                auto_select: false
+            });
+            window.google.accounts.id.renderButton(
+                document.getElementById('googleSignInModal'),
+                { type: 'standard', theme: 'outline', size: 'large', text: 'signin_with' }
+            );
+        } else {
+            document.getElementById('googleSignInModal').innerHTML = '<button class="btn btn-primary js-google-sign-in">Sign In with Google</button>';
+        }
+    }
+
     function renderPasswordModal(target) {
+        if (!currentUser) return renderGoogleSignInPrompt(target);
+
         contentArea.innerHTML = `
     <div style="max-width:400px; margin:60px auto; background:var(--bg-surface-solid); padding:30px; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
         <h3>Admin Access</h3>
-        <input type="password" id="pwd" placeholder="Password" style="margin:16px 0;">
+        <p style="color:var(--text-muted); margin:12px 0;">Signed in as ${currentUser.name}</p>
+        <input type="password" id="pwd" placeholder="Admin Password" style="margin:16px 0;">
         <button id="pwdBtn" class="btn btn-primary">Unlock</button>
     </div>
 `;
-        document.getElementById('pwdBtn').onclick = () => {
-            if (document.getElementById('pwd').value === UPLOAD_PASSWORD) {
-                sessionStorage.setItem('uploadAuthorized', 'true');
-                loadPage(target);
-            } else alert('Incorrect');
+        document.getElementById('pwdBtn').onclick = async () => {
+            const password = document.getElementById('pwd').value;
+            if (!password) return alert('Please enter a password');
+            try {
+                const res = await fetch(`${MAIN_API_URL}/api/admin/shiurim`, {
+                    headers: {
+                        'X-Upload-Password': password,
+                        'X-User-Email': currentUser.email,
+                        'X-User-Name': currentUser.name
+                    }
+                });
+                if (res.ok) {
+                    setStoredPassword(password);
+                    loadPage(target);
+                } else {
+                    alert('Incorrect password');
+                }
+            } catch (err) {
+                alert('Failed to verify password');
+            }
         };
     }
 
