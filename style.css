@@ -154,11 +154,13 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
 .post-card:hover { box-shadow: var(--shadow-md); }
 
 /* Feed Layout */
-.feed-container { max-width: 680px; margin: 0 auto; }
+.feed-container { margin: 0 auto; }
 .feed-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
 .feed-header h1 { margin-bottom: 4px; }
 .feed-subtitle { color: var(--text-muted); font-size: .88rem; margin: 0; }
 .feed-refresh-btn { flex-shrink: 0; margin-left: 16px; }
+.posts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.posts-grid .post-card { margin-bottom: 0; }
 
 /* Feed Notice (non-admin) */
 .feed-notice { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding: 18px 20px; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
@@ -265,6 +267,7 @@ label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size:
 .cinema-mode .video-container { border: 0; border-radius: 0; box-shadow: 0 0 100px rgba(0,0,0,.5); }
 
 @media (max-width: 1200px) { .view-shiur-grid { grid-template-columns: 1fr; } .related-column { margin-top: 20px; } }
+@media (min-width: 1420px) { .posts-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 1024px) {
     .sidebar { display: none; }
     .mobile-header { position: fixed; inset: 0 0 auto; z-index: 1000; display: flex; align-items: center; justify-content: space-between; height: 62px; padding: 0 16px; background: var(--bg-glass); border-bottom: 1px solid var(--border-light); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
@@ -294,6 +297,7 @@ label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size:
     .feed-notice { gap: 12px; padding: 14px 16px; }
     .composer-footer { flex-direction: column; gap: 12px; align-items: stretch; }
     .composer-footer .btn { align-self: flex-end; }
+    .posts-grid { grid-template-columns: 1fr; }
     .related-thumb { width: 100px; }
     .post-notification { right: 15px; bottom: 84px; left: 15px; width: auto; }
     .toast-container { bottom: 84px; }

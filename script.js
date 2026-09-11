@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             `}
 
-            <div id="postsList">
+            <div id="postsList" class="posts-grid">
                 <div class="skeleton-post"></div>
                 <div class="skeleton-post"></div>
             </div>
