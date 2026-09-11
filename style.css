@@ -31,8 +31,8 @@
     --radius-md: 16px;
     --radius-lg: 20px;
     --radius-xl: 28px;
-    --font-ui: 'Manrope', Inter, system-ui, -apple-system, sans-serif;
-    --font-display: 'Newsreader', Georgia, serif;
+    --font-ui: 'Poppins', system-ui, -apple-system, sans-serif;
+    --font-display: 'Poppins', system-ui, -apple-system, sans-serif;
 }
 
 [data-theme="dark"] {
