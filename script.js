@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             ` : `
-            <div style="margin-bottom:20px; padding:15px; background:var(--bg-surface-hover); border-radius:8px; border:1px solid var(--border-light); text-align:center; color:var(--text-muted); font-size:0.9rem;">
+            <div style="margin-bottom:20px; padding:15px; background:var(--bg-surface-hover); border-radius:var(--radius-sm); border:1px solid var(--border-light); text-align:center; color:var(--text-muted); font-size:0.9rem;">
                 <i class="fas fa-bullhorn"></i> Official Announcements and Updates
             </div>
             `}
@@ -1113,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
         <div id="thumbnailRefreshStatus" style="display:none; margin-bottom:20px; padding:12px 16px; border-radius:var(--radius-md); background:var(--bg-surface-hover); color:var(--text-muted);"></div>
-        <div style="background:var(--bg-surface-solid); border:1px solid var(--border-light); border-radius:12px; overflow:hidden;">
+        <div style="background:var(--bg-surface-solid); border:1px solid var(--border-light); border-radius:var(--radius-md); overflow:hidden;">
             ${data && data.length ? data.map(s => {
                 const uploader = uploaderMap[s.id];
                 const uploaderHtml = uploader
@@ -1122,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                 <div style="padding:16px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; gap:12px; align-items:center;">
-                        <img src="${s.thumbnailDataUrl || s.thumbnailUrl || ''}" alt="Thumbnail for ${s.title}" style="width:60px; height:34px; object-fit:cover; border-radius:4px;" onerror="this.style.visibility='hidden';">
+                        <img src="${s.thumbnailDataUrl || s.thumbnailUrl || ''}" alt="Thumbnail for ${s.title}" style="width:60px; height:34px; object-fit:cover; border-radius:var(--radius-sm);" onerror="this.style.visibility='hidden';">
                         <div>
                             <div style="font-weight:600;">${s.title}</div>
                             <div style="font-size:0.8rem; color:var(--text-muted);">${formatRabbiName(s.rabbi)}</div>
@@ -1226,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><label>Title</label><input type="text" id="title" required></div>
                 <div><label>Date</label><input type="date" id="date" required></div>
                 <div><label>File</label><input type="file" id="fInput" accept="video/*,audio/*" required></div>
-                <div id="prev" class="hidden"><video id="vidP" controls style="width:100%; border-radius:8px; margin-top:10px;"></video><button type="button" id="cap" class="btn btn-secondary" style="margin-top:8px;">Capture Thumb</button></div>
+                <div id="prev" class="hidden"><video id="vidP" controls style="width:100%; border-radius:var(--radius-sm); margin-top:10px;"></video><button type="button" id="cap" class="btn btn-secondary" style="margin-top:8px;">Capture Thumb</button></div>
                 <button type="submit" class="btn btn-primary" id="sBtn">Upload</button>
             </form>
         </div>
