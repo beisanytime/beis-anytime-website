@@ -120,6 +120,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     };
 
+    const timeAgo = (date) => {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        if (seconds < 60) return 'Just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d ago`;
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: days > 365 ? 'numeric' : undefined });
+    };
+
     const fetchMain = async (endpoint, options = {}) => {
         try {
             const res = await fetch(`${MAIN_API_URL}${endpoint}`, options);
@@ -480,31 +492,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
             contentArea.innerHTML = `
         <div class="feed-container">
-            <div style="margin-bottom:30px; display:flex; justify-content:space-between; align-items:center;">
-                <h1>Community Feed</h1>
-                <button class="btn btn-secondary" onclick="loadPage('community')"><i class="fas fa-sync"></i> Refresh</button>
+            <div class="feed-header">
+                <div>
+                    <h1>Community Feed</h1>
+                    <p class="feed-subtitle">Official announcements and updates from the Beis Anytime team</p>
+                </div>
+                <button class="btn btn-secondary feed-refresh-btn" onclick="loadPage('community')"><i class="fas fa-sync"></i> Refresh</button>
             </div>
 
             ${isAdmin ? `
             <div class="post-composer">
-                <h3 style="margin-top:0; margin-bottom:12px; font-size:1rem;">Post Announcement</h3>
-                <div style="display:flex; gap:12px; margin-bottom:12px;">
-                    <img src="${currentUser.picture}" style="width:40px; height:40px; border-radius:50%;">
-                    <textarea id="postInput" placeholder="Write an official announcement..." style="flex:1; border:none; background:transparent; resize:none; font-size:1rem; outline:none;" rows="3"></textarea>
+                <div class="composer-header">
+                    <img src="${currentUser.picture}" class="composer-avatar">
+                    <span class="composer-label">Posting as admin</span>
                 </div>
-                <div style="display:flex; justify-content:flex-end;">
-                    <button id="postSubmitBtn" class="btn btn-primary">Post</button>
+                <textarea id="postInput" class="composer-textarea" placeholder="Write an official announcement..." rows="3"></textarea>
+                <div class="composer-footer">
+                    <span class="composer-hint"><i class="fas fa-info-circle"></i> Visible to all community members</span>
+                    <button id="postSubmitBtn" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Post</button>
                 </div>
             </div>
             ` : `
-            <div style="margin-bottom:20px; padding:15px; background:var(--bg-surface-hover); border-radius:var(--radius-sm); border:1px solid var(--border-light); text-align:center; color:var(--text-muted); font-size:0.9rem;">
-                <i class="fas fa-bullhorn"></i> Official Announcements and Updates
+            <div class="feed-notice">
+                <div class="feed-notice-icon"><i class="fas fa-bullhorn"></i></div>
+                <div>
+                    <strong>Official Announcements</strong>
+                    <span>Updates and news from the Beis Anytime team</span>
+                </div>
             </div>
             `}
 
             <div id="postsList">
-                <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
-                <div class="skeleton" style="height:150px; margin-bottom:20px;"></div>
+                <div class="skeleton-post"></div>
+                <div class="skeleton-post"></div>
             </div>
         </div>
     `;
@@ -547,16 +567,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="post-header">
                 <img src="${p.avatar_url}" class="post-avatar">
                 <div class="post-meta">
-                    <span class="post-author">${p.display_name} <i class="fas fa-check-circle" style="color:var(--color-accent); font-size:0.8rem; margin-left:4px;" title="Verified Admin"></i></span>
-                    <span class="post-time">${new Date(p.created_at * 1000).toLocaleString()}</span>
+                    <span class="post-author">${p.display_name} <i class="fas fa-check-circle" style="color:var(--color-accent); font-size:0.75rem; margin-left:4px;" title="Verified Admin"></i></span>
+                    <span class="post-time">${timeAgo(new Date(p.created_at * 1000))}</span>
                 </div>
+                ${(isAdmin) ? `
+                    <button class="post-delete-btn" onclick="deletePost(${p.id})" title="Delete post"><i class="fas fa-trash-alt"></i></button>
+                ` : ''}
             </div>
             <div class="post-content">${p.content}</div>
-            ${(isAdmin) ? `
-                <div class="post-actions">
-                     <button class="btn btn-secondary" style="color:red; font-size:0.8rem; padding:6px 12px;" onclick="deletePost(${p.id})">Delete</button>
-                </div>
-            ` : ''}
         </div>
     `).join('');
 
